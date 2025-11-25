@@ -27,7 +27,7 @@ pip install -r requirements.txt
 ```
 uvicorn app.main:app --reload
 ```
-API runs on http://127.0.0.1:8000
+API runs on http://127.0.0.1:8000 (Access http://127.0.0.1:8000/group_members_example to view an example endpoint)
 
 
 # Frontend Instructions
