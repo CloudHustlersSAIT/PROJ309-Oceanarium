@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .db import test_connection
+from sqlalchemy import text
+from .db import test_connection, engine
 
 app = FastAPI(title="My Project API")
 
@@ -32,4 +33,16 @@ def health_db():
         return {"status": "ok", "db_check": value}
     except Exception as e:
         # In production you’d log the error instead
+        return {"status": "error", "detail": str(e)}
+
+#example endpoint that queries the group_members table
+@app.get("/group_members_example")
+def read_group_members():
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT * FROM group_members"))
+            columns = result.keys()
+            rows = [dict(zip(columns, row)) for row in result.fetchall()]
+        return rows
+    except Exception as e:
         return {"status": "error", "detail": str(e)}
