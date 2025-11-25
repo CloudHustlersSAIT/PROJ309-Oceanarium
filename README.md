@@ -2,6 +2,17 @@
 
 ## Setup
 
+Before starting, creating a .env file in your backend folder with the following content
+
+```bash
+#.env
+
+# Database connection string
+DATABASE_URL=postgresql+psycopg2://USERNAME:PASSWORD@IP/DATABASE #Replace Username, Password, Ip, and Database for the actual data
+```
+
+Then install the required libraries
+
 ```bash
 cd backend
 python -m venv venv
