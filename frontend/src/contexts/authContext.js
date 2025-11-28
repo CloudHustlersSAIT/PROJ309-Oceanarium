@@ -8,19 +8,18 @@ import {
 } from "firebase/auth";
 import { auth } from "../utils/firebase";
 
-// Global reactive state (shared across components)
+// Reactive references to hold auth state
 const currentUser = ref(null);
 const authLoading = ref(true);
 const authError = ref(null);
 
-// Set up the auth state listener once (when this module is imported)
+// Listen for auth state changes
 onAuthStateChanged(auth, (user) => {
   currentUser.value = user;
   authLoading.value = false;
 });
 
-// Simple helpers
-
+// Helper functions for authentication actions
 async function loginWithEmail(email, password) {
   authError.value = null;
   try {
