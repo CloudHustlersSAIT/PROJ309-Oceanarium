@@ -36,6 +36,7 @@ API runs on http://127.0.0.1:8000 (Access http://127.0.0.1:8000/group_members_ex
 ```bash
 npm install
 npm install axios
+npm install tailwindcss @tailwindcss/vite
 npm run dev
 ```
 Frontend runs on http://localhost:5173
