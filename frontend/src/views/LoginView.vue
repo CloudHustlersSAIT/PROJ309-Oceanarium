@@ -1,10 +1,13 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
 
 const router = useRouter()
 const { user, loading, error, loginWithEmail, signupWithEmail, logout } = useAuth()
+
+//Watch for changes in user authentication state (used so that logged in users are redirected to home)
+
 
 const mode = ref('login') // "login" or "signup" (login is default)
 const email = ref('') //User email input (empty by default)
@@ -27,7 +30,6 @@ async function handleSubmit() {
     router.push('/home') //Navigate to home on success
   } catch (err) {
     localError.value = err.message || String(err)
-
   } finally {
     submitting.value = false
   }
@@ -66,9 +68,9 @@ async function handleSubmit() {
         <header class="space-y-2">
           <h1 class="text-2xl font-semibold tracking-tight text-black">
             <img
-          src="/src/assets/images/logo-text.svg"
-          alt="Company logo"
-          class="h-12 mb-4 w-auto drop-shadow-lg"
+              src="/src/assets/images/logo-text.svg"
+              alt="Company logo"
+              class="h-12 mb-4 w-auto drop-shadow-lg"
             />
             {{ mode === 'login' ? 'Welcome back' : 'Create your account' }}
           </h1>
@@ -85,6 +87,10 @@ async function handleSubmit() {
           <p v-if="loading" class="text-sm text-neutral-400 mb-4">Checking auth status...</p>
 
           <div v-else class="space-y-4">
+            <!-- Extra precaution, if user is logged in
+             and somehow reached the login/signup page
+              show their email and logout option.
+             -->
             <p v-if="user" class="text-sm text-emerald-400">
               Logged in as <strong>{{ user.email }}</strong>
             </p>
@@ -93,10 +99,14 @@ async function handleSubmit() {
               <div class="space-y-2">
                 <!--Label for Email-->
                 <label class="block text-xl font-medium">Email</label>
-                <div class ="relative">
+                <div class="relative">
                   <!--Icon for User-->
                   <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <img src="/src/assets/icons/user.svg" class="h-8 w-8 text-gray-400" alt="Email icon" />
+                    <img
+                      src="/src/assets/icons/user.svg"
+                      class="h-8 w-8 text-gray-400"
+                      alt="Email icon"
+                    />
                   </div>
                   <!--Input field For Email-->
                   <input
@@ -111,10 +121,14 @@ async function handleSubmit() {
 
               <div class="space-y-2">
                 <label class="block text-xl font-medium">Password</label>
-                <div class ="relative">
+                <div class="relative">
                   <!--Icon for Lock-->
                   <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <img src="/src/assets/icons/lock.svg" class="h-8 w-8 text-gray-400" alt="Email icon" />
+                    <img
+                      src="/src/assets/icons/lock.svg"
+                      class="h-8 w-8 text-gray-400"
+                      alt="Email icon"
+                    />
                   </div>
                   <!--Input field For Password-->
                   <input
@@ -126,7 +140,7 @@ async function handleSubmit() {
                   />
                 </div>
               </div>
-              
+
               <!-- Button for submitting the form -->
               <button
                 type="submit"

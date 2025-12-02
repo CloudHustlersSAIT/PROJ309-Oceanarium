@@ -20,12 +20,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const { user, loading } = useAuth();
 
-  // Wait for Firebase to load auth state
-  if (loading.value) {
-    return next();
-  }
-
-  // If user is authenticated and tries to access login → redirect to home
+  // If user is authenticated and tries to access login, redirect to home
   if (to.name === "login" && user.value) {
     return next("/home");
   }
