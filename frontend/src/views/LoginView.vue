@@ -7,6 +7,11 @@ const router = useRouter()
 const { user, loading, error, loginWithEmail, signupWithEmail, logout } = useAuth()
 
 //Watch for changes in user authentication state (used so that logged in users are redirected to home)
+watch(user, (newUser) => {
+  if (newUser) {
+    router.push('/home')
+  }
+})
 
 
 const mode = ref('login') // "login" or "signup" (login is default)
