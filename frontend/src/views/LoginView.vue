@@ -156,6 +156,17 @@ async function handleSubmit() {
               </button>
             </form>
 
+            <!-- Forgot password button-->
+            <div>
+              <button
+                type="button"
+                class="text-xs text-neutral-400 underline hover:text-neutral-200"
+                @click="router.push('/forgot-password')"
+              >
+                Forgot password?
+              </button>
+            </div>
+
             <p
               v-if="localError"
               class="text-sm text-red-400 bg-red-950/40 border border-red-900 rounded-md px-3 py-2"
@@ -170,6 +181,7 @@ async function handleSubmit() {
               {{ error.message || error }}
             </p>
 
+            <!-- Sign in or Sign up section -->
             <div class="flex items-center justify-between text-sm text-neutral-400">
               <span>
                 {{ mode === 'login' ? "Don't have an account?" : 'Already have an account?' }}
@@ -182,7 +194,7 @@ async function handleSubmit() {
                 {{ mode === 'login' ? 'Sign up' : 'Sign in' }}
               </button>
             </div>
-
+            
             <div v-if="user" class="pt-2">
               <button
                 type="button"

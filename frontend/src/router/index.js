@@ -5,12 +5,14 @@ import { useAuth } from '../contexts/authContext'
 //Import views
 import LoginView from '../views/LoginView.vue'
 import HomeView from '../views/HomeView.vue'
+import ForgotPasswordView from '../views/ForgotPasswordView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {path: "/login", name: "login", component: LoginView},
-    {path: "/home", name: "home", component: HomeView}, 
+    {path: "/home", name: "home", component: HomeView},
+    {path: "/forgot-password", name: "forgot-password", component: ForgotPasswordView},
     //Default route to login page
     {path: "/", redirect: "/login"},
   ],
@@ -18,18 +20,22 @@ const router = createRouter({
 
 //Protect routes that require authentication
 router.beforeEach((to, from, next) => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
-  // If user is authenticated and tries to access login, redirect to home
-  if (to.name === "login" && user.value) {
+  // Public routes (no auth required)
+  const publicRoutes = ["login", "forgot-password"];
+
+  // If user is logged in and goes to login or forgot-password, send them to home
+  if (publicRoutes.includes(to.name) && user.value) {
     return next("/home");
   }
 
-  // If route requires auth (anything not login) and user isn't logged in → redirect to login
-  if (to.name !== "login" && !user.value) {
+  // If route is not public and user is not logged in, send them to login
+  if (!publicRoutes.includes(to.name) && !user.value) {
     return next("/login");
   }
 
+  // Otherwise, allow navigation
   return next();
 });
 
