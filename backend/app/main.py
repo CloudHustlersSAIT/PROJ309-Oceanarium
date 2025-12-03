@@ -46,3 +46,14 @@ def read_group_members():
         return rows
     except Exception as e:
         return {"status": "error", "detail": str(e)}
+    
+@app.get("/guides")
+def read_guides():
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT * FROM guides"))
+            columns = result.keys()
+            rows = [dict(zip(columns, row)) for row in result.fetchall()]
+        return rows
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
