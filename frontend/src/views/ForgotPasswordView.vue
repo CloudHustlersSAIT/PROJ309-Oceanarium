@@ -13,28 +13,27 @@ watch(user, (newUser) => {
   }
 })
 
-
 const email = ref('') //User email input (empty by default)
 const localError = ref(null) //Local error state for displaying errors
 const submitting = ref(false) //Submission state to disable button while processing
-const successMessage = ref("") //Success message state
+const successMessage = ref('') //Success message state
 
 //Function to handle form submission for login/signup
 async function handleSubmit() {
   localError.value = null //Reset local error
   submitting.value = true //Set submitting state to true
-  successMessage.value = "" //Reset success message
+  successMessage.value = '' //Reset success message
 
   //Attempt to send password reset email
   try {
-      //Call password reset function from auth context
-      await passwordResetWithEmail(email.value)
-      successMessage.value = "Password reset email sent. Please check your inbox."
-    } catch (error) {
-      localError.value = error.message //Set local error message
-    } finally {
-      submitting.value = false //Reset submitting state
-    }
+    //Call password reset function from auth context
+    await passwordResetWithEmail(email.value)
+    successMessage.value = 'Password reset email sent. Please check your inbox.'
+  } catch (error) {
+    localError.value = error.message //Set local error message
+  } finally {
+    submitting.value = false //Reset submitting state
+  }
 }
 </script>
 
@@ -76,23 +75,19 @@ async function handleSubmit() {
             />
             Forgot your password?
           </h1>
-          <p class="text-gray-400">
-            Enter your registered email.
-          </p>
+          <p class="text-gray-400">Enter your registered email.</p>
         </header>
 
         <!-- Form for email input and submission -->
         <form @submit.prevent="handleSubmit" class="space-y-4">
           <div class="space-y-4">
             <div class="relative">
-              <div
-                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
-              >
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <img
-                      src="/src/assets/icons/envelope.svg"
-                      class="h-8 w-8 text-gray-400"
-                      alt="Email icon"
-                    />
+                  src="/src/assets/icons/envelope.svg"
+                  class="h-8 w-8 text-gray-400"
+                  alt="Email icon"
+                />
               </div>
 
               <input
@@ -110,7 +105,7 @@ async function handleSubmit() {
             :disabled="submitting"
             class="w-full rounded-md bg-[#0077B6] py-3 text-xl font-medium text-white hover:bg-[#0097e7] disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
-            {{ submitting ? "Sending..." : "Send reset link" }}
+            {{ submitting ? 'Sending...' : 'Send reset link' }}
           </button>
         </form>
 
