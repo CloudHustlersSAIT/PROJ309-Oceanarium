@@ -57,9 +57,9 @@ async function handleSubmit() {
 
 <template>
   <!-- I am using some conditional rendering, refer to: https://vuejs.org/guide/essentials/conditional-->
-  <div class="min-h-screen flex bg-white text-gray-500">
+  <div class="min-h-screen flex text-gray-500">
     <!-- Left side: video + logo -->
-    <div class="relative hidden md:block md:w-[35%] lg:w-[30%] overflow-hidden">
+    <div class="relative hidden  md:block md:w-[35%] lg:w-[30%] overflow-hidden">
       <video
         autoplay
         muted
