@@ -13,7 +13,6 @@ watch(user, (newUser) => {
   }
 })
 
-
 const mode = ref('login') // "login" or "signup" (login is default)
 const email = ref('') //User email input (empty by default)
 const password = ref('') //User password input (empty by default)
@@ -34,7 +33,22 @@ async function handleSubmit() {
     }
     router.push('/home') //Navigate to home on success
   } catch (err) {
-    localError.value = err.message || String(err)
+    // Prefer the error code instead of parsing the message
+    const code = err.code || ''
+
+    // Map error codes to user-friendly messages
+    if (code === 'auth/user-not-found') {
+      localError.value = 'No account found with this email.'
+    } else if (code === 'auth/email-already-in-use') {
+      localError.value = 'An account with this email already exists.'
+    } else if (code === 'auth/invalid-email') {
+      localError.value = 'Please enter a valid email address.'
+    } else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+      localError.value = 'Incorrect email or password.'
+    } else {
+      // Fallback
+      localError.value = 'An error occurred. Please try again.'
+    }
   } finally {
     submitting.value = false
   }
@@ -194,7 +208,7 @@ async function handleSubmit() {
                 {{ mode === 'login' ? 'Sign up' : 'Sign in' }}
               </button>
             </div>
-            
+
             <div v-if="user" class="pt-2">
               <button
                 type="button"
