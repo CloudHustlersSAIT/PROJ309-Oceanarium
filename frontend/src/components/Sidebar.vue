@@ -38,7 +38,7 @@ async function handleLogout() {
 
 <template>
   <aside
-    class="w-64 h-screen flex flex-col p-4 bg-gradient-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg"
+    class="w-80 h-screen flex flex-col p-4 bg-gradient-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg"
   >
     <!-- Logo -->
     <!-- Top: logo -->
