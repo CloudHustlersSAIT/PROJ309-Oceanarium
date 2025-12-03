@@ -3,6 +3,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
+import { getGuides } from '../services/api'
 
 import Sidebar from '../components/Sidebar.vue'
 
@@ -51,16 +52,10 @@ const todaySchedule = [
   { time: '14:00', guide: 'David Martinez', tour: 'Whales!' },
 ]
 
-const guidesWorking = [
-  { name: 'Ana Costa', hours: '08:00-18:00', available: true },
-  { name: 'Hermes Costello', hours: '09:00-19:00', available: false },
-  { name: 'Chen Wei', hours: '10:00-16:00', available: false },
-  { name: 'Liam Brown', hours: '11:00-18:00', available: true },
-  { name: 'Ann A. Kim', hours: '09:00-17:00', available: false },
-  { name: 'Walter White', hours: '12:00-20:00', available: true },
-  { name: 'David Martinez', hours: '12:00-20:00', available: true },
+// Array to hold guides working today
+const guidesWorking = ref([])
 
-]
+
 
 const notifications = [
   {
@@ -91,11 +86,18 @@ const closeAllModals = () => {
 
 // Greeting based on time
 const greeting = ref('')
-onMounted(() => {
+onMounted(async () => {
   const hour = new Date().getHours()
   if (hour < 12) greeting.value = 'Good Morning'
   else if (hour < 18) greeting.value = 'Good Afternoon'
   else greeting.value = 'Good Evening'
+
+  //Fetch guides working today from API
+  try {
+    guidesWorking.value = await getGuides()
+  } catch (e) {
+    console.error("Failed to load guides", e)
+  }
 })
 
 //Function to handle user logout
@@ -282,10 +284,10 @@ async function handleLogout() {
           <tbody>
             <tr v-for="g in guidesWorking" :key="g.name" class="border-b">
               <td class="py-2 px-4">{{ g.name }}</td>
-              <td class="py-2 px-4 text-center">{{ g.hours }}</td>
+              <td class="py-2 px-4 text-center">{{ g.working_hours }}</td>
               <td class="py-2 px-4 text-center">
-                <span :class="g.available ? 'text-green-600' : 'text-red-600'">{{
-                  g.available ? 'Yes' : 'No'
+                <span :class="g.is_available ? 'text-green-600' : 'text-red-600'">{{
+                  g.is_available ? 'Yes' : 'No'
                 }}</span>
               </td>
             </tr>
