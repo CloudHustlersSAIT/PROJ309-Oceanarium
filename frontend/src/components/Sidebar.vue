@@ -12,6 +12,11 @@ const { user, logout } = useAuth()
 const navItems = [
   { label: 'Home', to: 'home', icon: '/src/assets/icons/home.svg' },
   { label: 'Dashboard', to: 'dashboard', icon: '/src/assets/icons/dashboards.svg' },
+  { label: 'Notifications', to: 'notifications', icon: '/src/assets/icons/notifications.svg' },
+  { label: 'Assets', to: 'assets', icon: '/src/assets/icons/assets.svg' },
+  { label: 'Bookings', to: 'bookings', icon: '/src/assets/icons/bookings.svg' },
+  { label: 'Calendar', to: 'calendar', icon: '/src/assets/icons/calendar.svg' },
+  { label: 'Settings', to: 'settings', icon: '/src/assets/icons/settings.svg' },
   // Add more here later
 ]
 

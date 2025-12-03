@@ -6,6 +6,12 @@ import { useAuth } from '../contexts/authContext'
 import LoginView from '../views/LoginView.vue'
 import HomeView from '../views/HomeView.vue'
 import ForgotPasswordView from '../views/ForgotPasswordView.vue'
+import DashboardView from '../views/DashboardView.vue'
+import NotificationsView from '../views/NotificationsView.vue'
+import AssetsView from '../views/AssetsView.vue'
+import BookingsView from '../views/BookingsView.vue'
+import CalendarView from '../views/CalendarView.vue'
+import SettingsView from '../views/SettingsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,6 +19,12 @@ const router = createRouter({
     { path: '/login', name: 'login', component: LoginView },
     { path: '/home', name: 'home', component: HomeView },
     { path: '/forgot-password', name: 'forgot-password', component: ForgotPasswordView },
+    { path: '/dashboard', name: 'dashboard', component: DashboardView },
+    { path: '/notifications', name: 'notifications', component: NotificationsView },
+    { path: '/assets', name: 'assets', component: AssetsView },
+    { path: '/bookings', name: 'bookings', component: BookingsView },
+    { path: '/calendar', name: 'calendar', component: CalendarView },
+    { path: '/settings', name: 'settings', component: SettingsView },
     //Default route to login page
     { path: '/', redirect: '/login' },
   ],
