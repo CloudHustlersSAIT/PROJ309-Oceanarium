@@ -49,7 +49,7 @@ async function handleLogout() {
         <img
           src="/src/assets/images/logo-text.svg"
           alt="Company logo text"
-          class="h-10 w-auto drop-shadow-lg"
+          class="h-10 w-auto"
         />
       </div>
     </div>
