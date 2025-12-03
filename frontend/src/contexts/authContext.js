@@ -5,6 +5,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "../utils/firebase";
 
@@ -19,7 +20,13 @@ onAuthStateChanged(auth, (user) => {
   authLoading.value = false;
 });
 
-// Helper functions for authentication actions
+/////////////////////////////////////////////////
+//                                             //
+// Helper functions for authentication actions //
+//                                             //
+/////////////////////////////////////////////////
+
+// Login function
 async function loginWithEmail(email, password) {
   authError.value = null;
   try {
@@ -31,6 +38,7 @@ async function loginWithEmail(email, password) {
   }
 }
 
+// Signup function
 async function signupWithEmail(email, password) {
   authError.value = null;
   try {
@@ -42,10 +50,22 @@ async function signupWithEmail(email, password) {
   }
 }
 
+// Logout function
 async function logout() {
   authError.value = null;
   try {
     await signOut(auth);
+  } catch (err) {
+    authError.value = err;
+    throw err;
+  }
+}
+
+// Password reset function
+async function passwordResetWithEmail(email) {
+  authError.value = null;
+  try {
+    await sendPasswordResetEmail(auth, email);
   } catch (err) {
     authError.value = err;
     throw err;
