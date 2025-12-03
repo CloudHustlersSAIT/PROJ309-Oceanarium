@@ -81,5 +81,6 @@ export function useAuth() {
     loginWithEmail,
     signupWithEmail,
     logout,
+    passwordResetWithEmail
   };
 }

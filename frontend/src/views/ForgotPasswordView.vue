@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
 
 const router = useRouter()
-const { user, loading, error, loginWithEmail, signupWithEmail, logout } = useAuth()
+const { user, passwordResetWithEmail } = useAuth()
 
 //Watch for changes in user authentication state (used so that logged in users are redirected to home)
 watch(user, (newUser) => {
@@ -14,30 +14,27 @@ watch(user, (newUser) => {
 })
 
 
-const mode = ref('login') // "login" or "signup" (login is default)
 const email = ref('') //User email input (empty by default)
-const password = ref('') //User password input (empty by default)
 const localError = ref(null) //Local error state for displaying errors
 const submitting = ref(false) //Submission state to disable button while processing
+const successMessage = ref("") //Success message state
 
 //Function to handle form submission for login/signup
 async function handleSubmit() {
   localError.value = null //Reset local error
   submitting.value = true //Set submitting state to true
+  successMessage.value = "" //Reset success message
 
-  //Try to login or signup based on the current mode
+  //Attempt to send password reset email
   try {
-    if (mode.value === 'login') {
-      await loginWithEmail(email.value, password.value)
-    } else {
-      await signupWithEmail(email.value, password.value)
+      //Call password reset function from auth context
+      await passwordResetWithEmail(email.value)
+      successMessage.value = "Password reset email sent. Please check your inbox."
+    } catch (error) {
+      localError.value = error.message //Set local error message
+    } finally {
+      submitting.value = false //Reset submitting state
     }
-    router.push('/home') //Navigate to home on success
-  } catch (err) {
-    localError.value = err.message || String(err)
-  } finally {
-    submitting.value = false
-  }
 }
 </script>
 
@@ -77,20 +74,69 @@ async function handleSubmit() {
               alt="Company logo"
               class="h-12 mb-4 w-auto drop-shadow-lg"
             />
-            {{ mode === 'login' ? 'Welcome back' : 'Create your account' }}
+            Forgot your password?
           </h1>
-          <p class="text-sm text-neutral-400">
-            {{
-              mode === 'login'
-                ? 'Sign in with your email and password.'
-                : 'Sign up with your email and password.'
-            }}
+          <p class="text-gray-400">
+            Enter your registered email.
           </p>
         </header>
 
-        <main>
-          <p>hi</p>
-        </main>
+        <!-- Form for email input and submission -->
+        <form @submit.prevent="handleSubmit" class="space-y-4">
+          <div class="space-y-4">
+            <div class="relative">
+              <div
+                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
+              >
+                <img
+                      src="/src/assets/icons/envelope.svg"
+                      class="h-8 w-8 text-gray-400"
+                      alt="Email icon"
+                    />
+              </div>
+
+              <input
+                v-model="email"
+                type="email"
+                required
+                class="w-full text-lg rounded-md border pl-14 px-4 py-5 text-base outline-none focus:border-[#0077B6] focus:ring-1 focus:ring-[#0077B6]"
+                placeholder="you@example.com"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            :disabled="submitting"
+            class="w-full rounded-md bg-[#0077B6] py-3 text-xl font-medium text-white hover:bg-[#0097e7] disabled:opacity-60 disabled:cursor-not-allowed transition"
+          >
+            {{ submitting ? "Sending..." : "Send reset link" }}
+          </button>
+        </form>
+
+        <!-- Success and error messages -->
+        <p
+          v-if="successMessage"
+          class="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2"
+        >
+          {{ successMessage }}
+        </p>
+
+        <p
+          v-if="localError"
+          class="text-sm text-red-500 bg-red-50 border border-red-200 rounded-md px-3 py-2"
+        >
+          {{ localError }}
+        </p>
+
+        <!-- Back to login button -->
+        <button
+          type="button"
+          class="text-xs text-neutral-400 underline hover:text-neutral-600"
+          @click="router.push('/login')"
+        >
+          Back to login
+        </button>
       </div>
     </div>
   </div>
