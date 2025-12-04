@@ -3,7 +3,7 @@ const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost
 // Generic fetch helper
 async function fetchAPI(endpoint, options = {}) {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
