@@ -18,12 +18,25 @@ import Sidebar from '../components/Sidebar.vue'
 const router = useRouter()
 const { user, logout } = useAuth()
 
+const notifications = [
+  {
+    time: '2 Minutes Ago',
+    text: 'Guide Ana Costa swapped tour Dolphin Feeding with guide Hermes Costello on November 5th at 08:00',
+  },
+  { time: '3 Hours Ago', text: 'Guide Liam Brown will be unavailable on November 9th' },
+  {
+    time: '2 Days Ago',
+    text: 'Guide Liam Brown has cancelled the tour Molluscs on November 9th, Guide David Martinez assigned instead',
+  },
+]
+
 // Reactive state for modals
 const showGuidesModal = ref(false)
 const showAddBookingModal = ref(false)
 const showRescheduleModal = ref(false)
 const showReportIssueModal = ref(false)
 const showCancelBookingModal = ref(false)
+
 
 // Form data
 const addBookingForm = ref({
@@ -50,7 +63,6 @@ const cancelBookingForm = ref({
 // Data from database
 const guidesWorking = ref([])
 const tours = ref([])
-const notifications = ref([])
 const stats = ref({
   toursToday: 0,
   customersToday: 0,
