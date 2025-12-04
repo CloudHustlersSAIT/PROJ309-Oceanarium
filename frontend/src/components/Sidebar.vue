@@ -5,19 +5,28 @@ import { useAuth } from '../contexts/authContext'
 
 import SidebarButton from './SidebarButton.vue'
 
+//Import icons
+import iconHome from '../assets/icons/home.svg'
+import iconDashboard from '../assets/icons/dashboards.svg'
+import iconNotifications from '../assets/icons/notifications.svg'
+import iconAssets from '../assets/icons/assets.svg'
+import iconBookings from '../assets/icons/bookings.svg'
+import iconCalendar from '../assets/icons/calendar.svg'
+import iconSettings from '../assets/icons/settings.svg'
+
 const router = useRouter()
+const route = useRoute()
 const { user, logout } = useAuth()
 
-// Navigation items IF YOU WANT NEW BUTTONS, ADD THEM HERE
+// Navigation items — use the imported icon variables
 const navItems = [
-  { label: 'Home', to: 'home', icon: '/src/assets/icons/home.svg' },
-  { label: 'Dashboard', to: 'dashboard', icon: '/src/assets/icons/dashboards.svg' },
-  { label: 'Notifications', to: 'notifications', icon: '/src/assets/icons/notifications.svg' },
-  { label: 'Assets', to: 'assets', icon: '/src/assets/icons/assets.svg' },
-  { label: 'Bookings', to: 'bookings', icon: '/src/assets/icons/bookings.svg' },
-  { label: 'Calendar', to: 'calendar', icon: '/src/assets/icons/calendar.svg' },
-  { label: 'Settings', to: 'settings', icon: '/src/assets/icons/settings.svg' },
-  // Add more here later
+  { label: 'Home', to: 'home', icon: iconHome },
+  { label: 'Dashboard', to: 'dashboard', icon: iconDashboard },
+  { label: 'Notifications', to: 'notifications', icon: iconNotifications },
+  { label: 'Assets', to: 'assets', icon: iconAssets },
+  { label: 'Bookings', to: 'bookings', icon: iconBookings },
+  { label: 'Calendar', to: 'calendar', icon: iconCalendar },
+  { label: 'Settings', to: 'settings', icon: iconSettings },
 ]
 
 // Derive a friendly display name from Firebase user
