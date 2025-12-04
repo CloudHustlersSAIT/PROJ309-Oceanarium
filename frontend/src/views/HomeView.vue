@@ -406,11 +406,6 @@ async function handleLogout() {
       <div class="bg-white rounded-xl shadow-xl p-6 w-96">
         <h3 class="text-xl font-bold mb-4">Add new booking</h3>
         <input
-          v-model="addBookingForm.bookingId"
-          placeholder="Booking ID"
-          class="w-full border p-2 mb-3 rounded"
-        />
-        <input
           v-model="addBookingForm.customerId"
           placeholder="Customer ID"
           class="w-full border p-2 mb-3 rounded"
