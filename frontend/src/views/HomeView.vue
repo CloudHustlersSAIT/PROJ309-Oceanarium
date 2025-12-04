@@ -1,16 +1,24 @@
 <script setup>
-//Import necessary modules
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
-import { getGuides } from '../services/api'
+import {
+  getGuides,
+  getTours,
+  getNotifications,
+  getStats,
+  createBooking,
+  rescheduleBooking,
+  cancelBooking,
+  reportIssue,
+} from '../services/api'
 
 import Sidebar from '../components/Sidebar.vue'
 
-const router = useRouter() //Get router instance
-const { user, logout } = useAuth() //Get user and logout function from auth context
+const router = useRouter()
+const { user, logout } = useAuth()
 
-//Reactive state for modals
+// Reactive state for modals
 const showGuidesModal = ref(false)
 const showAddBookingModal = ref(false)
 const showRescheduleModal = ref(false)
@@ -19,7 +27,6 @@ const showCancelBookingModal = ref(false)
 
 // Form data
 const addBookingForm = ref({
-  bookingId: '',
   customerId: '',
   tourId: '',
   date: '',
@@ -40,7 +47,17 @@ const cancelBookingForm = ref({
   bookingId: '',
 })
 
-// Sample data
+// Data from database
+const guidesWorking = ref([])
+const tours = ref([])
+const notifications = ref([])
+const stats = ref({
+  toursToday: 0,
+  customersToday: 0,
+  cancellations: 0,
+  avgRating: '5.0',
+})
+
 const todaySchedule = [
   { time: '08:00', guide: 'Ana Costa', tour: 'Shark Diving' },
   { time: '10:00', guide: 'Hermes Costello', tour: 'Dolphin Feeding' },
@@ -50,23 +67,6 @@ const todaySchedule = [
   { time: '13:00', guide: 'Ana Costa', tour: 'Coral Exploration' },
   { time: '14:00', guide: 'Walter White', tour: 'Dolphin Feeding' },
   { time: '14:00', guide: 'David Martinez', tour: 'Whales!' },
-]
-
-// Array to hold guides working today
-const guidesWorking = ref([])
-
-
-
-const notifications = [
-  {
-    time: '2 Minutes Ago',
-    text: 'Guide Ana Costa swapped tour Dolphin Feeding with guide Hermes Costello on November 5th at 08:00',
-  },
-  { time: '3 Hours Ago', text: 'Guide Liam Brown will be unavailable on November 9th' },
-  {
-    time: '2 Days Ago',
-    text: 'Guide Liam Brown has cancelled the tour Molluscs on November 9th, Guide David Martinez assigned instead',
-  },
 ]
 
 const recentActivity = [
@@ -84,6 +84,107 @@ const closeAllModals = () => {
   showCancelBookingModal.value = false
 }
 
+// Load data from database
+async function loadData() {
+  try {
+    guidesWorking.value = await getGuides()
+    tours.value = await getTours()
+    notifications.value = await getNotifications()
+    stats.value = await getStats()
+    console.log('Data loaded successfully')
+  } catch (error) {
+    console.error('Failed to load data:', error)
+    alert(
+      'Failed to load data from database. Make sure backend is running on http://localhost:8000',
+    )
+  }
+}
+
+// Handle add booking
+async function handleAddBooking() {
+  try {
+    await createBooking({
+      customer_id: addBookingForm.value.customerId,
+      tour_id: parseInt(addBookingForm.value.tourId),
+      date: addBookingForm.value.date,
+      adult_tickets: parseInt(addBookingForm.value.adultTickets),
+      child_tickets: parseInt(addBookingForm.value.childTickets),
+    })
+
+    alert('Booking created successfully!')
+    closeAllModals()
+    await loadData() // Reload stats
+
+    // Reset form
+    addBookingForm.value = {
+      customer_id: '',
+      tour_id: '',
+      date: '',
+      adult_tickets: 0,
+      child_tickets: 0,
+    }
+  } catch (error) {
+    console.error('Failed to create booking:', error)
+    alert('Failed to create booking')
+  }
+}
+
+// Handle reschedule
+async function handleReschedule() {
+  try {
+    await rescheduleBooking(rescheduleForm.value.bookingId, rescheduleForm.value.newDate)
+
+    alert('Booking rescheduled successfully!')
+    closeAllModals()
+
+    // Reset form
+    rescheduleForm.value = {
+      bookingId: '',
+      newDate: '',
+    }
+  } catch (error) {
+    console.error('Failed to reschedule booking:', error)
+    alert('Failed to reschedule booking')
+  }
+}
+
+// Handle cancel booking
+async function handleCancelBooking() {
+  try {
+    await cancelBooking(cancelBookingForm.value.bookingId)
+
+    alert('Booking cancelled successfully!')
+    closeAllModals()
+    await loadData() // Reload stats
+
+    // Reset form
+    cancelBookingForm.value = {
+      bookingId: '',
+    }
+  } catch (error) {
+    console.error('Failed to cancel booking:', error)
+    alert('Failed to cancel booking')
+  }
+}
+
+// Handle report issue
+async function handleReportIssue() {
+  try {
+    await reportIssue(reportIssueForm.value.description)
+
+    alert('Issue reported successfully!')
+    closeAllModals()
+
+    // Reset form
+    reportIssueForm.value = {
+      description: '',
+    }
+  } catch (error) {
+    console.error('Failed to report issue:', error)
+    alert('Failed to report issue')
+  }
+}
+
 // Greeting based on time
 const greeting = ref('')
 onMounted(async () => {
@@ -92,22 +193,16 @@ onMounted(async () => {
   else if (hour < 18) greeting.value = 'Good Afternoon'
   else greeting.value = 'Good Evening'
 
-  //Fetch guides working today from API
-  try {
-    guidesWorking.value = await getGuides()
-  } catch (e) {
-    console.error("Failed to load guides", e)
-  }
+  // Load all data from database
+  await loadData()
 })
 
-//Function to handle user logout
+// Function to handle user logout
 async function handleLogout() {
   try {
     await logout()
-    //After logging out, send the user to the login page
     router.push('/login')
   } catch (err) {
-    //Log any errors that occur during logout
     console.error('Error logging out:', err)
   }
 }
@@ -351,7 +446,7 @@ async function handleLogout() {
             Cancel
           </button>
           <button
-            @click="closeAllModals"
+            @click="handleAddBooking"
             class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Create
@@ -379,10 +474,16 @@ async function handleLogout() {
           class="w-full border p-2 mb-3 rounded"
         />
         <div class="mt-4 flex justify-end space-x-3">
-          <button @click="closeAllModals" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+          <button
+            @click="closeAllModals"
+            class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+          >
             Cancel
           </button>
-          <button @click="closeAllModals" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          <button
+            @click="handleReschedule"
+            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
             Done
           </button>
         </div>
@@ -406,7 +507,7 @@ async function handleLogout() {
           <button @click="closeAllModals" class="bg-gray-400 text-white px-4 py-2 rounded">
             Go back
           </button>
-          <button @click="closeAllModals" class="bg-blue-600 text-white px-4 py-2 rounded">
+          <button @click="handleReportIssue" class="bg-blue-600 text-white px-4 py-2 rounded">
             Submit
           </button>
         </div>
@@ -427,10 +528,16 @@ async function handleLogout() {
           class="w-full border p-2 mb-3 rounded"
         />
         <div class="mt-4 flex justify-end space-x-3">
-          <button @click="closeAllModals" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+          <button
+            @click="closeAllModals"
+            class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+          >
             Go back
           </button>
-          <button @click="closeAllModals" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+          <button
+            @click="handleCancelBooking"
+            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
             Cancel
           </button>
         </div>
