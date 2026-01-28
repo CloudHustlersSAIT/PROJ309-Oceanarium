@@ -9,10 +9,10 @@ Overall the system automates the previously manual task of getting online ticket
 
 # Tech stack 📚
 
-Front-end: Vue3
-Back-end : FastAPI
-Database : PostgreSQL
-Authentication: Firebase
+* Front-end: Vue3
+* Back-end : FastAPI
+* Database : PostgreSQL
+* Authentication: Firebase
 
 # Relevant Links 🔗
 
@@ -66,7 +66,7 @@ npm run dev
 ```
 Frontend runs on http://localhost:5173
 
-# To Test everything
+## To Test everything
 1. Start backend (uvicorn app.main:app --reload)
 
 2. Start frontend (npm run dev)
