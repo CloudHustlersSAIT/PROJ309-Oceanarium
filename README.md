@@ -1,6 +1,31 @@
-# Backend Instructions
+# About the project
 
-## Setup
+This is a project made for the PROJ 309 (Capstone) Class at SAIT. The project was requested by our client HDB Systems
+
+This system allows for administrators and guides to easiliy interact with the Oceanarium. Guides can easily view and manage their schedules as well as receiving relevant notifications.
+Administrators can manage schedules, resources, bookings and access an interactive calendar, as well as a dashboard with metrics of the Oceanarium.
+
+Overall the system automates the previously manual task of getting online ticket sales information, and using that information to schedule tours and assign guides
+
+# Tech stack 📚
+
+Front-end: Vue3
+Back-end : FastAPI
+Database : PostgreSQL
+Authentication: Firebase
+
+# Relevant Links 🔗
+
+Vercel Deployment: cpsy301-small-prototype.vercel.app/
+
+Jira Board: 
+
+
+# Running it Locally
+
+## Backend Instructions
+
+### Setup
 
 Before starting, creating a .env file in your backend folder with the following content
 
@@ -22,7 +47,7 @@ pip install -r requirements.txt
 # edit .env to put your real DATABASE_URL
 ```
 
-## Run in the terminal
+### Run in the terminal
 
 ```
 uvicorn app.main:app --reload
@@ -30,9 +55,9 @@ uvicorn app.main:app --reload
 API runs on http://127.0.0.1:8000 (Access http://127.0.0.1:8000/group_members_example to view an example endpoint)
 
 
-# Frontend Instructions
+## Frontend Instructions
 
-## Setup
+### Setup
 ```bash
 npm install
 npm install axios
