@@ -18,7 +18,7 @@ Overall the system automates the previously manual task of getting online ticket
 
 Vercel Deployment: cpsy301-small-prototype.vercel.app/
 
-Jira Board: 
+Jira Board: https://cloudhustler.atlassian.net/jira/software/projects/SCRUM/summary
 
 
 # Running it Locally
