@@ -105,10 +105,8 @@ async function loadData() {
     stats.value = await getStats()
     console.log('Data loaded successfully')
   } catch (error) {
-    console.error('Failed to load data:', error)
-    alert(
-      'Failed to load data from database. Make sure backend is running on http://localhost:8000',
-    )
+    console.error('Failed to load data:', error, '— Make sure backend is running on http://localhost:8000')
+    // Don't alert() to avoid blocking UI; page renders with default data
   }
 }
 
@@ -205,8 +203,13 @@ onMounted(async () => {
   else if (hour < 18) greeting.value = 'Good Afternoon'
   else greeting.value = 'Good Evening'
 
-  // Load all data from database
-  await loadData()
+  // Load all data from database (with error handling to not block page render)
+  try {
+    await loadData()
+  } catch (err) {
+    console.error('onMounted: Failed to load data', err)
+    // Page still renders with default data; no alert to avoid blocking UI
+  }
 })
 
 // Function to handle user logout

@@ -1,6 +1,7 @@
 // Import necessary modules
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
+import { firebaseDisabled } from '../utils/firebase'
 
 //Import views
 import LoginView from '../views/LoginView.vue'
@@ -25,13 +26,16 @@ const router = createRouter({
     { path: '/bookings', name: 'bookings', component: BookingsView },
     { path: '/calendar', name: 'calendar', component: CalendarView },
     { path: '/settings', name: 'settings', component: SettingsView },
-    //Default route to login page
-    { path: '/', redirect: '/login' },
+    // Default route: when Firebase is disabled, go to /home; otherwise go to /login
+    { path: '/', redirect: () => (firebaseDisabled ? '/home' : '/login') },
   ],
 })
 
 //Protect routes that require authentication
 router.beforeEach((to, from, next) => {
+  // If Firebase is not configured, skip auth checks so the app is usable in local/dev.
+  if (firebaseDisabled) return next()
+
   const { user } = useAuth()
 
   // Public routes (no auth required)

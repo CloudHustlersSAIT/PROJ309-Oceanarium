@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
+import { firebaseDisabled } from '../utils/firebase'
 
 const router = useRouter()
 const { user, loading, error, loginWithEmail, signupWithEmail, logout } = useAuth()
@@ -114,7 +115,22 @@ async function handleSubmit() {
               Logged in as <strong>{{ user.email }}</strong>
             </p>
 
-            <form @submit.prevent="handleSubmit" class="space-y-4">
+            <!-- Firebase disabled notice (dev mode) -->
+            <div v-if="firebaseDisabled" class="bg-yellow-100 border border-yellow-600 rounded-md p-4 mb-4">
+              <p class="text-sm text-yellow-900">
+                <strong>Development Mode:</strong> Firebase is not configured. Click below to continue to home.
+              </p>
+              <button
+                type="button"
+                class="mt-2 w-full rounded-md bg-yellow-600 py-2 text-sm font-medium text-white hover:bg-yellow-700 transition"
+                @click="router.push('/home')"
+              >
+                Continue to Home
+              </button>
+            </div>
+
+            <!-- Auth form (only show if Firebase is enabled) -->
+            <form v-if="!firebaseDisabled" @submit.prevent="handleSubmit" class="space-y-4">
               <div class="space-y-2">
                 <!--Label for Email-->
                 <label class="block text-xl font-medium">Email</label>
@@ -170,8 +186,8 @@ async function handleSubmit() {
               </button>
             </form>
 
-            <!-- Forgot password button-->
-            <div>
+            <!-- Forgot password button (only show if Firebase is enabled) -->
+            <div v-if="!firebaseDisabled">
               <button
                 type="button"
                 class="text-xs text-neutral-400 underline hover:text-neutral-200"
