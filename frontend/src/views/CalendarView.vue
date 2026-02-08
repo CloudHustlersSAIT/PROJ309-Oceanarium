@@ -22,7 +22,7 @@ const error = ref(null) // Error state if API call fails
 function formatDateKey(tour) {
   const dateFields = ['date', 'datetime', 'start_time', 'start', 'start_date', 'time']
   const raw = dateFields.map((f) => tour[f]).find(Boolean)
-  if (!raw) return 'Sem data'
+  if (!raw) return 'Undated'
 
   const d = new Date(raw)
   if (isNaN(d)) return String(raw)
@@ -45,11 +45,11 @@ const groupedTours = computed(() => {
     groups[key].push(t)
   })
 
-  // Sort groups by date (keep 'Sem data' last)
+  // Sort groups by date (keep 'Undated' last)
   return Object.fromEntries(
     Object.entries(groups).sort((a, b) => {
-      if (a[0] === 'Sem data') return 1
-      if (b[0] === 'Sem data') return -1
+      if (a[0] === 'Undated') return 1
+      if (b[0] === 'Undated') return -1
       return new Date(a[0]) - new Date(b[0])
     }),
   )
