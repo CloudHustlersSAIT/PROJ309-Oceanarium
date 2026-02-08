@@ -18,7 +18,7 @@ import Sidebar from '../components/Sidebar.vue'
 const router = useRouter()
 const { user, logout } = useAuth()
 
-const notifications = [
+const notifications = ref([
   {
     time: '2 Minutes Ago',
     text: 'Guide Ana Costa swapped tour Dolphin Feeding with guide Hermes Costello on November 5th at 08:00',
@@ -28,7 +28,7 @@ const notifications = [
     time: '2 Days Ago',
     text: 'Guide Liam Brown has cancelled the tour Molluscs on November 9th, Guide David Martinez assigned instead',
   },
-]
+])
 
 // Reactive state for modals
 const showGuidesModal = ref(false)
@@ -101,11 +101,19 @@ async function loadData() {
   try {
     guidesWorking.value = await getGuides()
     tours.value = await getTours()
-    notifications.value = await getNotifications()
+    const raw = await getNotifications()
+    // API returns { id, message, timestamp }; template expects { time, text }
+    notifications.value = Array.isArray(raw)
+      ? raw.map((n, i) => ({
+          id: n.id ?? i,
+          time: n.timestamp || n.time || '—',
+          text: n.message || n.text || '—',
+        }))
+      : notifications.value
     stats.value = await getStats()
-    console.log('Data loaded successfully')
+    // Data loaded successfully
   } catch (error) {
-    console.error('Failed to load data:', error, '— Make sure backend is running on http://localhost:8000')
+    // Failed to load data - Make sure backend is running on http://localhost:8000
     // Don't alert() to avoid blocking UI; page renders with default data
   }
 }
@@ -134,7 +142,7 @@ async function handleAddBooking() {
       child_tickets: 0,
     }
   } catch (error) {
-    console.error('Failed to create booking:', error)
+    // Failed to create booking
     alert('Failed to create booking')
   }
 }
@@ -153,7 +161,7 @@ async function handleReschedule() {
       newDate: '',
     }
   } catch (error) {
-    console.error('Failed to reschedule booking:', error)
+    // Failed to reschedule booking
     alert('Failed to reschedule booking')
   }
 }
@@ -172,7 +180,7 @@ async function handleCancelBooking() {
       bookingId: '',
     }
   } catch (error) {
-    console.error('Failed to cancel booking:', error)
+    // Failed to cancel booking
     alert('Failed to cancel booking')
   }
 }
@@ -190,7 +198,7 @@ async function handleReportIssue() {
       description: '',
     }
   } catch (error) {
-    console.error('Failed to report issue:', error)
+    // Failed to report issue
     alert('Failed to report issue')
   }
 }
@@ -207,7 +215,7 @@ onMounted(async () => {
   try {
     await loadData()
   } catch (err) {
-    console.error('onMounted: Failed to load data', err)
+    // onMounted: Failed to load data
     // Page still renders with default data; no alert to avoid blocking UI
   }
 })
@@ -218,7 +226,7 @@ async function handleLogout() {
     await logout()
     router.push('/login')
   } catch (err) {
-    console.error('Error logging out:', err)
+    // Error logging out - silently handled
   }
 }
 </script>
@@ -348,7 +356,7 @@ async function handleLogout() {
                 <span class="mr-2">🔔</span> Your recent notifications
               </h3>
               <ul class="space-y-3 text-sm">
-                <li v-for="n in notifications" :key="n.time" class="border-b pb-2">
+                <li v-for="n in notifications" :key="n.id ?? n.time" class="border-b pb-2">
                   <span class="text-gray-500">{{ n.time }}:</span> {{ n.text }}
                 </li>
               </ul>

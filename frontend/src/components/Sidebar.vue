@@ -1,9 +1,30 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
 
 import SidebarButton from './SidebarButton.vue'
+
+const router = useRouter()
+const route = useRoute()
+const { user, logout } = useAuth()
+
+// Mobile drawer: closed by default on small screens; sidebar becomes overlay
+const mobileOpen = ref(false)
+function closeMobile() {
+  mobileOpen.value = false
+}
+function openMobile() {
+  mobileOpen.value = true
+}
+
+// Close drawer when route changes (e.g. user navigates from calendar to home on mobile)
+watch(
+  () => route.path,
+  () => {
+    closeMobile()
+  }
+)
 
 //Import icons
 import iconHome from '../assets/icons/home.svg'
@@ -13,10 +34,6 @@ import iconAssets from '../assets/icons/assets.svg'
 import iconBookings from '../assets/icons/bookings.svg'
 import iconCalendar from '../assets/icons/calendar.svg'
 import iconSettings from '../assets/icons/settings.svg'
-
-const router = useRouter()
-const route = useRoute()
-const { user, logout } = useAuth()
 
 // Navigation items — use the imported icon variables
 const navItems = [
@@ -51,12 +68,47 @@ async function handleLogout() {
 </script>
 
 <template>
-  <aside
-    class="w-80 h-screen flex flex-col p-4 bg-gradient-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg"
-  >
-    <!-- Logo -->
-    <!-- Top: logo -->
-    <div class="mb-10">
+  <!-- Multiple roots (Vue 3): mobile button, backdrop, sidebar -->
+  <!-- Mobile menu button: visible only on small/tablet when drawer is closed; leaves room for content -->
+    <button
+      type="button"
+      aria-label="Open menu"
+      class="fixed left-4 top-4 z-30 flex md:hidden h-10 w-10 items-center justify-center rounded-lg bg-[#0077B6] text-white shadow-lg hover:bg-[#0097e7] transition"
+      @click="openMobile"
+    >
+      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+
+    <!-- Backdrop when sidebar open on mobile: tap to close -->
+    <div
+      v-show="mobileOpen"
+      aria-hidden="true"
+      class="fixed inset-0 z-40 bg-black/50 md:hidden"
+      @click="closeMobile"
+    />
+
+    <!-- Sidebar: drawer on mobile (fixed, slide-in), normal on md+ -->
+    <aside
+      class="w-80 h-screen flex flex-col p-4 bg-gradient-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg fixed md:static inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-out -translate-x-full md:translate-x-0"
+      :class="{ 'translate-x-0': mobileOpen }"
+    >
+      <!-- Close button for mobile (visible only when drawer is open) -->
+      <button
+        type="button"
+        aria-label="Close menu"
+        class="absolute right-3 top-3 p-2 rounded-lg md:hidden text-white/90 hover:bg-white/10"
+        @click="closeMobile"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Logo -->
+      <!-- Top: logo -->
+      <div class="mb-10">
       <div
         class="items-center bg-white rounded-xl px-10 py-4 drop-shadow-xl/25 flex justify-center"
       >

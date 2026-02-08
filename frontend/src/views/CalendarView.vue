@@ -74,41 +74,48 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-gray-50">
+  <!-- Responsive layout: overflow-x-hidden prevents horizontal scroll on all viewports -->
+  <div class="flex min-h-screen bg-gray-50 overflow-x-hidden">
     <Sidebar />
 
-    <main class="flex-1 px-6 py-10">
-      <div class="max-w-4xl mx-auto">
-        <h1 class="text-2xl font-semibold mb-4">Calendar — Tours</h1>
+    <!-- Main: responsive padding and top space for mobile menu button when Sidebar is drawer -->
+    <main class="flex-1 min-w-0 px-4 py-6 pt-14 sm:pt-10 sm:px-6 sm:py-10 md:pt-10">
+      <div class="max-w-4xl mx-auto w-full">
+        <!-- Responsive typography: readable on mobile and desktop -->
+        <h1 class="text-xl font-semibold mb-4 sm:text-2xl text-gray-800">Calendar — Tours</h1>
 
         <!-- Data binding states: render loading, error, or tours from API -->
-        <div v-if="loading" class="text-gray-600">Loading tours...</div>
-        <div v-else-if="error" class="text-red-600">Error: {{ error }}</div>
+        <div v-if="loading" class="text-gray-600 text-sm sm:text-base py-4">Loading tours...</div>
+        <div v-else-if="error" class="text-red-600 text-sm sm:text-base py-4 wrap-break-word">Error: {{ error }}</div>
         <div v-else>
-          <div v-if="Object.keys(groupedTours).length === 0" class="text-gray-600">
+          <div v-if="Object.keys(groupedTours).length === 0" class="text-gray-600 text-sm sm:text-base py-4">
             No tours found.
           </div>
 
           <!-- TASK 3.2 Implementation: Render backend API data grouped by date -->
-          <!-- groupedTours is computed from tours array fetched via GET /tours API -->
-          <!-- Each iteration renders all tours for a specific date -->
+          <!-- Responsive: date groups and tour cards adapt to screen size -->
           <div v-for="(items, date) in groupedTours" :key="date" class="mb-6">
-            <h2 class="text-lg font-medium text-blue-700 mb-2">{{ date }}</h2>
+            <h2 class="text-base font-medium text-blue-700 mb-2 sm:text-lg">{{ date }}</h2>
 
-            <!-- List each tour with backend data binding: tour name, guide, time, ID -->
-            <ul class="bg-white rounded-lg shadow-sm p-4 space-y-3">
-              <li v-for="item in items" :key="item.id || item.tour || item.title" class="flex justify-between items-start">
-                <div>
-                  <!-- Data binding: Backend API returns 'tour' field (tour name) -->
-                  <div class="font-semibold text-gray-800">{{ item.tour || item.title || 'Untitled Tour' }}</div>
-                  <!-- Data binding: Backend API returns 'guide' field (guide name) -->
-                  <div class="text-sm text-gray-600">Guide: {{ item.guide || item.guide_name || item.guideName || '—' }}</div>
+            <!-- List: responsive padding and spacing; no overflow on small screens -->
+            <ul class="bg-white rounded-lg shadow-sm p-3 space-y-3 sm:p-4">
+              <li
+                v-for="item in items"
+                :key="item.id || item.tour || item.title"
+                class="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-start sm:gap-4 min-w-0"
+              >
+                <div class="min-w-0 flex-1">
+                  <!-- Tour name: truncate on overflow for consistency -->
+                  <div class="font-semibold text-gray-800 truncate" :title="item.tour || item.title || 'Untitled Tour'">
+                    {{ item.tour || item.title || 'Untitled Tour' }}
+                  </div>
+                  <div class="text-sm text-gray-600 truncate">
+                    Guide: {{ item.guide || item.guide_name || item.guideName || '—' }}
+                  </div>
                 </div>
 
-                <div class="text-sm text-gray-500 text-right">
-                  <!-- Data binding: Backend API returns 'time' field (tour time) -->
+                <div class="text-sm text-gray-500 sm:text-right shrink-0">
                   <div>{{ item.time || item.start_time || item.datetime || '' }}</div>
-                  <!-- Data binding: Backend API returns 'id' field (unique tour identifier) -->
                   <div class="text-xs text-gray-400">ID: {{ item.id || '—' }}</div>
                 </div>
               </li>

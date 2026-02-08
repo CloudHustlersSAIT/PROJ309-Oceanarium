@@ -1,4 +1,4 @@
-const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'  // FastAPI default port
+const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' // FastAPI default port
 
 // Generic fetch helper
 async function fetchAPI(endpoint, options = {}) {
@@ -17,7 +17,7 @@ async function fetchAPI(endpoint, options = {}) {
 
     return await response.json()
   } catch (error) {
-    console.error('API request failed:', error)
+    // API request failed - error will be handled by caller
     throw error
   }
 }
