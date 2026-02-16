@@ -18,7 +18,7 @@ function openMobile() {
   mobileOpen.value = true
 }
 
-// Close drawer when route changes (e.g. user navigates from calendar to home on mobile)
+// Close drawer when route changes (e.g. user navigates from calendar to home on mobile).
 watch(
   () => route.path,
   () => {
