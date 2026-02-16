@@ -18,7 +18,7 @@ const isActive = computed(() => {
     return route.name === props.to;
   }
 
-  // If "to" is a path
+  // If "to" is a path.
   return route.path === props.to;
 });
 
