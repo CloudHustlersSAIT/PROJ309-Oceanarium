@@ -11,7 +11,7 @@ const props = defineProps({
 const router = useRouter();
 const route = useRoute();
 
-// Check if the current button represents the active page
+// Check if the current button represents the active page.
 const isActive = computed(() => {
   // If "to" is a route name
   if (router.hasRoute(props.to)) {

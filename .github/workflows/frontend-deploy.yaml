@@ -25,10 +25,22 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '20.x' # Alinhado com seu package.json
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@39.1.0
+
+      # PASSO CRUCIAL: Instala as dependências para que o comando de build funcione
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy to Vercel
         run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
