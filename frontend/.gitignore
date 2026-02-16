@@ -36,4 +36,3 @@ coverage
 __screenshots__/
 
 .vercel
-.env*.local
