@@ -32,7 +32,7 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@39.1.0
 
-      # PASSO CRUCIAL: Instala as dependências para que o comando de build funcione
+      # CRUCIAL STEP: Install dependencies so the build command works
       - name: Install Dependencies
         run: npm install
 
