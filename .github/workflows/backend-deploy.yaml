@@ -3,7 +3,7 @@ name: Backend Deployment
 on:
   push:
     # Trigger on pushes to the main and develop branches
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop", "feature/ci-cd-backend" ]
     # Only runs when changes are made to the backend directory
     paths: [ "backend/**" ]
 
@@ -36,7 +36,7 @@ jobs:
     # This job depends on the build-and-push job, and will only run if it finishes successfuly.
     needs: build-and-push
     # Only do the actual deployment if the push was to the main branch, not develop.
-    if: github.ref == 'refs/heads/main'
+    #if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to EC2
