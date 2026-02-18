@@ -11,7 +11,8 @@ app = FastAPI(title="My Project API")
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://*.vercel.app",
+    "https://cpsy301-small-prototype.vercel.app",  # Added specific Vercel URL
+    "https://oceanarium.duckdns.org",              # Added specific DuckDNS URL
 ]
 
 app.add_middleware(
