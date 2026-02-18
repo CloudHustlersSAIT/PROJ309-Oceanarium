@@ -11,21 +11,20 @@ app = FastAPI(title="My Project API")
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://cpsy301-small-prototype.vercel.app",  # Added specific Vercel URL
-    "https://oceanarium.duckdns.org",              # Added specific DuckDNS URL
+    "https://cpsy301-small-prototype.vercel.app", 
+    "https://oceanarium.duckdns.org",
 ]
 
+# CORS middleware configuration
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
+    CORSMiddleware, 
+    allow_origins=origins, 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Pydantic models for request bodies
-
-
 class BookingCreate(BaseModel):
     customer_id: str
     tour_id: int
@@ -33,10 +32,8 @@ class BookingCreate(BaseModel):
     adult_tickets: int
     child_tickets: int
 
-
 class BookingReschedule(BaseModel):
     new_date: date
-
 
 class IssueCreate(BaseModel):
     description: str
@@ -71,87 +68,42 @@ def read_group_members():
 # ==================== GUIDES ====================
 @app.get("/guides")
 def read_guides():
-    # Mock data for testing
-    mock_guides = [
-        {"id": 1, "name": "Ana Costa", "expertise": "Sharks", "rating": 4.9},
-        {"id": 2, "name": "Hermes Costello", "expertise": "Dolphins", "rating": 4.8},
-        {"id": 3, "name": "Chen Wei", "expertise": "Marine Biology", "rating": 4.7},
-        {"id": 4, "name": "Liam Brown", "expertise": "Ocean History", "rating": 4.6},
-    ]
-    return mock_guides
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT * FROM guides ORDER BY name"))
+            columns = result.keys()
+            rows = [dict(zip(columns, row)) for row in result.fetchall()]
+        return rows
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 
 # ==================== TOURS ====================
 @app.get("/tours")
 def read_tours():
-    # Mock data for testing calendar integration
-    mock_tours = [
-        {
-            "id": 1,
-            "tour": "Shark Diving",
-            "guide": "Ana Costa",
-            "date": "2025-02-07",
-            "time": "08:00",
-            "participants": 5,
-        },
-        {
-            "id": 2,
-            "tour": "Dolphin Feeding",
-            "guide": "Hermes Costello",
-            "date": "2025-02-07",
-            "time": "10:00",
-            "participants": 8,
-        },
-        {
-            "id": 3,
-            "tour": "Deep Sea Experience",
-            "guide": "Ann A. Kim",
-            "date": "2025-02-08",
-            "time": "14:00",
-            "participants": 4,
-        },
-        {
-            "id": 4,
-            "tour": "Molluscs",
-            "guide": "Chen Wei",
-            "date": "2025-02-08",
-            "time": "11:00",
-            "participants": 6,
-        },
-        {
-            "id": 5,
-            "tour": "Coral Exploration",
-            "guide": "Ana Costa",
-            "date": "2025-02-09",
-            "time": "13:00",
-            "participants": 7,
-        },
-    ]
-    return mock_tours
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT * FROM tours ORDER BY tour_name"))
+            columns = result.keys()
+            rows = [dict(zip(columns, row)) for row in result.fetchall()]
+        return rows
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 
 # ==================== NOTIFICATIONS ====================
 @app.get("/notifications")
 def read_notifications():
-    # Mock data for testing
-    mock_notifications = [
-        {
-            "id": 1,
-            "message": "Guide Ana Costa swapped tour Dolphin Feeding",
-            "timestamp": "2025-02-06T14:30:00",
-        },
-        {
-            "id": 2,
-            "message": "New booking for Shark Diving received",
-            "timestamp": "2025-02-06T13:15:00",
-        },
-        {
-            "id": 3,
-            "message": "Guide Liam Brown is unavailable Feb 9",
-            "timestamp": "2025-02-06T10:00:00",
-        },
-    ]
-    return mock_notifications
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(
+                text("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 10")
+            )
+            columns = result.keys()
+            rows = [dict(zip(columns, row)) for row in result.fetchall()]
+        return rows
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 
 # ==================== BOOKINGS ====================
@@ -209,11 +161,10 @@ def reschedule_booking(booking_id: int, reschedule: BookingReschedule):
                 {"new_date": reschedule.new_date, "booking_id": booking_id}
             )
             connection.commit()
-
+            
             if result.rowcount == 0:
-                raise HTTPException(
-                    status_code=404, detail="Booking not found")
-
+                raise HTTPException(status_code=404, detail="Booking not found")
+            
             columns = result.keys()
             row = result.fetchone()
             return dict(zip(columns, row))
@@ -237,11 +188,10 @@ def cancel_booking(booking_id: int):
                 {"booking_id": booking_id}
             )
             connection.commit()
-
+            
             if result.rowcount == 0:
-                raise HTTPException(
-                    status_code=404, detail="Booking not found")
-
+                raise HTTPException(status_code=404, detail="Booking not found")
+            
             columns = result.keys()
             row = result.fetchone()
             return dict(zip(columns, row))
@@ -275,10 +225,53 @@ def create_issue(issue: IssueCreate):
 # ==================== STATS ====================
 @app.get("/stats")
 def read_stats():
-    # Mock data for testing
-    return {
-        "toursToday": 14,
-        "customersToday": 45,
-        "cancellations": 2,
-        "avgRating": "4.9"
-    }
+    try:
+        with engine.connect() as connection:
+            # Get today's date
+            from datetime import date
+            today = date.today()
+            
+            # Tours today
+            tours_result = connection.execute(
+                text("""
+                    SELECT COUNT(*) as count 
+                    FROM bookings 
+                    WHERE date = :today AND status != 'cancelled'
+                """),
+                {"today": today}
+            )
+            tours_today = tours_result.scalar() or 0
+            
+            # Customers today
+            customers_result = connection.execute(
+                text("""
+                    SELECT COALESCE(SUM(adult_tickets + child_tickets), 0) as total
+                    FROM bookings 
+                    WHERE date = :today AND status != 'cancelled'
+                """),
+                {"today": today}
+            )
+            customers_today = customers_result.scalar() or 0
+            
+            # Cancellations today
+            cancellations_result = connection.execute(
+                text("""
+                    SELECT COUNT(*) as count
+                    FROM bookings 
+                    WHERE date = :today AND status = 'cancelled'
+                """),
+                {"today": today}
+            )
+            cancellations = cancellations_result.scalar() or 0
+            
+            # Average guide rating (if you add this column)
+            avg_rating = 5.0
+            
+            return {
+                "toursToday": int(tours_today),
+                "customersToday": int(customers_today),
+                "cancellations": int(cancellations),
+                "avgRating": str(avg_rating)
+            }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
