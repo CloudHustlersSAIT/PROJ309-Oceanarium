@@ -3,7 +3,7 @@ name: Backend Deployment
 on:
   push:
     # Trigger on pushes to the main and develop branches
-    branches: [ "main", "develop", "feature/ci-cd-backend" ]
+    branches: [ "main", "develop" ]
     # Only runs when changes are made to the backend directory
     paths: [ "backend/**" ]
 
