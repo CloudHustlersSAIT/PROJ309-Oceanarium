@@ -3,6 +3,11 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
+# 1. FIX CVE-2026-24049: Upgrade core build tools immediately
+# This patches 'wheel' to version 0.46.2 or higher as required by Scout
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools
+
+
 # Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
