@@ -5,7 +5,7 @@ on:
     # Trigger on pushes to the main and develop branches
     branches: [ "main", "develop", "feature/ci-cd-backend" ]
     # Only runs when changes are made to the backend directory
-    #paths: [ "backend/**" ]
+    paths: [ "backend/**" ]
 
 
 jobs:
@@ -34,7 +34,8 @@ jobs:
 
   deploy:
     needs: build-and-push
-    # if: github.ref == 'refs/heads/main'
+    # Only deploy when changes are pushed to the main branch to avoid deploying from feature branches
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Get GitHub Runner IP
