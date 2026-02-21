@@ -5,6 +5,8 @@ from .db import test_connection, engine
 from pydantic import BaseModel
 from datetime import date, time
 
+#updated
+
 app = FastAPI(title="My Project API")
 
 # Allow Vue dev server to talk to FastAPI
@@ -221,27 +223,28 @@ def reschedule_booking(booking_id: int, reschedule: BookingReschedule):
             if existing.status == "cancelled":
                 raise HTTPException(
                     status_code=400,
-                    detail="Cannot reschedule a cancelled booking"
-                )
-
-            if existing.date == reschedule.new_date:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Booking is already scheduled for this date"
+                    detail="Cannot reschedule cancelled booking"
                 )
 
             conflict = connection.execute(
                 text("""
                     SELECT 1
-                    FROM bookings
-                    WHERE tour_id = :tour_id
-                    AND date = :new_date
-                    AND (status IS NULL OR status != 'cancelled')
-                    AND booking_id != :booking_id
+                    FROM bookings b
+                    JOIN tours t ON b.tour_id = t.tour_id
+                    WHERE t.guide_id = (
+                        SELECT guide_id FROM tours WHERE tour_id = :tour_id
+                    )
+                    AND b.date = :new_date
+                    AND :start_time < b.end_time
+                    AND :end_time > b.start_time
+                    AND b.booking_id != :booking_id
+                    AND (b.status IS NULL OR b.status != 'cancelled')
                 """),
                 {
                     "tour_id": existing.tour_id,
                     "new_date": reschedule.new_date,
+                    "start_time": reschedule.start_time,
+                    "end_time": reschedule.end_time,
                     "booking_id": booking_id
                 }
             ).fetchone()
@@ -249,18 +252,22 @@ def reschedule_booking(booking_id: int, reschedule: BookingReschedule):
             if conflict:
                 raise HTTPException(
                     status_code=400,
-                    detail="Another booking already exists for this tour on that date"
+                    detail="Guide already has overlapping booking"
                 )
 
             result = connection.execute(
                 text("""
                     UPDATE bookings
-                    SET date = :new_date
+                    SET date = :new_date,
+                        start_time = :start_time,
+                        end_time = :end_time
                     WHERE booking_id = :booking_id
                     RETURNING *
                 """),
                 {
                     "new_date": reschedule.new_date,
+                    "start_time": reschedule.start_time,
+                    "end_time": reschedule.end_time,
                     "booking_id": booking_id
                 }
             )
