@@ -5,6 +5,8 @@ from .db import test_connection, engine
 from pydantic import BaseModel
 from datetime import date
 
+#updated
+
 app = FastAPI(title="My Project API")
 
 # Allow Vue dev server to talk to FastAPI
@@ -151,23 +153,73 @@ def create_booking(booking: BookingCreate):
 def reschedule_booking(booking_id: int, reschedule: BookingReschedule):
     try:
         with engine.connect() as connection:
+
+            existing = connection.execute(
+                text("""
+                    SELECT booking_id, tour_id, date, status
+                    FROM bookings
+                    WHERE booking_id = :booking_id
+                """),
+                {"booking_id": booking_id}
+            ).fetchone()
+
+            if not existing:
+                raise HTTPException(status_code=404, detail="Booking not found")
+
+            if existing.status == "cancelled":
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot reschedule a cancelled booking"
+                )
+
+            if existing.date == reschedule.new_date:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Booking is already scheduled for this date"
+                )
+
+            conflict = connection.execute(
+                text("""
+                    SELECT 1
+                    FROM bookings
+                    WHERE tour_id = :tour_id
+                    AND date = :new_date
+                    AND (status IS NULL OR status != 'cancelled')
+                    AND booking_id != :booking_id
+                """),
+                {
+                    "tour_id": existing.tour_id,
+                    "new_date": reschedule.new_date,
+                    "booking_id": booking_id
+                }
+            ).fetchone()
+
+            if conflict:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Another booking already exists for this tour on that date"
+                )
+
             result = connection.execute(
                 text("""
-                    UPDATE bookings 
-                    SET date = :new_date 
-                    WHERE booking_id = :booking_id 
+                    UPDATE bookings
+                    SET date = :new_date
+                    WHERE booking_id = :booking_id
                     RETURNING *
                 """),
-                {"new_date": reschedule.new_date, "booking_id": booking_id}
+                {
+                    "new_date": reschedule.new_date,
+                    "booking_id": booking_id
+                }
             )
+
             connection.commit()
-            
-            if result.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Booking not found")
-            
+
             columns = result.keys()
             row = result.fetchone()
+
             return dict(zip(columns, row))
+
     except HTTPException:
         raise
     except Exception as e:
