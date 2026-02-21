@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from .db import test_connection, engine
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, time
 
 #updated
 
@@ -27,15 +27,20 @@ app.add_middleware(
 )
 
 # Pydantic models for request bodies
+# Pydantic models for request bodies
 class BookingCreate(BaseModel):
     customer_id: str
     tour_id: int
     date: date
+    start_time: time
+    end_time: time
     adult_tickets: int
     child_tickets: int
 
 class BookingReschedule(BaseModel):
     new_date: date
+    start_time: time
+    end_time: time
 
 class IssueCreate(BaseModel):
     description: str
@@ -127,24 +132,73 @@ def read_bookings():
 def create_booking(booking: BookingCreate):
     try:
         with engine.connect() as connection:
+
+            tour = connection.execute(
+                text("""
+                    SELECT guide_id
+                    FROM tours
+                    WHERE tour_id = :tour_id
+                """),
+                {"tour_id": booking.tour_id}
+            ).fetchone()
+
+            if not tour:
+                raise HTTPException(status_code=404, detail="Tour not found")
+
+            conflict = connection.execute(
+                text("""
+                    SELECT 1
+                    FROM bookings b
+                    JOIN tours t ON b.tour_id = t.tour_id
+                    WHERE t.guide_id = :guide_id
+                    AND b.date = :date
+                    AND :start_time < b.end_time
+                    AND :end_time > b.start_time
+                    AND (b.status IS NULL OR b.status != 'cancelled')
+                """),
+                {
+                    "guide_id": tour.guide_id,
+                    "date": booking.date,
+                    "start_time": booking.start_time,
+                    "end_time": booking.end_time
+                }
+            ).fetchone()
+
+            if conflict:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Guide already has overlapping booking"
+                )
+
             result = connection.execute(
                 text("""
-                    INSERT INTO bookings (customer_id, tour_id, date, adult_tickets, child_tickets, status)
-                    VALUES (:customer_id, :tour_id, :date, :adult_tickets, :child_tickets, 'confirmed')
+                    INSERT INTO bookings
+                    (customer_id, tour_id, date, start_time, end_time,
+                     adult_tickets, child_tickets, status)
+                    VALUES
+                    (:customer_id, :tour_id, :date, :start_time, :end_time,
+                     :adult_tickets, :child_tickets, 'confirmed')
                     RETURNING *
                 """),
                 {
                     "customer_id": booking.customer_id,
                     "tour_id": booking.tour_id,
                     "date": booking.date,
+                    "start_time": booking.start_time,
+                    "end_time": booking.end_time,
                     "adult_tickets": booking.adult_tickets,
                     "child_tickets": booking.child_tickets,
                 }
             )
+
             connection.commit()
+
             columns = result.keys()
             row = result.fetchone()
             return dict(zip(columns, row))
+
+    except HTTPException:
+        raise
     except Exception as e:
         return {"status": "error", "detail": str(e)}
 
