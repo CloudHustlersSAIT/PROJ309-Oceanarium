@@ -78,7 +78,7 @@ def _deterministic_external_id(rng: random.Random, entity_type: str) -> str:
 # - Hour between 09 and 18
 # - Duration = 1 hour
 # Returns ISO format with Z suffix for UTC, e.g. "2024-07-01T14:00:00Z"
-def _generate_event_window(rng: random.Random) -> tuple[str, str]:
+def _generate_event_window(rng: random.Random) -> Tuple[str, str]:
     days_ahead = rng.randint(1, 30)
     base_date = datetime.now(timezone.utc).date() + timedelta(days=days_ahead)
 
