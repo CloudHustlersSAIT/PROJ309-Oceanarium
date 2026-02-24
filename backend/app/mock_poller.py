@@ -19,7 +19,6 @@ import random
 
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Literal, Tuple
-from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
