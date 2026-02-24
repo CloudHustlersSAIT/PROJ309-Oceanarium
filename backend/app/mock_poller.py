@@ -27,11 +27,6 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from .db import engine
 
-#Temporary
-import logging
-import traceback
-
-
 # ----------------------------------
 # Constants
 # ----------------------------------
