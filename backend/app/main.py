@@ -305,6 +305,26 @@ def reschedule_booking(booking_id: int, reschedule: BookingReschedule):
 def cancel_booking(booking_id: int):
     try:
         with engine.connect() as connection:
+
+            # Check booking exists and current status
+            existing = connection.execute(
+                text("""
+                    SELECT status 
+                    FROM bookings 
+                    WHERE booking_id = :booking_id
+                """),
+                {"booking_id": booking_id}
+            ).fetchone()
+
+            if not existing:
+                raise HTTPException(status_code=404, detail="Booking not found")
+
+            if existing.status == "cancelled":
+                raise HTTPException(
+                    status_code=400,
+                    detail="Booking is already cancelled"
+                )
+
             result = connection.execute(
                 text("""
                     UPDATE bookings 
@@ -315,10 +335,7 @@ def cancel_booking(booking_id: int):
                 {"booking_id": booking_id}
             )
             connection.commit()
-            
-            if result.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Booking not found")
-            
+                        
             columns = result.keys()
             row = result.fetchone()
             return dict(zip(columns, row))
