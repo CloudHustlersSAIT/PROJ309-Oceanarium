@@ -17,8 +17,9 @@ Additional Notes:
 import json
 import random
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional, Literal, Tuple
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -26,6 +27,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from .db import engine
+
+#Temporary
+import logging
+import traceback
+
 
 # ----------------------------------
 # Constants
@@ -73,11 +79,47 @@ def _deterministic_external_id(rng: random.Random, entity_type: str) -> str:
     n = rng.randint(1, 999999)
     return f"{prefix}-{n:06d}"
 
+"""
+    Generates realistic event start and end datetime.
+    - At least 1 day in the future
+    - Hour between 09 and 18
+    - Duration = 1 hour
+    Returns ISO format with Z suffix for UTC, e.g. "2024-07-01T14:00:00Z
+"""
+def _generate_event_window(rng: random.Random) -> tuple[str, str]:
+    
+
+    days_ahead = rng.randint(1, 30)
+    base_date = datetime.now(timezone.utc).date() + timedelta(days=days_ahead)
+
+    start_hour = rng.randint(9, 18)
+
+    start_dt = datetime(
+        base_date.year,
+        base_date.month,
+        base_date.day,
+        start_hour,
+        0,
+        0,
+        tzinfo=timezone.utc,
+    )
+
+    end_dt = start_dt + timedelta(hours=1)
+
+    # Return ISO format with Z suffix
+    return (
+        start_dt.isoformat().replace("+00:00", "Z"),
+        end_dt.isoformat().replace("+00:00", "Z"),
+    )
+
 
 # This function creates a small base payload with common fields for both reservations and tickets.
 def _base_payload(entity_type: str, external_id: str, rng: random.Random) -> Dict[str, Any]:
-    now = datetime.now(timezone.utc).isoformat()
-    return {
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    event_start, event_end = _generate_event_window(rng)
+
+    payload = {
         "entity_type": entity_type,
         "external_id": external_id,
         "timestamp_utc": now,
@@ -87,12 +129,29 @@ def _base_payload(entity_type: str, external_id: str, rng: random.Random) -> Dic
         },
         "tour": {
             "program_id": rng.randint(1, 120),
-            "program_name": rng.choice(["Behind the Scenes", "Night at the Oceanarium", "Coral Explorer"]),
-            "start_time_utc": now,
+            "program_name": rng.choice([
+                "Behind the Scenes",
+                "Night at the Oceanarium",
+                "Coral Explorer",
+                "Shark Dive",
+                "Penguin Encounter",
+                "Whale Watching",
+            ]),
         },
         "qty": rng.randint(1, 6),
         "notes": rng.choice(["", "Wheelchair access", "Birthday group", "VIP"]),
     }
+
+    # Add scheduling fields depending on entity type
+    if entity_type == "reservation":
+        payload["eventStartDatetime"] = event_start
+        payload["eventEndDatetime"] = event_end
+
+    elif entity_type == "ticket":
+        payload["startDatetime"] = event_start
+        payload["endDatetime"] = event_end
+
+    return payload
 
 # This function takes an existing payload and applies some random changes to simulate and update scenario.
 def _apply_update(payload: Dict[str, Any], rng: random.Random) -> Dict[str, Any]:
@@ -278,5 +337,5 @@ def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
             except Exception:
                 pass
 
-        logging.exception("Mock poller execution failed")
-        raise HTTPException(status_code=500, detail="Mock poller execution failed. Check server logs.")
+        #raise HTTPException(status_code=500, detail="Mock poller execution failed. Check server logs.")
+        raise HTTPException(status_code=500, detail=str(e))
