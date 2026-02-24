@@ -334,10 +334,11 @@ def cancel_booking(booking_id: int):
                 """),
                 {"booking_id": booking_id}
             )
-            connection.commit()
-                        
             columns = result.keys()
             row = result.fetchone()
+
+            connection.commit()
+                        
             return dict(zip(columns, row))
     except HTTPException:
         raise
