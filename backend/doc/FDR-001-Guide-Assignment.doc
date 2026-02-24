@@ -1,0 +1,749 @@
+Date: Tue, 24 Feb 2026 21:23:51 +0000 (UTC)
+Message-ID: <1369752935.213.1771968231579@155023e28e51>
+Subject: Exported From Confluence
+MIME-Version: 1.0
+Content-Type: multipart/related; 
+	boundary="----=_Part_212_1143652014.1771968231579"
+
+------=_Part_212_1143652014.1771968231579
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Content-Location: file:///C:/exported.html
+
+<html xmlns:o=3D'urn:schemas-microsoft-com:office:office'
+      xmlns:w=3D'urn:schemas-microsoft-com:office:word'
+      xmlns:v=3D'urn:schemas-microsoft-com:vml'
+      xmlns=3D'urn:w3-org-ns:HTML'>
+<head>
+    <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8=
+">
+    <title>FDR - 001 Document: Guide Assignment</title>
+    <!--[if gte mso 9]>
+    <xml>
+        <o:OfficeDocumentSettings>
+            <o:TargetScreenSize>1024x640</o:TargetScreenSize>
+            <o:PixelsPerInch>72</o:PixelsPerInch>
+            <o:AllowPNG/>
+        </o:OfficeDocumentSettings>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>90</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style>
+                <!--
+        @page Section1 {
+            size: 8.5in 11.0in;
+            margin: 1.0in;
+            mso-header-margin: .5in;
+            mso-footer-margin: .5in;
+            mso-paper-source: 0;
+        }
+
+        table {
+            border: solid 1px;
+            border-collapse: collapse;
+        }
+
+        table td, table th {
+            border: solid 1px;
+            padding: 5px;
+        }
+
+        td {
+            page-break-inside: avoid;
+        }
+
+        tr {
+            page-break-after: avoid;
+        }
+
+        div.Section1 {
+            page: Section1;
+        }
+
+        /* Confluence print stylesheet. Common to all themes for print medi=
+a */
+/* Full of !important until we improve batching for print CSS */
+
+@media print {
+    #main {
+        padding-bottom: 1em !important; /* The default padding of 6em is to=
+o much for printouts */
+    }
+
+    body {
+        font: var(--ds-font-body-small, Arial, Helvetica, FreeSans, sans-se=
+rif);
+    }
+
+    body, #full-height-container, #main, #page, #content, .has-personal-sid=
+ebar #content {
+        background: var(--ds-surface, #fff) !important;
+        color: var(--ds-text, #000) !important;
+        border: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+    }
+
+    a, a:link, a:visited, a:focus, a:hover, a:active {
+        color: var(--ds-text, #000);
+    }
+
+    #content h1,
+    #content h2,
+    #content h3,
+    #content h4,
+    #content h5,
+    #content h6 {
+        page-break-after: avoid;
+    }
+
+    pre {
+        font: var(--ds-font-code, Monaco, "Courier New", monospace);
+    }
+
+    #header,
+    .aui-header-inner,
+    #navigation,
+    #sidebar,
+    .sidebar,
+    #personal-info-sidebar,
+    .ia-fixed-sidebar,
+    .page-actions,
+    .navmenu,
+    .ajs-menu-bar,
+    .noprint,
+    .inline-control-link,
+    .inline-control-link a,
+    a.show-labels-editor,
+    .global-comment-actions,
+    .comment-actions,
+    .quick-comment-container,
+    #addcomment {
+        display: none !important;
+    }
+
+    /* CONF-28544 cannot print multiple pages in IE */
+    #splitter-content {
+        position: relative !important;
+    }
+
+    .comment .date::before {
+        content: none !important; /* remove middot for print view */
+    }
+
+    h1.pagetitle img {
+        height: auto;
+        width: auto;
+    }
+
+    .print-only {
+        display: block;
+    }
+
+    #footer {
+        position: relative !important; /* CONF-17506 Place the footer at en=
+d of the content */
+        margin: 0;
+        padding: 0;
+        background: none;
+        clear: both;
+    }
+
+    #poweredby {
+        border-top: none;
+        background: none;
+    }
+
+    #poweredby li.print-only {
+        display: list-item;
+        font-style: italic;
+    }
+
+    #poweredby li.noprint {
+        display: none;
+    }
+
+    /* no width controls in print */
+    .wiki-content .table-wrap,
+    .wiki-content p,
+    .panel .codeContent,
+    .panel .codeContent pre,
+    .image-wrap {
+        overflow: visible !important;
+    }
+
+    /* TODO - should this work? */
+    #children-section,
+    #comments-section .comment,
+    #comments-section .comment .comment-body,
+    #comments-section .comment .comment-content,
+    #comments-section .comment p {
+        page-break-inside: avoid;
+    }
+
+    #page-children a {
+        text-decoration: none;
+    }
+
+    /**
+     hide twixies
+
+     the specificity here is a hack because print styles
+     are getting loaded before the base styles. */
+    #comments-section.pageSection .section-header,
+    #comments-section.pageSection .section-title,
+    #children-section.pageSection .section-header,
+    #children-section.pageSection .section-title,
+    .children-show-hide {
+        padding-left: 0;
+        margin-left: 0;
+    }
+
+    .children-show-hide.icon {
+        display: none;
+    }
+
+    /* personal sidebar */
+    .has-personal-sidebar #content {
+        margin-right: 0px;
+    }
+
+    .has-personal-sidebar #content .pageSection {
+        margin-right: 0px;
+    }
+
+    .no-print, .no-print * {
+        display: none !important;
+    }
+}
+-->
+    </style>
+</head>
+<body>
+    <h1>FDR - 001 Document: Guide Assignment</h1>
+    <div class=3D"Section1">
+        <h1 local-id=3D"129fc6950524" id=3D"FDR-001Document:GuideAssignment=
+-FunctionalRequirementsDocument:GuideAssignment">Functional Requirements Do=
+cument: Guide Assignment</h1>
+<div class=3D"table-wrap">
+<table data-table-width=3D"760" data-layout=3D"default" data-local-id=3D"91=
+785189-c3b3-451f-a493-0b7e33a38dd8" class=3D"confluenceTable">
+<tbody>
+<tr data-local-id=3D"ad9dd93d-6c03-4227-b14f-e6e595e9210d">
+<th data-local-id=3D"e9116d87-a6f7-46e5-8a69-43b26c40838b" class=3D"conflue=
+nceTh">
+<p local-id=3D"8e215569ac20">Field</p></th>
+<th data-local-id=3D"f3e1b1a7-7d45-4896-a288-e84e31055713" class=3D"conflue=
+nceTh">
+<p local-id=3D"6ab2762a3758">Detail</p></th>
+</tr>
+<tr data-local-id=3D"56e367e1-37c2-4c77-a847-9b174bc3f63d">
+<td data-local-id=3D"9491c87e-1456-4734-9665-82b5c8a21367" class=3D"conflue=
+nceTd">
+<p local-id=3D"bdb820ade28c"><strong>FRD Number</strong></p></td>
+<td data-local-id=3D"7d487de1-09b0-444f-ba18-63c54c8b7045" class=3D"conflue=
+nceTd">
+<p local-id=3D"7f2c0c55d9d7">FRD-001</p></td>
+</tr>
+<tr data-local-id=3D"469cb331-aaf8-41b5-87b7-d3e22d6e146f">
+<td data-local-id=3D"f6a10742-3609-4883-b84f-eb3996a2a6ec" class=3D"conflue=
+nceTd">
+<p local-id=3D"ba4e2c1d4877"><strong>Author</strong></p></td>
+<td data-local-id=3D"34b189b7-f175-4f46-93dd-d7c15165913b" class=3D"conflue=
+nceTd">
+<p local-id=3D"7dab10dc9b4e">Evandro Maciel</p></td>
+</tr>
+<tr data-local-id=3D"fe68a014-3acd-49a7-8202-7a0b50db33d4">
+<td data-local-id=3D"6ace1b4e-310a-4326-b046-5454dabdd566" class=3D"conflue=
+nceTd">
+<p local-id=3D"2966db7c6e00"><strong>Date Created</strong></p></td>
+<td data-local-id=3D"012b7503-2706-4c7e-9030-7825804a20b0" class=3D"conflue=
+nceTd">
+<p local-id=3D"f80adc0918f7">February 12, 2026</p></td>
+</tr>
+<tr data-local-id=3D"28f20d1f-1e68-40e9-89b1-4b05f23dc5da">
+<td data-local-id=3D"f6760c6a-377c-496c-835b-0996e670e82b" class=3D"conflue=
+nceTd">
+<p local-id=3D"11f5b20e03f7"><strong>Version</strong></p></td>
+<td data-local-id=3D"95c3a552-ebfb-4297-99f2-83af2fb8a6e5" class=3D"conflue=
+nceTd">
+<p local-id=3D"6d0300dd4cc8">1.1</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 local-id=3D"abffb513509d" id=3D"FDR-001Document:GuideAssignment-1.Purpo=
+se">1. Purpose</h2>
+<p local-id=3D"1c141b6d5475">This document defines the functional requireme=
+nts for the automated Guide Assignment feature within the Oceanarium Tour S=
+cheduling System. Tours are booked by customers through the <strong>Clorian=
+ System</strong> (third-party booking platform). Our system must pull booki=
+ng data from Clorian, detect new, changed, or cancelled bookings, and autom=
+atically assign the most suitable guide based on availability, expertise, a=
+nd language criteria.</p>
+<h2 local-id=3D"b04d7fbce1e4" id=3D"FDR-001Document:GuideAssignment-2.Scope=
+">2. Scope</h2>
+<p local-id=3D"ff95eaf01cb0">This FRD covers:</p>
+<ul local-id=3D"0bf3efaa-c0ca-4266-8c51-4c4ff2efd04c">
+<li local-id=3D"cbda1504-f257-4e5e-a21c-327168a8570e">
+<p local-id=3D"a4fd494a1907">Integration with Clorian to sync tour bookings=
+.</p></li>
+<li local-id=3D"36caeba3-b5a1-4a30-b4f2-678b0f41c7c0">
+<p local-id=3D"ee92823deba2">Logic and rules for determining guide eligibil=
+ity.</p></li>
+<li local-id=3D"5e14d417-1d60-4a91-8c5c-dfd97d2c7b8b">
+<p local-id=3D"e39a2f071c59">Automated guide assignment and reassignment.</=
+p></li>
+</ul>
+<p local-id=3D"aac3d3673f23">It does not cover the Clorian booking interfac=
+e itself, visitor-facing features, or payment processing.</p>
+<h2 local-id=3D"06974b374397" id=3D"FDR-001Document:GuideAssignment-3.Actor=
+s">3. Actors</h2>
+<ul local-id=3D"97e8d54b-e582-4c50-821c-70242f77ba73">
+<li local-id=3D"d12661e4-3024-44c6-96c0-4bdd67483bfc">
+<p local-id=3D"049e21da5f2c"><strong>Clorian System</strong>: External book=
+ing platform where customers book tours. Source of truth for booking data.<=
+/p></li>
+<li local-id=3D"4f39aa94-7a80-4c84-ba67-759c7a1e90fe">
+<p local-id=3D"b2cdbd9ebdbc"><strong>System</strong>: Pulls bookings from C=
+lorian, evaluates guide suitability, and performs assignment.</p></li>
+<li local-id=3D"389bf9d6-3031-4b8b-92bb-45c7611fd02d">
+<p local-id=3D"df6d9930c44e"><strong>Admin</strong>: Can manually override =
+assignments, manage guide profiles, and configure availability patterns.</p=
+></li>
+<li local-id=3D"6e86e95d-a808-45ed-8cbb-5931e6ecac5e">
+<p local-id=3D"e075f79e71ed"><strong>Guide</strong>: Can update personal av=
+ailability, view assigned tours, and request exceptions.</p></li>
+</ul>
+<h2 local-id=3D"0816c4aaf0c0" id=3D"FDR-001Document:GuideAssignment-4.Assum=
+ptions">4. Assumptions</h2>
+<ul local-id=3D"89efe62a-7708-4a3d-b530-b4e49fd6d23b">
+<li local-id=3D"98d6824a-bcdb-49f2-8b59-3e490f824bd2">
+<p local-id=3D"74dce0978ce3">Each tour requires exactly one guide.</p></li>
+<li local-id=3D"318cab50-7258-4067-8aa5-cdf7847466f0">
+<p local-id=3D"8d5b0cb97454">A guide can only be assigned to one tour at a =
+time (no overlapping assignments).</p></li>
+<li local-id=3D"eee17699-3b78-4c89-a283-1209de7d616d">
+<p local-id=3D"a72e370831d7">Guide profiles (languages, expertise, availabi=
+lity) are kept up to date by admins or guides themselves.</p></li>
+<li local-id=3D"7da7bc46-d0c6-4fcd-a260-06d78ae4b59a">
+<p local-id=3D"55d86ebe6b2f">All times follow the timezone defined in the g=
+uide's <code>AvailabilityPattern</code>.</p></li>
+<li local-id=3D"ab95fc78-9b78-4ea7-bd66-aaf021948e5a">
+<p local-id=3D"b3637d445f8b">Clorian is the single source of truth for book=
+ings. Our system never creates bookings =E2=80=94 it only consumes them.</p=
+></li>
+<li local-id=3D"f456f266-8120-4a56-89fd-7dc4174a4812">
+<p local-id=3D"7e0d3909dd00">Clorian provides an API or data export that ca=
+n be queried on a scheduled basis.</p></li>
+</ul>
+<h2 local-id=3D"abd035b153fc" id=3D"FDR-001Document:GuideAssignment-5.Funct=
+ionalRequirements">5. Functional Requirements</h2>
+<h3 local-id=3D"c201aea7814e" id=3D"FDR-001Document:GuideAssignment-FR-01:C=
+lorianBookingSync">FR-01: Clorian Booking Sync</h3>
+<ul local-id=3D"297d2dab-19c5-45ea-9b78-5033f0b41741">
+<li local-id=3D"990ae5e5-2428-4f28-955e-f5b25bf194b3">
+<p local-id=3D"8aaa329e8bb3">The system must pull tour bookings from the Cl=
+orian System every <strong>15 minutes</strong> via scheduled sync.</p></li>
+<li local-id=3D"66dcd2c7-df4e-4ae8-87c1-f9f292c1731d">
+<p local-id=3D"8713185628f6">Each sync must detect:</p>
+<ul local-id=3D"73f0be52-79d3-461e-8700-e4b9ddf4d9f8">
+<li local-id=3D"582e8282-3d91-41d2-a1cc-219f1931f32c">
+<p local-id=3D"d24c32717ff7"><strong>New bookings</strong>: Tours that don'=
+t exist yet in our system =E2=86=92 create and trigger guide assignment.</p=
+></li>
+<li local-id=3D"a83c40ed-56e8-4153-891c-ab3546231aa0">
+<p local-id=3D"8af80156ead8"><strong>Changed bookings</strong>: Tours whose=
+ date, time, expertise, or language has been modified =E2=86=92 reassess cu=
+rrent guide assignment.</p></li>
+<li local-id=3D"0ec2211a-5743-40e3-9944-86a1eb8d3353">
+<p local-id=3D"6572e70728a4"><strong>Cancelled bookings</strong>: Tours tha=
+t no longer exist in Clorian =E2=86=92 release the assigned guide and mark =
+the tour as cancelled.</p></li>
+</ul></li>
+<li local-id=3D"0dec2462-2cf1-42e5-ab87-9cae49ea16a9">
+<p local-id=3D"e14052e09406">The system must store a local copy of each boo=
+king with a reference to the Clorian booking ID for traceability.</p></li>
+<li local-id=3D"2246ca92-cb84-4902-9cf7-781aae67e278">
+<p local-id=3D"dedbae2c1fd5">The system must log each sync cycle with: time=
+stamp, number of new/changed/cancelled bookings detected, and any errors.</=
+p></li>
+</ul>
+<h3 local-id=3D"8e80957bf24e" id=3D"FDR-001Document:GuideAssignment-FR-02:G=
+uideProfileManagement">FR-02: Guide Profile Management</h3>
+<ul local-id=3D"70d2face-4c3c-4c2f-9f53-67227edb5f64">
+<li local-id=3D"3fb18cab-3456-45cb-9f9a-41b62ab3c993">
+<p local-id=3D"f1fcacafc80f">The system must store each guide's name, email=
+, and active status.</p></li>
+<li local-id=3D"6546fabf-c4f1-4a0b-a042-a3fe9e92a7c6">
+<p local-id=3D"aad1c7697515">The system must support associating one or mor=
+e languages to a guide.</p></li>
+<li local-id=3D"28b90ced-f3ab-4739-b48c-654826267019">
+<p local-id=3D"550bdf4f758d">The system must support associating one or mor=
+e expertise areas (with name and category) to a guide.</p></li>
+</ul>
+<h3 local-id=3D"065de35c7302" id=3D"FDR-001Document:GuideAssignment-FR-03:A=
+vailabilityPatternManagement">FR-03: Availability Pattern Management</h3>
+<ul local-id=3D"384d6370-6e1e-4cd3-a48d-22d1aebc50a2">
+<li local-id=3D"e09df77b-0a99-4fea-b384-156a60ba8f68">
+<p local-id=3D"ddb29f2b5700">Each guide must have one availability pattern =
+with a defined timezone.</p></li>
+<li local-id=3D"980a7540-bb99-4586-a8ad-f66ca66e905e">
+<p local-id=3D"6ec4b0bbd2d9">Each availability pattern must contain one or =
+more availability slots defining recurring weekly availability (day of week=
+, start time, end time).</p></li>
+<li local-id=3D"e5219488-0748-4323-a89c-b7bbbbd2d18b">
+<p local-id=3D"efd2e9e876f3">The system must support availability exception=
+s (date, type, reason) to override the recurring pattern.</p></li>
+</ul>
+<h3 local-id=3D"e6f67273751d" id=3D"FDR-001Document:GuideAssignment-FR-04:G=
+uideSuitabilityValidation">FR-04: Guide Suitability Validation</h3>
+<p local-id=3D"417c0c76e5ac">When assigning a guide to a tour, the system m=
+ust validate <strong>all three</strong> rules below. A guide is eligible on=
+ly if every rule passes (AND logic).</p>
+<h4 local-id=3D"523ae6bb51fc" id=3D"FDR-001Document:GuideAssignment-Rule1:A=
+vailability">Rule 1: Availability</h4>
+<p local-id=3D"684c1260a392">The guide must be available during the entire =
+tour time window.</p>
+<ol start=3D"1" local-id=3D"5dd3b9d4-dfa4-41e6-a1e8-925ef6951f55">
+<li local-id=3D"756a0f23-8377-43c9-9716-2fe3e6e6af77">
+<p local-id=3D"f9ef4fd89cdc">Retrieve the guide's <code>AvailabilityPattern=
+</code> and find the <code>AvailabilitySlot</code> matching the tour's day =
+of week.</p></li>
+<li local-id=3D"6bff7f3a-9d23-46d3-b2e9-6800843a4cd1">
+<p local-id=3D"a6301cb991a5">Confirm the slot's <code>startTime =E2=89=A4 t=
+our.startTime</code> AND <code>endTime =E2=89=A5 tour.endTime</code>.</p></=
+li>
+<li local-id=3D"0bd7696c-543c-4c76-ae72-1129287ab9f0">
+<p local-id=3D"ba624806f5e8">Check <code>AvailabilityException</code> for t=
+he tour date =E2=80=94 if a blocking exception exists, the guide is not ava=
+ilable.</p></li>
+<li local-id=3D"f2d570dd-3b6f-455e-acf4-c0911c51396b">
+<p local-id=3D"b545972094ea">Confirm <code>guide.isActive =3D=3D true</code=
+>.</p></li>
+<li local-id=3D"971d47ff-47e5-4ccb-9e54-4208480d90af">
+<p local-id=3D"51f1cadfa0a8">Confirm the guide has no other tour assigned d=
+uring the same time window.</p></li>
+</ol>
+<div class=3D"code panel pdl" style=3D"border-width: 1px;">
+<div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: java; gutter: false; theme: Confluence" data-theme=3D"Confluence">isAvail=
+able =3D
+    guide.isActive
+    AND slot.dayOfWeek =3D=3D tour.dayOfWeek
+    AND slot.startTime &lt;=3D tour.startTime
+    AND slot.endTime &gt;=3D tour.endTime
+    AND NO blocking exception exists for tour.date
+    AND NO overlapping tour assignment exists
+</pre>
+</div>
+</div>
+<h4 local-id=3D"f7736a82ac08" id=3D"FDR-001Document:GuideAssignment-Rule2:E=
+xpertise">Rule 2: Expertise</h4>
+<p local-id=3D"021f7902e318">The guide must have expertise that matches the=
+ tour's required expertise.</p>
+<ol start=3D"1" local-id=3D"07250e23-ad2c-4c2d-b3ae-6cf2caef9ef5">
+<li local-id=3D"7b21ee85-d676-48aa-8a34-a9c509f424a8">
+<p local-id=3D"1fad2deb21b6">Retrieve the guide's list of <code>Expertise</=
+code> entries.</p></li>
+<li local-id=3D"da244702-54f9-4264-bca5-0f1378df7d38">
+<p local-id=3D"c2175750cc01">Check if at least one expertise matches the to=
+ur's required expertise by name or category.</p></li>
+</ol>
+<div class=3D"code panel pdl" style=3D"border-width: 1px;">
+<div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: java; gutter: false; theme: Confluence" data-theme=3D"Confluence">hasExpe=
+rtise =3D
+    guide.expertises
+        .ANY(e =3D&gt; e.name =3D=3D tour.requiredExpertise
+             OR e.category =3D=3D tour.requiredCategory)
+</pre>
+</div>
+</div>
+<h4 local-id=3D"bdf03e983c6d" id=3D"FDR-001Document:GuideAssignment-Rule3:L=
+anguage">Rule 3: Language</h4>
+<p local-id=3D"31f6d8cb98d5">The guide must speak the language requested fo=
+r the tour.</p>
+<ol start=3D"1" local-id=3D"639223fb-b7d2-4d3c-9243-414bc31e699a">
+<li local-id=3D"92388c4e-9107-49f6-b4cf-af7e49317f5c">
+<p local-id=3D"2993a2226a71">Retrieve the guide's list of <code>Language</c=
+ode> entries.</p></li>
+<li local-id=3D"f6278449-7be2-49b3-a62d-60f7fba5bb37">
+<p local-id=3D"f22b634b0347">Check if at least one language matches the tou=
+r's requested language by code.</p></li>
+</ol>
+<div class=3D"code panel pdl" style=3D"border-width: 1px;">
+<div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: java; gutter: false; theme: Confluence" data-theme=3D"Confluence">speaksL=
+anguage =3D
+    guide.languages
+        .ANY(l =3D&gt; l.code =3D=3D tour.requestedLanguageCode)
+</pre>
+</div>
+</div>
+<h4 local-id=3D"64a97b7a4327" id=3D"FDR-001Document:GuideAssignment-FinalEl=
+igibility">Final Eligibility</h4>
+<div class=3D"code panel pdl" style=3D"border-width: 1px;">
+<div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: java; gutter: false; theme: Confluence" data-theme=3D"Confluence">isSuita=
+ble =3D isAvailable AND hasExpertise AND speaksLanguage
+</pre>
+</div>
+</div>
+<h3 local-id=3D"345a29884ca6" id=3D"FDR-001Document:GuideAssignment-FR-05:A=
+ssignmentExecution">FR-05: Assignment Execution</h3>
+<ul local-id=3D"072d55be-8527-4e78-b3ce-ce3aa4e15f67">
+<li local-id=3D"a53a5590-2acf-4842-bed8-f979450c6d71">
+<p local-id=3D"3274df1dc5e5">If exactly one guide is suitable, the system a=
+ssigns that guide automatically.</p></li>
+<li local-id=3D"3b0e1113-7bb4-4ce4-a61d-874642189fd9">
+<p local-id=3D"898c5f8d6a3b">If multiple guides are suitable, the system sh=
+ould assign the guide with the fewest tours assigned that day (load balanci=
+ng).</p></li>
+<li local-id=3D"f5c5db34-2c46-4279-a9f8-272143e9f038">
+<p local-id=3D"afa1551d33d7">If no guide is suitable, the system must flag =
+the tour as "Unassigned" and notify the admin.</p></li>
+</ul>
+<h3 local-id=3D"c56aa8f0b7ee" id=3D"FDR-001Document:GuideAssignment-FR-06:M=
+anualOverride">FR-06: Manual Override</h3>
+<ul local-id=3D"82d52f7a-300b-45a7-a170-59abe00db333">
+<li local-id=3D"d946a38e-c581-4a21-ade0-467d852ba0a8">
+<p local-id=3D"b801085a2f8c">An admin must be able to manually assign or re=
+assign a guide to a tour, bypassing the automated suitability check.</p></l=
+i>
+<li local-id=3D"acbbe9ce-9212-43ff-8c36-3e3c4d2608d4">
+<p local-id=3D"b1722c1ea8bd">Manual overrides must be logged with the admin=
+'s identity and a timestamp.</p></li>
+</ul>
+<h2 local-id=3D"5f6c3bcce3e6" id=3D"FDR-001Document:GuideAssignment-6.Non-F=
+unctionalRequirements">6. Non-Functional Requirements</h2>
+<ul local-id=3D"a6c34bfc-14ab-4f90-a40c-e37911db44fb">
+<li local-id=3D"0b70646f-5758-4162-9aa8-89a69402bd1c">
+<p local-id=3D"1faaf7088eac"><strong>NFR-01</strong>: The suitability check=
+ must execute within 2 seconds for up to 100 active guides.</p></li>
+<li local-id=3D"4856bafa-c940-4203-b0f8-ee13b4468616">
+<p local-id=3D"bddce65079b4"><strong>NFR-02</strong>: All assignment change=
+s (automatic and manual) must be persisted in an audit log.</p></li>
+<li local-id=3D"f2b807c6-f8d5-47ed-8f01-733f84c6191a">
+<p local-id=3D"cbc99b81acd3"><strong>NFR-03</strong>: The system must handl=
+e timezone conversions consistently using the guide's <code>AvailabilityPat=
+tern.timezone</code>.</p></li>
+<li local-id=3D"00476ff3-7af1-4a40-a568-f32543786129">
+<p local-id=3D"244564652275"><strong>NFR-04</strong>: The Clorian sync job =
+must complete within 60 seconds per cycle and must not skip a cycle if the =
+previous one is still running (queue or skip with a warning log).</p></li>
+<li local-id=3D"6d59f010-8d54-45ea-beae-dd42cfb2a90a">
+<p local-id=3D"a974bf3c185d"><strong>NFR-05</strong>: The system must be re=
+silient to Clorian API downtime =E2=80=94 if a sync fails, it must retry on=
+ the next cycle and alert the admin after 3 consecutive failures.</p></li>
+</ul>
+<h2 local-id=3D"2521bd33212f" id=3D"FDR-001Document:GuideAssignment-7.Accep=
+tanceCriteria">7. Acceptance Criteria</h2>
+<div class=3D"table-wrap">
+<table data-table-width=3D"760" data-layout=3D"default" data-local-id=3D"df=
+902e8e-d403-4d63-b84f-45b3cd03528b" class=3D"confluenceTable">
+<tbody>
+<tr data-local-id=3D"494d3a29-4ad0-4be5-b3cf-26304af7ff1d">
+<th data-local-id=3D"aed2f333-336d-4a30-83b0-54fdf59bcd66" class=3D"conflue=
+nceTh">
+<p local-id=3D"4c9b67895517">ID</p></th>
+<th data-local-id=3D"efdca8ee-c236-4d2d-b909-e16a5f8e1798" class=3D"conflue=
+nceTh">
+<p local-id=3D"73669c6a541c">Scenario</p></th>
+<th data-local-id=3D"a79477c6-d890-4ba8-a537-19dd9c465119" class=3D"conflue=
+nceTh">
+<p local-id=3D"f947c68594f7">Expected Result</p></th>
+</tr>
+<tr data-local-id=3D"893fd55e-8b50-4d9f-b06f-d9f8d7c7fd7f">
+<td data-local-id=3D"a433e5c0-6492-45d1-8113-9924d9b1077a" class=3D"conflue=
+nceTd">
+<p local-id=3D"71a09650f581">AC-01</p></td>
+<td data-local-id=3D"894fdc90-8519-4b10-b05d-cebca8d2fa9c" class=3D"conflue=
+nceTd">
+<p local-id=3D"6eaa25562641">New booking detected in Clorian sync</p></td>
+<td data-local-id=3D"d1656684-e339-4ba9-80ac-49069baf9ed1" class=3D"conflue=
+nceTd">
+<p local-id=3D"978d92011034">Tour is created locally and guide assignment i=
+s triggered</p></td>
+</tr>
+<tr data-local-id=3D"38897893-f230-4ead-9ebb-e552ebdce3f8">
+<td data-local-id=3D"865ebc84-f33b-4556-9928-2540e78dcf22" class=3D"conflue=
+nceTd">
+<p local-id=3D"6c3daaeb13d7">AC-02</p></td>
+<td data-local-id=3D"c4cf3bfb-ff8d-449e-8cf1-888fb8a9e5c6" class=3D"conflue=
+nceTd">
+<p local-id=3D"59b540076df3">Booking changed in Clorian (different time/lan=
+guage/expertise)</p></td>
+<td data-local-id=3D"1d021837-63c4-4162-974c-f155ebe03dad" class=3D"conflue=
+nceTd">
+<p local-id=3D"f14ffae00c3b">Current assignment is reassessed; guide is rea=
+ssigned if no longer suitable</p></td>
+</tr>
+<tr data-local-id=3D"9dbd4c65-552c-4e7f-b321-5aa486b0a352">
+<td data-local-id=3D"0552d7aa-7e95-4a76-9369-535b90c50e6c" class=3D"conflue=
+nceTd">
+<p local-id=3D"fec01d8c6412">AC-03</p></td>
+<td data-local-id=3D"b0230417-6d93-4d4f-8aef-7acf2060f773" class=3D"conflue=
+nceTd">
+<p local-id=3D"3155c630a421">Booking cancelled in Clorian</p></td>
+<td data-local-id=3D"d4ee5f8a-7067-419a-80b8-4bc66ab97889" class=3D"conflue=
+nceTd">
+<p local-id=3D"3b4f44eb0e5a">Assigned guide is released, tour marked as can=
+celled</p></td>
+</tr>
+<tr data-local-id=3D"187bc974-34c5-4ccd-b125-a43406528c3f">
+<td data-local-id=3D"24e782f0-a543-490f-a8f5-893aef12514c" class=3D"conflue=
+nceTd">
+<p local-id=3D"15e0273d12b8">AC-04</p></td>
+<td data-local-id=3D"fcd3fbdc-2040-4880-95d0-6f6fb85b1857" class=3D"conflue=
+nceTd">
+<p local-id=3D"57793128e46b">Clorian API is unreachable</p></td>
+<td data-local-id=3D"a33edc20-6fd4-4f2c-bbce-b9599b446b8e" class=3D"conflue=
+nceTd">
+<p local-id=3D"befa3fc571e0">Sync is retried next cycle; admin notified aft=
+er 3 consecutive failures</p></td>
+</tr>
+<tr data-local-id=3D"03888bb0-3685-4d2c-876d-75620c1dc500">
+<td data-local-id=3D"30a0b0ad-e748-4be1-bcff-ce8c8a85b8ee" class=3D"conflue=
+nceTd">
+<p local-id=3D"82ddea25aa99">AC-05</p></td>
+<td data-local-id=3D"9bbce777-4855-42a0-a00c-1e7a932f59dc" class=3D"conflue=
+nceTd">
+<p local-id=3D"9a5b962a90d0">Guide is available, has matching expertise, sp=
+eaks requested language</p></td>
+<td data-local-id=3D"40cfa64e-1e6a-4a7a-af1c-4e5210570af3" class=3D"conflue=
+nceTd">
+<p local-id=3D"d6bffa60f062">Guide is assigned to the tour</p></td>
+</tr>
+<tr data-local-id=3D"98c0d688-24c6-4b8b-af6a-f05de415818f">
+<td data-local-id=3D"9dc8859f-0ef6-4ea6-8b6f-5d1ca0cffd38" class=3D"conflue=
+nceTd">
+<p local-id=3D"2b2d4c8efc80">AC-06</p></td>
+<td data-local-id=3D"08061ff2-890e-448b-98bf-926baa4487a4" class=3D"conflue=
+nceTd">
+<p local-id=3D"fbb167ad0eba">Guide has a blocking exception on the tour dat=
+e</p></td>
+<td data-local-id=3D"c52681e8-0b85-48fe-9b6d-b1e3515b0913" class=3D"conflue=
+nceTd">
+<p local-id=3D"eebf9255f2eb">Guide is excluded from assignment</p></td>
+</tr>
+<tr data-local-id=3D"0aad62e3-c052-4cff-b010-8608817c9735">
+<td data-local-id=3D"30b530a8-d109-44c7-8741-e8bd7b01504d" class=3D"conflue=
+nceTd">
+<p local-id=3D"9e70faece609">AC-07</p></td>
+<td data-local-id=3D"29934df8-1f92-4ec8-a244-bbefefc772ad" class=3D"conflue=
+nceTd">
+<p local-id=3D"0862b6a3d3eb">Guide lacks the required expertise</p></td>
+<td data-local-id=3D"d49849c4-f3e9-4cf7-9461-0aaeb2607516" class=3D"conflue=
+nceTd">
+<p local-id=3D"91f77102f698">Guide is excluded from assignment</p></td>
+</tr>
+<tr data-local-id=3D"0f9d89c5-be33-47fc-b5df-df7ff72790e9">
+<td data-local-id=3D"41a35fe7-83d3-48b5-86ae-927e422adac6" class=3D"conflue=
+nceTd">
+<p local-id=3D"a93e9fc72323">AC-08</p></td>
+<td data-local-id=3D"a1d08612-73bf-46d3-a8c5-40d6ff373b76" class=3D"conflue=
+nceTd">
+<p local-id=3D"a596534937ba">Guide does not speak the requested language</p=
+></td>
+<td data-local-id=3D"5ffad3f3-1f19-430b-9474-e8afff8fe2b9" class=3D"conflue=
+nceTd">
+<p local-id=3D"680c1311ac57">Guide is excluded from assignment</p></td>
+</tr>
+<tr data-local-id=3D"e0b435cd-3c40-4d37-ba12-dcb0972c1d0a">
+<td data-local-id=3D"fa5d7d8d-2e62-4b5c-9d0b-129099e2b321" class=3D"conflue=
+nceTd">
+<p local-id=3D"9b10d8717c94">AC-09</p></td>
+<td data-local-id=3D"0dda3bda-4b12-4b55-aa1a-763924b4b553" class=3D"conflue=
+nceTd">
+<p local-id=3D"bacb0a4bdb30">No suitable guide exists</p></td>
+<td data-local-id=3D"9c048d6e-54bf-4343-bb13-17bf567ee8cf" class=3D"conflue=
+nceTd">
+<p local-id=3D"631887214317">Tour is flagged as "Unassigned" and admin is n=
+otified</p></td>
+</tr>
+<tr data-local-id=3D"a153f706-509e-4a5f-a37c-d2140e928fcb">
+<td data-local-id=3D"ce309e42-7695-44dc-a804-86772c88ee4e" class=3D"conflue=
+nceTd">
+<p local-id=3D"ded9b6d82435">AC-10</p></td>
+<td data-local-id=3D"c384b81f-a738-4f4e-a1ef-8c6db0061c12" class=3D"conflue=
+nceTd">
+<p local-id=3D"ec77de74fc2f">Multiple suitable guides exist</p></td>
+<td data-local-id=3D"2b92a24d-7c4a-4671-b9bb-f12d939cde9c" class=3D"conflue=
+nceTd">
+<p local-id=3D"8a321f04f5b3">Guide with fewest tours that day is assigned</=
+p></td>
+</tr>
+<tr data-local-id=3D"26c02cf6-2a08-4318-b3c7-4e7c22ee5356">
+<td data-local-id=3D"a8af7f7c-a690-4457-930a-e2ac55494613" class=3D"conflue=
+nceTd">
+<p local-id=3D"37cac9231b6b">AC-11</p></td>
+<td data-local-id=3D"6bb70e0b-d3f5-4d09-8975-53d73190736d" class=3D"conflue=
+nceTd">
+<p local-id=3D"5ec1a361caec">Guide already has an overlapping tour</p></td>
+<td data-local-id=3D"00b9e634-6822-4437-8968-8873179dca3f" class=3D"conflue=
+nceTd">
+<p local-id=3D"9fdc24437cf3">Guide is excluded from assignment</p></td>
+</tr>
+<tr data-local-id=3D"c116ec28-49ab-4278-a5dc-38ae4ebdaf55">
+<td data-local-id=3D"7270db65-9d57-404e-91ee-5711916367cb" class=3D"conflue=
+nceTd">
+<p local-id=3D"60c2b42a2ae8">AC-12</p></td>
+<td data-local-id=3D"b075b870-6b6b-46a9-9701-9e5ecf5076e1" class=3D"conflue=
+nceTd">
+<p local-id=3D"6cc780cb0b7d">Admin manually overrides assignment</p></td>
+<td data-local-id=3D"320b3c77-3436-4964-b70c-76b4eabced67" class=3D"conflue=
+nceTd">
+<p local-id=3D"d493d07acabe">Override is applied and logged</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 local-id=3D"7971971335b9" id=3D"FDR-001Document:GuideAssignment-8.Depen=
+dencies">8. Dependencies</h2>
+<ul local-id=3D"46de148b-410f-40a0-9f74-958c35be93ff">
+<li local-id=3D"aba3abda-c69a-4bb7-93e6-d2f898810775">
+<p local-id=3D"d62a93f08e23"><strong>Clorian System</strong>: Must expose a=
+n API or data export for booking retrieval (new, changed, cancelled).</p></=
+li>
+<li local-id=3D"803523cc-deb9-4904-8d54-c3bf220c302b">
+<p local-id=3D"073ba1a23776">Guide profiles must be populated with language=
+s and expertise before assignment can run.</p></li>
+<li local-id=3D"3c4ba4d9-bad7-4052-a540-4fda8fbd4995">
+<p local-id=3D"0054ab16eb9b">Availability patterns and slots must be config=
+ured per guide.</p></li>
+<li local-id=3D"aaef08af-8c71-46b7-828f-0473629c869b">
+<p local-id=3D"fb0fae5ac23c">Tour data (date, time, required expertise, req=
+uested language) is sourced from Clorian bookings.</p></li>
+</ul>
+<h2 local-id=3D"32c7287dbdef" id=3D"FDR-001Document:GuideAssignment-9.Outof=
+Scope">9. Out of Scope</h2>
+<ul local-id=3D"bd4f51e9-27bf-44e5-a6ea-fcf9ec848cf9">
+<li local-id=3D"7acba4e9-f98d-45ba-8764-892eb6ab0f5c">
+<p local-id=3D"b569affa6b50">Clorian booking interface and customer-facing =
+booking flow.</p></li>
+<li local-id=3D"33dad906-67c7-4a7e-bdbd-81fe8cdc6723">
+<p local-id=3D"39ef35294e66">Visitor-facing booking and payment.</p></li>
+<li local-id=3D"ed5ea6d0-ca3a-46fa-8d60-825a5dedc108">
+<p local-id=3D"6b2c595ec4b5">Guide performance tracking and ratings.</p></l=
+i>
+<li local-id=3D"b945ac2c-f301-4c70-8352-32a0fb7ca889">
+<p local-id=3D"18f72e0b5093">Notification delivery mechanism (email, push, =
+SMS).</p></li>
+</ul>
+    </div>
+</body>
+</html>
+------=_Part_212_1143652014.1771968231579--
