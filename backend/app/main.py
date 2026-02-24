@@ -130,22 +130,21 @@ def read_bookings():
 
 @app.post("/bookings")
 def create_booking(booking: BookingCreate):
+    # Validate ticket count before processing booking or touching the database
+    if booking.adult_tickets < 0 or booking.child_tickets < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Ticket count cannot be negative"
+        )
+
+    if booking.adult_tickets == 0 and booking.child_tickets == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one ticket must be booked"
+        )
+
     try:
         with engine.connect() as connection:
-
-            # Validate ticket count before processing booking
-            if booking.adult_tickets < 0 or booking.child_tickets < 0:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Ticket count cannot be negative"
-                )
-
-            if booking.adult_tickets == 0 and booking.child_tickets == 0:
-                raise HTTPException(
-                    status_code=400,
-                    detail="At least one ticket must be booked"
-                )
-
             tour = connection.execute(
                 text("""
                     SELECT guide_id
