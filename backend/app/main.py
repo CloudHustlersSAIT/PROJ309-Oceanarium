@@ -4,10 +4,14 @@ from sqlalchemy import text
 from .db import test_connection, engine
 from pydantic import BaseModel
 from datetime import date, time
+from .mock_poller import router as mock_router
 
 #updated
 
 app = FastAPI(title="My Project API")
+    
+# Include the mock poller router
+app.include_router(mock_router)
 
 # Allow Vue dev server to talk to FastAPI
 origins = [
