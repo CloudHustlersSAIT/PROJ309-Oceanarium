@@ -327,5 +327,4 @@ def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
             except Exception:
                 pass
 
-        #raise HTTPException(status_code=500, detail="Mock poller execution failed. Check server logs.")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Mock poller execution failed. Check server logs.")
