@@ -3,6 +3,8 @@ from .availability import AvailabilityPattern, AvailabilitySlot, AvailabilityExc
 from .tour import Tour
 from .audit_log import TourAssignmentLog
 from .sync_log import SyncLog
+from .booking import Booking
+from .issue import Issue
 
 __all__ = [
     "Guide",
@@ -16,4 +18,6 @@ __all__ = [
     "Tour",
     "TourAssignmentLog",
     "SyncLog",
+    "Booking",
+    "Issue",
 ]

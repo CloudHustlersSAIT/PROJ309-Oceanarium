@@ -13,7 +13,9 @@ from app.models.availability import (
     AvailabilityPattern,
     AvailabilitySlot,
 )
+from app.models.booking import Booking
 from app.models.guide import Expertise, Guide, Language
+from app.models.issue import Issue
 from app.models.tour import Tour
 
 TEST_DB_URL = "sqlite:///test_runner.db"

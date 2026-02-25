@@ -1,101 +1,69 @@
-from fastapi import APIRouter, HTTPException
-from sqlalchemy import text
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from ..db import engine
+from ..db import get_db
+from ..models.booking import Booking
 from ..schemas.booking import BookingCreate, BookingReschedule
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 
 @router.get("")
-def read_bookings():
-    try:
-        with engine.connect() as connection:
-            result = connection.execute(
-                text("SELECT * FROM bookings ORDER BY created_at DESC")
-            )
-            columns = result.keys()
-            rows = [dict(zip(columns, row)) for row in result.fetchall()]
-        return rows
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+def read_bookings(db: Session = Depends(get_db)):
+    bookings = db.query(Booking).order_by(Booking.created_at.desc()).all()
+    return [_booking_to_dict(b) for b in bookings]
 
 
-@router.post("")
-def create_booking(booking: BookingCreate):
-    try:
-        with engine.connect() as connection:
-            result = connection.execute(
-                text("""
-                    INSERT INTO bookings (customer_id, tour_id, date, adult_tickets, child_tickets, status)
-                    VALUES (:customer_id, :tour_id, :date, :adult_tickets, :child_tickets, 'confirmed')
-                    RETURNING *
-                """),
-                {
-                    "customer_id": booking.customer_id,
-                    "tour_id": booking.tour_id,
-                    "date": booking.date,
-                    "adult_tickets": booking.adult_tickets,
-                    "child_tickets": booking.child_tickets,
-                },
-            )
-            connection.commit()
-            columns = result.keys()
-            row = result.fetchone()
-            return dict(zip(columns, row))
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+@router.post("", status_code=201)
+def create_booking(payload: BookingCreate, db: Session = Depends(get_db)):
+    booking = Booking(
+        customer_id=payload.customer_id,
+        tour_id=payload.tour_id,
+        date=payload.date,
+        adult_tickets=payload.adult_tickets,
+        child_tickets=payload.child_tickets,
+        status="confirmed",
+    )
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+    return _booking_to_dict(booking)
 
 
 @router.patch("/{booking_id}/reschedule")
-def reschedule_booking(booking_id: int, reschedule: BookingReschedule):
-    try:
-        with engine.connect() as connection:
-            result = connection.execute(
-                text("""
-                    UPDATE bookings
-                    SET date = :new_date
-                    WHERE booking_id = :booking_id
-                    RETURNING *
-                """),
-                {"new_date": reschedule.new_date, "booking_id": booking_id},
-            )
-            connection.commit()
+def reschedule_booking(
+    booking_id: int, payload: BookingReschedule, db: Session = Depends(get_db)
+):
+    booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
 
-            if result.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Booking not found")
-
-            columns = result.keys()
-            row = result.fetchone()
-            return dict(zip(columns, row))
-    except HTTPException:
-        raise
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+    booking.date = payload.new_date
+    db.commit()
+    db.refresh(booking)
+    return _booking_to_dict(booking)
 
 
 @router.patch("/{booking_id}/cancel")
-def cancel_booking(booking_id: int):
-    try:
-        with engine.connect() as connection:
-            result = connection.execute(
-                text("""
-                    UPDATE bookings
-                    SET status = 'cancelled'
-                    WHERE booking_id = :booking_id
-                    RETURNING *
-                """),
-                {"booking_id": booking_id},
-            )
-            connection.commit()
+def cancel_booking(booking_id: int, db: Session = Depends(get_db)):
+    booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
 
-            if result.rowcount == 0:
-                raise HTTPException(status_code=404, detail="Booking not found")
+    booking.status = "cancelled"
+    db.commit()
+    db.refresh(booking)
+    return _booking_to_dict(booking)
 
-            columns = result.keys()
-            row = result.fetchone()
-            return dict(zip(columns, row))
-    except HTTPException:
-        raise
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+
+def _booking_to_dict(booking: Booking) -> dict:
+    return {
+        "booking_id": booking.booking_id,
+        "customer_id": booking.customer_id,
+        "tour_id": booking.tour_id,
+        "date": booking.date.isoformat(),
+        "adult_tickets": booking.adult_tickets,
+        "child_tickets": booking.child_tickets,
+        "status": booking.status,
+        "created_at": booking.created_at.isoformat() if booking.created_at else None,
+    }

@@ -5,12 +5,10 @@ __pycache__/
 *.pyo
 *.pyd
 *.sqlite3
-ve/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.sqlite3
+*.db
+.coverage
+htmlcov/
+.pytest_cache/
 
 # Environment
 .env
