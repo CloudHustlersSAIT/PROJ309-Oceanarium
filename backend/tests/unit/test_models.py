@@ -132,20 +132,39 @@ def test_availability_slot_back_populates_pattern(db):
 
 
 def test_booking_creation(db):
-    tour = make_tour(db, clorian_booking_id="T-BOOK")
-    db.flush()
     booking = Booking(
-        customer_id="CUST-1",
-        tour_id=tour.id,
+        clorian_booking_id="CLR-BOOK-1",
         date=date(2026, 3, 2),
-        adult_tickets=2,
-        child_tickets=1,
+        start_time=time(9, 0),
+        end_time=time(11, 0),
+        required_expertise="Sharks",
+        required_category="Marine Biology",
+        requested_language_code="en",
     )
     db.add(booking)
     db.commit()
     assert booking.booking_id is not None
-    assert booking.status == "confirmed"
+    assert booking.status == "pending"
+    assert booking.tour_id is None
     assert booking.created_at is not None
+
+
+def test_booking_linked_to_tour(db):
+    tour = make_tour(db, clorian_booking_id="T-LINK")
+    db.flush()
+    booking = Booking(
+        clorian_booking_id="CLR-LINK-1",
+        date=date(2026, 3, 2),
+        start_time=time(9, 0),
+        end_time=time(11, 0),
+        tour_id=tour.id,
+        status="assigned",
+    )
+    db.add(booking)
+    db.commit()
+    assert booking.tour_id == tour.id
+    assert tour.booking is not None
+    assert tour.booking.booking_id == booking.booking_id
 
 
 # ── Issue Model ─────────────────────────────────────────────────────

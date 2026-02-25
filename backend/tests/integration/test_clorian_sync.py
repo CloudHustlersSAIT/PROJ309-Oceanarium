@@ -1,7 +1,7 @@
-"""Integration tests for Clorian sync service (Phase 7c).
+"""Integration tests for Clorian sync service.
 
 Covers new/changed/cancelled booking detection, sync logging,
-failure resilience, consecutive failure alerting, and idempotency.
+guide assignment via bookings, failure resilience, and idempotency.
 """
 from datetime import date, time
 from unittest.mock import MagicMock
@@ -11,10 +11,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from app.adapters.clorian_client import ClorianBooking
 from app.adapters.clorian_mock import ClorianMockClient
+from app.models.booking import Booking
 from app.models.sync_log import SyncLog
 from app.models.tour import Tour
-from app.services.clorian_sync import ClorianSyncService
-from tests.conftest import make_availability, make_guide, make_tour
+from app.services.clorian_sync import ClorianSyncService, assign_unassigned_bookings
+from tests.conftest import make_availability, make_guide, make_tour, make_booking
 
 
 def _make_client(bookings=None):
@@ -40,8 +41,8 @@ def _sample_booking(**overrides):
     return ClorianBooking(**defaults)
 
 
-def test_new_booking_creates_tour(db):
-    """AC-01: new booking detected -> tour created locally, assignment triggered."""
+def test_new_booking_creates_booking_record(db):
+    """New Clorian booking -> Booking created in our DB."""
     client = _make_client([_sample_booking()])
     service = ClorianSyncService(client)
 
@@ -49,34 +50,63 @@ def test_new_booking_creates_tour(db):
 
     assert sync_log.status == "success"
     assert sync_log.new_count == 1
-    tour = db.query(Tour).filter(Tour.clorian_booking_id == "CLR-100").first()
-    assert tour is not None
-    assert tour.date == date(2026, 3, 2)
+    booking = db.query(Booking).filter(Booking.clorian_booking_id == "CLR-100").first()
+    assert booking is not None
+    assert booking.date == date(2026, 3, 2)
+    assert booking.status == "pending"
+    assert booking.tour_id is None
 
 
-def test_changed_booking_updates_tour(db):
-    """AC-02: booking changed -> tour updated, guide reassessed."""
-    make_tour(db, clorian_booking_id="CLR-200",
-              tour_date=date(2026, 3, 2), start_time=time(9, 0), end_time=time(11, 0))
+def test_new_booking_with_guide_creates_tour(db):
+    """New booking + matching guide -> Tour created and linked."""
+    guide = make_guide(db)
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(12, 0)},
+    ])
     db.commit()
 
-    updated_booking = _sample_booking(
+    client = _make_client([_sample_booking()])
+    service = ClorianSyncService(client)
+
+    sync_log = service.run_sync(db)
+
+    assert sync_log.new_count == 1
+    booking = db.query(Booking).filter(Booking.clorian_booking_id == "CLR-100").first()
+    assert booking.status == "assigned"
+    assert booking.tour_id is not None
+
+    tour = db.get(Tour, booking.tour_id)
+    assert tour.assigned_guide_id == guide.id
+    assert tour.status == "assigned"
+
+
+def test_changed_booking_updates_booking(db):
+    """Booking changed in Clorian -> local booking updated, tour reassessed."""
+    booking = make_booking(
+        db, clorian_booking_id="CLR-200",
+        booking_date=date(2026, 3, 2), start_time=time(9, 0), end_time=time(11, 0),
+    )
+    db.commit()
+
+    updated = _sample_booking(
         clorian_booking_id="CLR-200",
+        date=date(2026, 3, 5),
         start_time=time(14, 0), end_time=time(16, 0),
     )
-    client = _make_client([updated_booking])
+    client = _make_client([updated])
     service = ClorianSyncService(client)
 
     sync_log = service.run_sync(db)
 
     assert sync_log.changed_count == 1
-    tour = db.query(Tour).filter(Tour.clorian_booking_id == "CLR-200").first()
-    assert tour.start_time == time(14, 0)
-    assert tour.end_time == time(16, 0)
+    db.refresh(booking)
+    assert booking.date == date(2026, 3, 5)
+    assert booking.start_time == time(14, 0)
+    assert booking.end_time == time(16, 0)
 
 
-def test_changed_booking_reassigns_if_guide_no_longer_suitable(db):
-    """AC-02: booking time changes, current guide unavailable at new time."""
+def test_changed_booking_releases_guide_and_cancels_old_tour(db):
+    """When booking changes, old tour is cancelled, guide released, new assignment attempted."""
     guide = make_guide(db)
     make_availability(db, guide, slots=[
         {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(12, 0)},
@@ -86,32 +116,44 @@ def test_changed_booking_reassigns_if_guide_no_longer_suitable(db):
         tour_date=date(2026, 3, 2), start_time=time(9, 0), end_time=time(11, 0),
         status="assigned", assigned_guide_id=guide.id,
     )
-    db.commit()
-
-    updated_booking = _sample_booking(
-        clorian_booking_id="CLR-300",
-        start_time=time(14, 0), end_time=time(16, 0),  # outside guide's slot
+    booking = make_booking(
+        db, clorian_booking_id="CLR-300",
+        booking_date=date(2026, 3, 2), start_time=time(9, 0), end_time=time(11, 0),
+        status="assigned", tour_id=tour.id,
     )
-    client = _make_client([updated_booking])
+    db.commit()
+    old_tour_id = tour.id
+
+    updated = _sample_booking(
+        clorian_booking_id="CLR-300",
+        start_time=time(14, 0), end_time=time(16, 0),
+    )
+    client = _make_client([updated])
     service = ClorianSyncService(client)
 
     service.run_sync(db)
 
-    db.refresh(tour)
-    assert tour.start_time == time(14, 0)
-    assert tour.assigned_guide_id is None or tour.status in ("unassigned", "pending")
+    db.refresh(booking)
+    old_tour = db.get(Tour, old_tour_id)
+    assert old_tour.status == "cancelled"
+    assert old_tour.assigned_guide_id is None
+    assert booking.status == "pending"
 
 
 def test_cancelled_booking_releases_guide(db):
-    """AC-03: booking absent from Clorian -> guide released, tour cancelled."""
+    """Booking absent from Clorian -> booking cancelled, guide released, tour cancelled."""
     guide = make_guide(db)
     tour = make_tour(
         db, clorian_booking_id="CLR-400",
         status="assigned", assigned_guide_id=guide.id,
     )
+    booking = make_booking(
+        db, clorian_booking_id="CLR-400",
+        status="assigned", tour_id=tour.id,
+    )
     db.commit()
 
-    client = _make_client([])  # empty = booking no longer exists
+    client = _make_client([])
     service = ClorianSyncService(client)
 
     sync_log = service.run_sync(db)
@@ -120,6 +162,10 @@ def test_cancelled_booking_releases_guide(db):
     db.refresh(tour)
     assert tour.status == "cancelled"
     assert tour.assigned_guide_id is None
+
+    db.refresh(booking)
+    assert booking.status == "cancelled"
+    assert booking.tour_id is None
 
 
 def test_sync_logs_cycle(db):
@@ -138,7 +184,6 @@ def test_sync_logs_cycle(db):
 
 
 def test_sync_skips_if_previous_running(db):
-    """NFR-04: uses the lock in sync_scheduler (tested at scheduler level)."""
     import threading
     from app.jobs.sync_scheduler import _lock, run_sync_job, init_sync_service
 
@@ -147,7 +192,7 @@ def test_sync_skips_if_previous_running(db):
 
     _lock.acquire()
     try:
-        run_sync_job()  # should skip because lock is held
+        run_sync_job()
     finally:
         _lock.release()
 
@@ -156,7 +201,6 @@ def test_sync_skips_if_previous_running(db):
 
 
 def test_clorian_api_failure_retries_next_cycle(db):
-    """AC-04: Clorian unreachable -> sync fails gracefully."""
     client = MagicMock()
     client.fetch_bookings.side_effect = ConnectionError("Clorian API unreachable")
     service = ClorianSyncService(client)
@@ -175,7 +219,6 @@ def test_clorian_api_failure_retries_next_cycle(db):
 
 
 def test_three_consecutive_failures_alerts_admin(db):
-    """NFR-05: 3 consecutive failures -> admin notification."""
     client = MagicMock()
     client.fetch_bookings.side_effect = ConnectionError("Clorian down")
     service = ClorianSyncService(client)
@@ -190,7 +233,6 @@ def test_three_consecutive_failures_alerts_admin(db):
 
 
 def test_sync_completes_within_timeout(db):
-    """NFR-04: sync finishes within 60 seconds."""
     import time as time_mod
 
     client = _make_client([
@@ -220,5 +262,44 @@ def test_idempotent_sync(db):
     assert log2.changed_count == 0
     assert log2.cancelled_count == 0
 
-    tours = db.query(Tour).filter(Tour.clorian_booking_id == "CLR-IDEM").all()
-    assert len(tours) == 1
+    bookings = db.query(Booking).filter(Booking.clorian_booking_id == "CLR-IDEM").all()
+    assert len(bookings) == 1
+
+
+def test_assign_unassigned_bookings_picks_up_pending(db):
+    """When a guide becomes available, pending bookings get assigned."""
+    booking = make_booking(
+        db, clorian_booking_id="CLR-RETRY",
+        booking_date=date(2026, 3, 2), start_time=time(9, 0), end_time=time(11, 0),
+    )
+    db.commit()
+    assert booking.tour_id is None
+    assert booking.status == "pending"
+
+    guide = make_guide(db)
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(12, 0)},
+    ])
+    db.commit()
+
+    count = assign_unassigned_bookings(db)
+
+    assert count == 1
+    db.refresh(booking)
+    assert booking.status == "assigned"
+    assert booking.tour_id is not None
+
+    tour = db.get(Tour, booking.tour_id)
+    assert tour.assigned_guide_id == guide.id
+
+
+def test_assign_unassigned_bookings_no_match(db):
+    """No guide available -> no bookings assigned, returns 0."""
+    make_booking(
+        db, clorian_booking_id="CLR-NOPE",
+        booking_date=date(2026, 3, 2), start_time=time(9, 0), end_time=time(11, 0),
+    )
+    db.commit()
+
+    count = assign_unassigned_bookings(db)
+    assert count == 0

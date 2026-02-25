@@ -122,6 +122,7 @@ DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/oceanarium \
 | POST    | /tours/{id}/reassign             | Reassign guide to tour  |
 | GET     | /tours/{id}/assignment-log       | Assignment history      |
 | GET     | /bookings                        | List all bookings       |
+| GET     | /bookings/unassigned             | Bookings without guide  |
 | POST    | /bookings                        | Create booking          |
 | PATCH   | /bookings/{id}/reschedule        | Reschedule booking      |
 | PATCH   | /bookings/{id}/cancel            | Cancel booking          |

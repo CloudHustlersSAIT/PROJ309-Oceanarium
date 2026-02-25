@@ -17,6 +17,7 @@ from ..schemas.guide import (
     GuideOut,
     GuideUpdate,
 )
+from ..services.clorian_sync import assign_unassigned_bookings
 
 router = APIRouter(prefix="/guides", tags=["Guides"])
 
@@ -51,6 +52,7 @@ def create_guide(payload: GuideCreate, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(guide)
+    assign_unassigned_bookings(db)
     return _guide_to_dict(guide)
 
 
@@ -97,6 +99,7 @@ def update_guide(guide_id: int, payload: GuideUpdate, db: Session = Depends(get_
 
     db.commit()
     db.refresh(guide)
+    assign_unassigned_bookings(db)
     return _guide_to_dict(guide)
 
 
@@ -138,6 +141,7 @@ def set_availability(
 
     db.commit()
     db.refresh(guide)
+    assign_unassigned_bookings(db)
     return _guide_to_dict(guide)
 
 

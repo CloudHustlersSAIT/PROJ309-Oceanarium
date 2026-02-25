@@ -94,7 +94,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['assigned_guide_id'], ['guides.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_tours_clorian_booking_id'), 'tours', ['clorian_booking_id'], unique=True)
+    op.create_index(op.f('ix_tours_clorian_booking_id'), 'tours', ['clorian_booking_id'], unique=False)
     op.create_index(op.f('ix_tours_id'), 'tours', ['id'], unique=False)
     op.create_table('availability_exceptions',
     sa.Column('id', sa.Integer(), nullable=False),

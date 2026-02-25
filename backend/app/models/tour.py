@@ -8,7 +8,7 @@ class Tour(Base):
     __tablename__ = "tours"
 
     id = Column(Integer, primary_key=True, index=True)
-    clorian_booking_id = Column(String, nullable=False, unique=True, index=True)
+    clorian_booking_id = Column(String, nullable=False, index=True)
     date = Column(Date, nullable=False)
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
@@ -20,3 +20,4 @@ class Tour(Base):
 
     assigned_guide = relationship("Guide", back_populates="assigned_tours")
     assignment_logs = relationship("TourAssignmentLog", back_populates="tour", cascade="all, delete-orphan")
+    booking = relationship("Booking", back_populates="tour", uselist=False)

@@ -122,18 +122,36 @@ def test_manual_assign_missing_assigned_by():
 
 def test_booking_create_valid():
     booking = BookingCreate(
-        customer_id="CUST-1",
-        tour_id=1,
+        clorian_booking_id="CLR-1",
         date="2026-03-02",
+        start_time="09:00:00",
+        end_time="11:00:00",
+    )
+    assert booking.clorian_booking_id == "CLR-1"
+    assert booking.adult_tickets == 0
+    assert booking.child_tickets == 0
+
+
+def test_booking_create_with_all_fields():
+    booking = BookingCreate(
+        clorian_booking_id="CLR-2",
+        date="2026-03-02",
+        start_time="09:00:00",
+        end_time="11:00:00",
+        required_expertise="Sharks",
+        required_category="Marine Biology",
+        requested_language_code="en",
+        customer_id="CUST-1",
         adult_tickets=2,
         child_tickets=1,
     )
     assert booking.customer_id == "CUST-1"
+    assert booking.adult_tickets == 2
 
 
 def test_booking_create_missing_fields():
     with pytest.raises(ValidationError):
-        BookingCreate(customer_id="CUST-1")
+        BookingCreate(clorian_booking_id="CLR-1")
 
 
 def test_booking_reschedule_valid():

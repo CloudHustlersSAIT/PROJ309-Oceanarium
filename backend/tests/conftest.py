@@ -169,3 +169,41 @@ def make_tour(
     db.add(tour)
     db.flush()
     return tour
+
+
+def make_booking(
+    db,
+    clorian_booking_id=None,
+    booking_date=None,
+    start_time=None,
+    end_time=None,
+    required_expertise="Sharks",
+    required_category="Marine Biology",
+    requested_language_code="en",
+    status="pending",
+    tour_id=None,
+):
+    if clorian_booking_id is None:
+        import uuid
+        clorian_booking_id = f"CLR-{uuid.uuid4().hex[:6]}"
+    if booking_date is None:
+        booking_date = date(2026, 3, 2)
+    if start_time is None:
+        start_time = time(9, 0)
+    if end_time is None:
+        end_time = time(11, 0)
+
+    booking = Booking(
+        clorian_booking_id=clorian_booking_id,
+        date=booking_date,
+        start_time=start_time,
+        end_time=end_time,
+        required_expertise=required_expertise,
+        required_category=required_category,
+        requested_language_code=requested_language_code,
+        status=status,
+        tour_id=tour_id,
+    )
+    db.add(booking)
+    db.flush()
+    return booking
