@@ -182,3 +182,135 @@ def test_reassignment_releases_previous_guide(db):
 
     released_log = [l for l in logs if l.action == "released"][0]
     assert released_log.guide_id == guide_a.id
+
+
+# ── Edge-case / Robustness Tests ─────────────────────────────────────
+
+
+def test_release_guide_clears_assignment_and_resets_status(db):
+    guide = make_guide(db)
+    tour = make_tour(db, status="assigned", assigned_guide_id=guide.id)
+    db.commit()
+
+    release_guide(tour, db)
+    db.commit()
+
+    assert tour.assigned_guide_id is None
+    assert tour.status == "pending"
+
+    log = db.query(TourAssignmentLog).filter(
+        TourAssignmentLog.tour_id == tour.id,
+        TourAssignmentLog.action == "released",
+    ).first()
+    assert log is not None
+    assert log.guide_id == guide.id
+
+
+def test_release_guide_keeps_cancelled_status(db):
+    guide = make_guide(db)
+    tour = make_tour(db, status="cancelled", assigned_guide_id=guide.id)
+    db.commit()
+
+    release_guide(tour, db)
+    db.commit()
+
+    assert tour.assigned_guide_id is None
+    assert tour.status == "cancelled"
+
+
+def test_release_guide_noop_when_no_guide_assigned(db):
+    tour = make_tour(db, status="pending")
+    db.commit()
+
+    release_guide(tour, db)
+    db.commit()
+
+    assert tour.assigned_guide_id is None
+    logs = db.query(TourAssignmentLog).filter(
+        TourAssignmentLog.tour_id == tour.id,
+    ).all()
+    assert len(logs) == 0
+
+
+def test_unassigned_log_has_no_guide_id(db):
+    tour = make_tour(db)
+    db.commit()
+
+    assign_guide_to_tour(tour, db)
+    db.commit()
+
+    log = db.query(TourAssignmentLog).filter(
+        TourAssignmentLog.tour_id == tour.id,
+        TourAssignmentLog.action == "unassigned",
+    ).first()
+    assert log is not None
+    assert log.guide_id is None
+    assert log.assignment_type == "auto"
+
+
+def test_reassign_same_guide_no_release_log(db):
+    guide = make_guide(db)
+    tour = make_tour(db, status="assigned", assigned_guide_id=guide.id)
+    db.commit()
+
+    manual_assign(tour, guide, db, assigned_by="admin@oceanarium.com")
+    db.commit()
+
+    assert tour.assigned_guide_id == guide.id
+
+    logs = db.query(TourAssignmentLog).filter(
+        TourAssignmentLog.tour_id == tour.id,
+    ).all()
+    released_logs = [l for l in logs if l.action == "released"]
+    assert len(released_logs) == 0
+
+
+def test_auto_assign_after_release(db):
+    guide = make_guide(db, name="OnlyGuide")
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(17, 0)},
+    ])
+    tour = make_tour(db, status="assigned", assigned_guide_id=guide.id)
+    db.commit()
+
+    release_guide(tour, db)
+    db.commit()
+    assert tour.assigned_guide_id is None
+    assert tour.status == "pending"
+
+    result = assign_guide_to_tour(tour, db)
+    db.commit()
+
+    assert result is not None
+    assert result.id == guide.id
+    assert tour.status == "assigned"
+
+
+def test_manual_assign_to_pending_tour(db):
+    guide = make_guide(db)
+    tour = make_tour(db, status="pending")
+    db.commit()
+
+    manual_assign(tour, guide, db, assigned_by="admin@oceanarium.com")
+    db.commit()
+
+    assert tour.assigned_guide_id == guide.id
+    assert tour.status == "assigned"
+    log = db.query(TourAssignmentLog).filter(
+        TourAssignmentLog.tour_id == tour.id,
+        TourAssignmentLog.action == "assigned",
+    ).first()
+    assert log is not None
+    assert log.assignment_type == "manual"
+
+
+def test_manual_assign_to_unassigned_tour(db):
+    tour = make_tour(db, status="unassigned")
+    db.commit()
+
+    guide = make_guide(db)
+    manual_assign(tour, guide, db, assigned_by="admin@oceanarium.com")
+    db.commit()
+
+    assert tour.assigned_guide_id == guide.id
+    assert tour.status == "assigned"
