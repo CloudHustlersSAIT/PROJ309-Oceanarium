@@ -16,6 +16,7 @@ from app.models import (  # noqa: F401 — ensure all models are registered
     Guide, Language, Expertise,
     AvailabilityPattern, AvailabilitySlot, AvailabilityException,
     Tour, TourAssignmentLog, SyncLog,
+    Booking, Issue,
 )
 
 config = context.config
