@@ -1,8 +1,11 @@
+import logging
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+logging.basicConfig(level=logging.INFO)
 
 from .adapters.clorian_mock import ClorianMockClient
 from .jobs.sync_scheduler import init_sync_service, run_sync_job

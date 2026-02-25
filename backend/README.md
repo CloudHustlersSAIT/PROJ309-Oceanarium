@@ -4,19 +4,29 @@ FastAPI backend for the Oceanarium Tour Scheduling system.
 
 ## Prerequisites
 
+- Python 3.9+
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
 
-## Quick Start (Docker)
+## Quick Start — Local Backend + Docker DB (recommended)
+
+Run only PostgreSQL in Docker and the FastAPI backend directly on your machine. This gives you faster restarts and native debugger support.
 
 ```bash
 cd backend
 
-# Start PostgreSQL + Backend (builds image on first run)
-docker compose up -d
+# 1. Start PostgreSQL only
+docker compose up -d db
 
-# Verify it's running
-curl http://localhost:8000/health
-# → {"status":"ok"}
+# 2. Install Python dependencies
+python3 -m pip install -r requirements.txt
+
+# 3. Run database migrations
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/oceanarium \
+  python3 -m alembic upgrade head
+
+# 4. Start the backend with hot-reload
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/oceanarium \
+  python3 -m uvicorn app.main:app --reload --port 8000
 ```
 
 The API is now available at:
@@ -24,14 +34,32 @@ The API is now available at:
 - **Swagger Docs:** http://localhost:8000/docs
 - **Health Check:** http://localhost:8000/health
 
+## Quick Start — Full Docker Stack
+
+Run both PostgreSQL and the backend in Docker containers:
+
+```bash
+cd backend
+
+# Start PostgreSQL + Backend (builds image on first run)
+docker compose --profile full up -d
+
+# Verify it's running
+curl http://localhost:8000/health
+# → {"status":"ok"}
+```
+
 ## Docker Commands
 
 ```bash
-# Start all services
-docker compose up -d
+# Start PostgreSQL only (for local backend development)
+docker compose up -d db
+
+# Start full stack (DB + backend in Docker)
+docker compose --profile full up -d
 
 # View logs (follow mode)
-docker compose logs -f backend
+docker compose --profile full logs -f backend
 
 # Stop all services
 docker compose down
@@ -39,8 +67,8 @@ docker compose down
 # Stop and remove volumes (wipes database)
 docker compose down -v
 
-# Rebuild after code changes
-docker compose up -d --build
+# Rebuild backend image after dependency changes
+docker compose --profile full up -d --build
 ```
 
 ## Running Tests

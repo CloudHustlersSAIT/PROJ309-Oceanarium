@@ -65,4 +65,13 @@ class ClorianMockClient(ClorianClientBase):
                 required_category="Marine Ecology",
                 requested_language_code="en",
             ),
+            ClorianBooking(
+                clorian_booking_id="CLR-004",
+                date=date(2026, 3, 3),
+                start_time=time(10, 0),
+                end_time=time(12, 0),
+                required_expertise="Coral Reef",
+                required_category="Marine Ecology",
+                requested_language_code="en",
+            ),
         ]

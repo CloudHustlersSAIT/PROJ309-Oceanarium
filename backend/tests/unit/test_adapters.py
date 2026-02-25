@@ -13,7 +13,7 @@ from app.adapters.clorian_mock import ClorianMockClient
 def test_mock_client_default_bookings():
     client = ClorianMockClient()
     bookings = client.fetch_bookings()
-    assert len(bookings) == 3
+    assert len(bookings) == 4
     assert bookings[0].clorian_booking_id == "CLR-001"
 
 
@@ -59,7 +59,7 @@ def test_mock_client_update_nonexistent_booking():
     client = ClorianMockClient()
     client.update_booking("NONEXISTENT", required_expertise="Dolphins")
     bookings = client.fetch_bookings()
-    assert len(bookings) == 3
+    assert len(bookings) == 4
 
 
 def test_mock_client_clear():

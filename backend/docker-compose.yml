@@ -29,6 +29,8 @@ services:
     volumes:
       - .:/app
     restart: unless-stopped
+    profiles:
+      - full
 
 volumes:
   pgdata:
