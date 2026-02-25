@@ -1,35 +1,38 @@
-# backend/app/db.py
-
-# Database connection and session management
 import os
+from typing import Generator
+
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Get the database URL from environment variables
-DATABASE_URL = os.getenv("DATABASE_URL") 
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Ensure DATABASE_URL is set
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in environment variables")
 
-# If Database is set, create the engine
-engine = create_engine(DATABASE_URL, pool_pre_ping=True) #pool_pre_ping to avoid timeout issues
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
-# Create a configured "Session" class
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) #Used for CRUD operations
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-#Test the connection
+Base = declarative_base()
+
+
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def test_connection():
     try:
         with engine.connect() as connection:
             result = connection.execute(text("SELECT 1"))
-            value = result.scalar_one()  # fetch once
-            print("Database connection successful:", value)
+            value = result.scalar_one()
             return value
     except Exception as e:
         print("Database connection failed:", e)
-        return None  # optional, but explicit
+        return None

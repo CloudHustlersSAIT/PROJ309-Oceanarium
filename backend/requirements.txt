@@ -1,4 +1,9 @@
-fastapi[standard]==0.128.8
-sqlalchemy==2.0.47
-psycopg2-binary==2.9.11
-python-dotenv==1.2.1
+fastapi[standard]
+sqlalchemy
+psycopg2-binary
+python-dotenv
+alembic
+apscheduler
+httpx
+pytest
+pytest-cov

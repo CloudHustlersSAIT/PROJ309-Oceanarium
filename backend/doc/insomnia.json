@@ -1,0 +1,279 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-02-24T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_oceanarium",
+      "_type": "workspace",
+      "name": "Oceanarium API",
+      "description": "FDR-001 Guide Assignment API",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "parentId": "wrk_oceanarium",
+      "name": "Local",
+      "data": {
+        "base_url": "http://localhost:8000"
+      }
+    },
+
+    {
+      "_id": "fld_health",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Health"
+    },
+    {
+      "_id": "req_health",
+      "_type": "request",
+      "parentId": "fld_health",
+      "name": "GET /health",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health",
+      "headers": []
+    },
+    {
+      "_id": "req_health_db",
+      "_type": "request",
+      "parentId": "fld_health",
+      "name": "GET /health/db",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health/db",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_guides",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Guides"
+    },
+    {
+      "_id": "req_list_guides",
+      "_type": "request",
+      "parentId": "fld_guides",
+      "name": "GET /guides",
+      "method": "GET",
+      "url": "{{ _.base_url }}/guides",
+      "headers": []
+    },
+    {
+      "_id": "req_create_guide",
+      "_type": "request",
+      "parentId": "fld_guides",
+      "name": "POST /guides",
+      "method": "POST",
+      "url": "{{ _.base_url }}/guides",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Ana Costa\",\n  \"email\": \"ana.costa@oceanarium.com\",\n  \"is_active\": true,\n  \"languages\": [\"en\", \"pt\"],\n  \"expertises\": [\"Sharks\", \"Coral Reef\"]\n}"
+      }
+    },
+    {
+      "_id": "req_get_guide",
+      "_type": "request",
+      "parentId": "fld_guides",
+      "name": "GET /guides/:id",
+      "method": "GET",
+      "url": "{{ _.base_url }}/guides/1",
+      "headers": []
+    },
+    {
+      "_id": "req_update_guide",
+      "_type": "request",
+      "parentId": "fld_guides",
+      "name": "PATCH /guides/:id",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/guides/1",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Ana Costa Updated\",\n  \"is_active\": true,\n  \"languages\": [\"en\", \"pt\", \"es\"]\n}"
+      }
+    },
+    {
+      "_id": "req_set_availability",
+      "_type": "request",
+      "parentId": "fld_guides",
+      "name": "PUT /guides/:id/availability",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/guides/1/availability",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"timezone\": \"Europe/Lisbon\",\n  \"slots\": [\n    { \"day_of_week\": 0, \"start_time\": \"08:00\", \"end_time\": \"17:00\" },\n    { \"day_of_week\": 1, \"start_time\": \"08:00\", \"end_time\": \"17:00\" },\n    { \"day_of_week\": 2, \"start_time\": \"08:00\", \"end_time\": \"17:00\" },\n    { \"day_of_week\": 3, \"start_time\": \"08:00\", \"end_time\": \"17:00\" },\n    { \"day_of_week\": 4, \"start_time\": \"08:00\", \"end_time\": \"17:00\" }\n  ],\n  \"exceptions\": [\n    { \"date\": \"2026-03-15\", \"type\": \"blocked\", \"reason\": \"Personal leave\" }\n  ]\n}"
+      }
+    },
+
+    {
+      "_id": "fld_tours",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Tours"
+    },
+    {
+      "_id": "req_list_tours",
+      "_type": "request",
+      "parentId": "fld_tours",
+      "name": "GET /tours",
+      "method": "GET",
+      "url": "{{ _.base_url }}/tours",
+      "headers": []
+    },
+    {
+      "_id": "req_unassigned_tours",
+      "_type": "request",
+      "parentId": "fld_tours",
+      "name": "GET /tours/unassigned",
+      "method": "GET",
+      "url": "{{ _.base_url }}/tours/unassigned",
+      "headers": []
+    },
+    {
+      "_id": "req_get_tour",
+      "_type": "request",
+      "parentId": "fld_tours",
+      "name": "GET /tours/:id",
+      "method": "GET",
+      "url": "{{ _.base_url }}/tours/1",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_assignments",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Assignments"
+    },
+    {
+      "_id": "req_assign_guide",
+      "_type": "request",
+      "parentId": "fld_assignments",
+      "name": "POST /tours/:id/assign",
+      "method": "POST",
+      "url": "{{ _.base_url }}/tours/1/assign",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"guide_id\": 1,\n  \"assigned_by\": \"admin@oceanarium.com\"\n}"
+      }
+    },
+    {
+      "_id": "req_reassign_guide",
+      "_type": "request",
+      "parentId": "fld_assignments",
+      "name": "POST /tours/:id/reassign",
+      "method": "POST",
+      "url": "{{ _.base_url }}/tours/1/reassign",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"guide_id\": 2,\n  \"assigned_by\": \"admin@oceanarium.com\"\n}"
+      }
+    },
+    {
+      "_id": "req_assignment_log",
+      "_type": "request",
+      "parentId": "fld_assignments",
+      "name": "GET /tours/:id/assignment-log",
+      "method": "GET",
+      "url": "{{ _.base_url }}/tours/1/assignment-log",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_bookings",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Bookings"
+    },
+    {
+      "_id": "req_list_bookings",
+      "_type": "request",
+      "parentId": "fld_bookings",
+      "name": "GET /bookings",
+      "method": "GET",
+      "url": "{{ _.base_url }}/bookings",
+      "headers": []
+    },
+    {
+      "_id": "req_create_booking",
+      "_type": "request",
+      "parentId": "fld_bookings",
+      "name": "POST /bookings",
+      "method": "POST",
+      "url": "{{ _.base_url }}/bookings",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customer_id\": \"CUST-001\",\n  \"tour_id\": 1,\n  \"date\": \"2026-03-10\",\n  \"adult_tickets\": 2,\n  \"child_tickets\": 1\n}"
+      }
+    },
+    {
+      "_id": "req_reschedule_booking",
+      "_type": "request",
+      "parentId": "fld_bookings",
+      "name": "PATCH /bookings/:id/reschedule",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/bookings/1/reschedule",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"new_date\": \"2026-03-12\"\n}"
+      }
+    },
+    {
+      "_id": "req_cancel_booking",
+      "_type": "request",
+      "parentId": "fld_bookings",
+      "name": "PATCH /bookings/:id/cancel",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/bookings/1/cancel",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_sync",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Sync (Admin)"
+    },
+    {
+      "_id": "req_trigger_sync",
+      "_type": "request",
+      "parentId": "fld_sync",
+      "name": "POST /sync/trigger",
+      "method": "POST",
+      "url": "{{ _.base_url }}/sync/trigger",
+      "headers": []
+    },
+    {
+      "_id": "req_sync_logs",
+      "_type": "request",
+      "parentId": "fld_sync",
+      "name": "GET /sync/logs",
+      "method": "GET",
+      "url": "{{ _.base_url }}/sync/logs",
+      "headers": []
+    }
+  ]
+}
