@@ -48,8 +48,37 @@ def test_update_resource(client, db):
     assert resp.json()["name"] == "New Name"
 
 
+def test_update_resource_all_fields(client, db):
+    create = client.post("/resources", json={
+        "name": "Boat",
+        "type": "vehicle",
+        "quantity_available": 5,
+    })
+    resource_id = create.json()["id"]
+    resp = client.patch(f"/resources/{resource_id}", json={
+        "name": "Kayak",
+        "type": "watercraft",
+        "quantity_available": 10,
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "Kayak"
+    assert data["type"] == "watercraft"
+    assert data["quantity_available"] == 10
+
+
+def test_update_resource_not_found(client, db):
+    resp = client.patch("/resources/9999", json={"name": "X"})
+    assert resp.status_code == 404
+
+
 def test_delete_resource(client, db):
     create = client.post("/resources", json={"name": "Disposable"})
     resource_id = create.json()["id"]
     resp = client.delete(f"/resources/{resource_id}")
     assert resp.status_code == 204
+
+
+def test_delete_resource_not_found(client, db):
+    resp = client.delete("/resources/9999")
+    assert resp.status_code == 404

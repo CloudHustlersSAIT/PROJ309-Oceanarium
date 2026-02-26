@@ -23,3 +23,12 @@ def test_create_issue_empty_description(client, db):
 def test_create_issue_missing_description(client, db):
     resp = client.post("/issues", json={})
     assert resp.status_code == 422
+
+
+def test_create_issue_db_failure(client, db):
+    from unittest.mock import patch
+
+    with patch("app.routers.issues.Issue", side_effect=Exception("DB error")):
+        resp = client.post("/issues", json={"description": "fail"})
+    assert resp.status_code == 500
+    assert "Failed to create issue" in resp.json()["detail"]

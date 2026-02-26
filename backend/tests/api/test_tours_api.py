@@ -44,6 +44,30 @@ def test_update_tour(client, db):
     assert resp.json()["name"] == "New Name"
 
 
+def test_update_tour_all_fields(client, db):
+    create = client.post("/tours", json={
+        "name": "Shark Dive",
+        "description": "Old desc",
+        "duration": 60,
+    })
+    tour_id = create.json()["id"]
+    resp = client.patch(f"/tours/{tour_id}", json={
+        "name": "Reef Walk",
+        "description": "New desc",
+        "duration": 90,
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "Reef Walk"
+    assert data["description"] == "New desc"
+    assert data["duration"] == 90
+
+
+def test_update_tour_not_found(client, db):
+    resp = client.patch("/tours/9999", json={"name": "X"})
+    assert resp.status_code == 404
+
+
 def test_delete_tour(client, db):
     create = client.post("/tours", json={"name": "To Delete"})
     tour_id = create.json()["id"]
@@ -52,3 +76,8 @@ def test_delete_tour(client, db):
 
     get_resp = client.get(f"/tours/{tour_id}")
     assert get_resp.status_code == 404
+
+
+def test_delete_tour_not_found(client, db):
+    resp = client.delete("/tours/9999")
+    assert resp.status_code == 404

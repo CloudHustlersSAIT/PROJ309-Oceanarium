@@ -58,6 +58,36 @@ def test_update_user(client, db):
     assert resp.json()["full_name"] == "New Name"
 
 
+def test_update_user_all_fields(client, db):
+    create = client.post("/users", json={
+        "username": "original",
+        "email": "orig@test.com",
+        "password_hash": "hash",
+        "full_name": "Original",
+        "role": "user",
+    })
+    user_id = create.json()["id"]
+    resp = client.patch(f"/users/{user_id}", json={
+        "username": "updated",
+        "email": "new@test.com",
+        "full_name": "Updated Name",
+        "role": "admin",
+        "is_active": False,
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["username"] == "updated"
+    assert data["email"] == "new@test.com"
+    assert data["full_name"] == "Updated Name"
+    assert data["role"] == "admin"
+    assert data["is_active"] is False
+
+
+def test_update_user_not_found(client, db):
+    resp = client.patch("/users/9999", json={"full_name": "X"})
+    assert resp.status_code == 404
+
+
 def test_delete_user(client, db):
     create = client.post("/users", json={
         "username": "temp",
@@ -69,3 +99,8 @@ def test_delete_user(client, db):
     user_id = create.json()["id"]
     resp = client.delete(f"/users/{user_id}")
     assert resp.status_code == 204
+
+
+def test_delete_user_not_found(client, db):
+    resp = client.delete("/users/9999")
+    assert resp.status_code == 404

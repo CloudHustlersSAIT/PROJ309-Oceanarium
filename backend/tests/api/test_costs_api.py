@@ -66,6 +66,33 @@ def test_update_cost(client, db):
     assert resp.json()["price"] == 60.0
 
 
+def test_update_cost_all_fields(client, db):
+    tour_id = _setup_tour(client)
+    create = client.post("/costs", json={
+        "tour_id": tour_id,
+        "ticket_type": "adult",
+        "price": 50.00,
+        "valid_from": "2026-01-01T00:00:00",
+        "valid_to": "2026-12-31T23:59:59",
+    })
+    cost_id = create.json()["id"]
+    resp = client.patch(f"/costs/{cost_id}", json={
+        "ticket_type": "child",
+        "price": 25.00,
+        "valid_from": "2026-06-01T00:00:00",
+        "valid_to": "2027-06-01T00:00:00",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["ticket_type"] == "child"
+    assert data["price"] == 25.0
+
+
+def test_update_cost_not_found(client, db):
+    resp = client.patch("/costs/9999", json={"price": 1.0})
+    assert resp.status_code == 404
+
+
 def test_delete_cost(client, db):
     tour_id = _setup_tour(client)
     create = client.post("/costs", json={
@@ -78,6 +105,11 @@ def test_delete_cost(client, db):
     cost_id = create.json()["id"]
     resp = client.delete(f"/costs/{cost_id}")
     assert resp.status_code == 204
+
+
+def test_delete_cost_not_found(client, db):
+    resp = client.delete("/costs/9999")
+    assert resp.status_code == 404
 
 
 def test_filter_costs_by_tour(client, db):

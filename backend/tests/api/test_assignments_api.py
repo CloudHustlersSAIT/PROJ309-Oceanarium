@@ -84,3 +84,66 @@ def test_get_assignment_log(client, db):
 def test_assignment_log_booking_not_found(client, db):
     resp = client.get("/bookings/9999/assignment-log")
     assert resp.status_code == 404
+
+
+def test_assign_booking_no_version(client, db):
+    from app.models.booking import Booking
+    booking = Booking(clorian_booking_id="CLR-NOVERSION")
+    db.add(booking)
+    db.commit()
+
+    guide = make_guide(db)
+    db.commit()
+
+    resp = client.post(f"/bookings/{booking.booking_id}/assign", json={
+        "guide_id": guide.id,
+        "assigned_by": "admin@test.com",
+    })
+    assert resp.status_code == 400
+    assert "no version" in resp.json()["detail"].lower()
+
+
+def test_reassign_booking_not_found(client, db):
+    guide = make_guide(db)
+    db.commit()
+    resp = client.post("/bookings/9999/reassign", json={
+        "guide_id": guide.id,
+        "assigned_by": "admin@test.com",
+    })
+    assert resp.status_code == 404
+
+
+def test_reassign_booking_no_version(client, db):
+    from app.models.booking import Booking
+    booking = Booking(clorian_booking_id="CLR-REASSIGN-NOV")
+    db.add(booking)
+    db.commit()
+
+    guide = make_guide(db)
+    db.commit()
+
+    resp = client.post(f"/bookings/{booking.booking_id}/reassign", json={
+        "guide_id": guide.id,
+        "assigned_by": "admin@test.com",
+    })
+    assert resp.status_code == 400
+
+
+def test_reassign_guide_not_found(client, db):
+    booking = make_booking(db, clorian_booking_id="CLR-REASSIGN-NG")
+    db.commit()
+
+    resp = client.post(f"/bookings/{booking.booking_id}/reassign", json={
+        "guide_id": 9999,
+        "assigned_by": "admin@test.com",
+    })
+    assert resp.status_code == 404
+
+
+def test_assignment_log_no_tour(client, db):
+    booking = make_booking(db, clorian_booking_id="CLR-NOTOUR")
+    db.commit()
+
+    resp = client.get(f"/bookings/{booking.booking_id}/assignment-log")
+    assert resp.status_code == 200
+    assert resp.json() == []
