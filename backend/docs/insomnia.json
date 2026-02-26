@@ -1,14 +1,14 @@
 {
   "_type": "export",
   "__export_format": 4,
-  "__export_date": "2026-02-24T00:00:00.000Z",
+  "__export_date": "2026-02-25T00:00:00.000Z",
   "__export_source": "insomnia.desktop.app:v2023.5.8",
   "resources": [
     {
       "_id": "wrk_oceanarium",
       "_type": "workspace",
       "name": "Oceanarium API",
-      "description": "FDR-001 Guide Assignment API",
+      "description": "Oceanarium Tour Scheduling API",
       "scope": "collection"
     },
     {
@@ -212,6 +212,24 @@
       "headers": []
     },
     {
+      "_id": "req_list_bookings_by_status",
+      "_type": "request",
+      "parentId": "fld_bookings",
+      "name": "GET /bookings?status=pending",
+      "method": "GET",
+      "url": "{{ _.base_url }}/bookings?status=pending",
+      "headers": []
+    },
+    {
+      "_id": "req_unassigned_bookings",
+      "_type": "request",
+      "parentId": "fld_bookings",
+      "name": "GET /bookings/unassigned",
+      "method": "GET",
+      "url": "{{ _.base_url }}/bookings/unassigned",
+      "headers": []
+    },
+    {
       "_id": "req_create_booking",
       "_type": "request",
       "parentId": "fld_bookings",
@@ -223,7 +241,7 @@
       ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"customer_id\": \"CUST-001\",\n  \"tour_id\": 1,\n  \"date\": \"2026-03-10\",\n  \"adult_tickets\": 2,\n  \"child_tickets\": 1\n}"
+        "text": "{\n  \"clorian_booking_id\": \"CLR-500\",\n  \"date\": \"2026-03-02\",\n  \"start_time\": \"09:00:00\",\n  \"end_time\": \"11:00:00\",\n  \"required_expertise\": \"Sharks\",\n  \"required_category\": \"Marine Biology\",\n  \"requested_language_code\": \"en\",\n  \"customer_id\": \"CUST-001\",\n  \"adult_tickets\": 2,\n  \"child_tickets\": 1\n}"
       }
     },
     {
@@ -248,6 +266,53 @@
       "name": "PATCH /bookings/:id/cancel",
       "method": "PATCH",
       "url": "{{ _.base_url }}/bookings/1/cancel",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_issues",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Issues"
+    },
+    {
+      "_id": "req_create_issue",
+      "_type": "request",
+      "parentId": "fld_issues",
+      "name": "POST /issues",
+      "method": "POST",
+      "url": "{{ _.base_url }}/issues",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"description\": \"Water temperature sensor malfunction in Shark tank\"\n}"
+      }
+    },
+
+    {
+      "_id": "fld_dashboard",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Dashboard"
+    },
+    {
+      "_id": "req_stats",
+      "_type": "request",
+      "parentId": "fld_dashboard",
+      "name": "GET /stats",
+      "method": "GET",
+      "url": "{{ _.base_url }}/stats",
+      "headers": []
+    },
+    {
+      "_id": "req_notifications",
+      "_type": "request",
+      "parentId": "fld_dashboard",
+      "name": "GET /notifications",
+      "method": "GET",
+      "url": "{{ _.base_url }}/notifications",
       "headers": []
     },
 

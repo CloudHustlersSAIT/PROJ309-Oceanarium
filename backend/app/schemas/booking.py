@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-VALID_BOOKING_STATUSES = {"pending", "assigned", "cancelled"}
+VALID_BOOKING_STATUSES = {"pending", "assigned", "completed", "cancelled"}
 
 
 class BookingCreate(BaseModel):

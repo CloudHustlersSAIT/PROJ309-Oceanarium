@@ -1,10 +1,11 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ..db import get_db
 from ..models.booking import Booking
+from ..models.tour import Tour
 from ..schemas.booking import VALID_BOOKING_STATUSES, BookingCreate, BookingReschedule
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
@@ -15,7 +16,9 @@ def read_bookings(
     status: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Booking)
+    query = db.query(Booking).options(
+        joinedload(Booking.tour).joinedload(Tour.assigned_guide)
+    )
     if status is not None:
         query = query.filter(Booking.status == status)
     bookings = query.order_by(Booking.created_at.desc()).all()
@@ -26,6 +29,7 @@ def read_bookings(
 def read_unassigned_bookings(db: Session = Depends(get_db)):
     bookings = (
         db.query(Booking)
+        .options(joinedload(Booking.tour).joinedload(Tour.assigned_guide))
         .filter(Booking.status == "pending", Booking.tour_id.is_(None))
         .order_by(Booking.created_at.desc())
         .all()
@@ -79,6 +83,23 @@ def reschedule_booking(
     return _booking_to_dict(booking)
 
 
+@router.patch("/{booking_id}/complete")
+def complete_booking(booking_id: int, db: Session = Depends(get_db)):
+    booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.status != "assigned":
+        raise HTTPException(
+            status_code=400,
+            detail="Only assigned bookings can be marked as completed",
+        )
+
+    booking.status = "completed"
+    db.commit()
+    db.refresh(booking)
+    return _booking_to_dict(booking)
+
+
 @router.patch("/{booking_id}/cancel")
 def cancel_booking(booking_id: int, db: Session = Depends(get_db)):
     booking = db.query(Booking).filter(Booking.booking_id == booking_id).first()
@@ -92,6 +113,9 @@ def cancel_booking(booking_id: int, db: Session = Depends(get_db)):
 
 
 def _booking_to_dict(booking: Booking) -> dict:
+    guide_name = None
+    if booking.tour and booking.tour.assigned_guide:
+        guide_name = booking.tour.assigned_guide.name
     return {
         "booking_id": booking.booking_id,
         "clorian_booking_id": booking.clorian_booking_id,
@@ -106,5 +130,6 @@ def _booking_to_dict(booking: Booking) -> dict:
         "child_tickets": booking.child_tickets,
         "status": booking.status,
         "tour_id": booking.tour_id,
+        "guide_name": guide_name,
         "created_at": booking.created_at.isoformat() if booking.created_at else None,
     }

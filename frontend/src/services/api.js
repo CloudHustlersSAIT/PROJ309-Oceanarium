@@ -42,9 +42,10 @@ export async function getStats() {
   return fetchAPI('/stats')
 }
 
-// Get all bookings
-export async function getBookings() {
-  return fetchAPI('/bookings')
+// Get bookings, optionally filtered by status
+export async function getBookings(status) {
+  const query = status ? `?status=${encodeURIComponent(status)}` : ''
+  return fetchAPI(`/bookings${query}`)
 }
 
 // Create a new booking
@@ -60,6 +61,13 @@ export async function rescheduleBooking(bookingId, newDate) {
   return fetchAPI(`/bookings/${bookingId}/reschedule`, {
     method: 'PATCH',
     body: JSON.stringify({ new_date: newDate }),
+  })
+}
+
+// Complete a booking (guide confirms tour occurred)
+export async function completeBooking(bookingId) {
+  return fetchAPI(`/bookings/${bookingId}/complete`, {
+    method: 'PATCH',
   })
 }
 
