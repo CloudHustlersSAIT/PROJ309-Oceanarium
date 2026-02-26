@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+VENV_DIR="$REPO_ROOT/backend/.venv"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+        continue
+    fi
+
+    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+        range="$local_sha"
+    else
+        range="$remote_sha..$local_sha"
+    fi
+
+    if git diff --name-only "$range" -- backend/ | grep -q .; then
+        echo "==> Backend changes detected. Running CI checks..."
+
+        if [ ! -d "$VENV_DIR" ]; then
+            echo "ERROR: Python venv not found at $VENV_DIR"
+            echo "Set it up with:"
+            echo "  cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+            exit 1
+        fi
+
+        source "$VENV_DIR/bin/activate"
+
+        cd "$REPO_ROOT/backend"
+
+        DATABASE_URL="sqlite:///ci_test.db" \
+            python -m pytest tests/ \
+                -v \
+                --tb=short \
+                --cov=app \
+                --cov-report=term-missing \
+                --cov-fail-under=95
+
+        echo "==> All checks passed."
+        exit 0
+    fi
+done
+
+echo "==> No backend changes to validate."

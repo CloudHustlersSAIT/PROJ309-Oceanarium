@@ -90,6 +90,26 @@ python3 -m pytest tests/api/ -v           # API tests only
 python3 -m pytest tests/integration/ -v   # Integration tests only
 ```
 
+## Git Hooks (pre-push)
+
+A pre-push hook runs the full Backend CI checks (pytest + 95% coverage) before every push that includes `backend/` changes.
+
+### Setup (once per clone)
+
+```bash
+# 1. Create a local venv (if you don't have one yet)
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# 2. Install the hook
+cd ..
+bash scripts/install-hooks.sh
+```
+
+After this, every `git push` with backend changes will automatically run the test suite. The push is blocked if tests fail or coverage drops below 95%.
+
 ## Database Migrations
 
 Migrations run automatically when the Docker container starts. To run them manually:
@@ -108,8 +128,7 @@ DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/oceanarium \
 
 | Method  | Endpoint                         | Description             |
 |---------|----------------------------------|-------------------------|
-| GET     | /health                          | Health check            |
-| GET     | /health/db                       | Database health check   |
+| GET     | /health                          | Health + DB status      |
 | GET     | /guides                          | List all guides         |
 | POST    | /guides                          | Create guide            |
 | GET     | /guides/{id}                     | Get guide details       |
