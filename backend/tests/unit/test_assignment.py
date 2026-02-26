@@ -31,6 +31,24 @@ def test_assign_guide_creates_schedule(db):
     assert schedule.booking_version_id == lv.id
 
 
+def test_assign_guide_schedule_uses_booking_times(db):
+    from datetime import datetime as dt
+
+    guide = make_guide(db)
+    booking = make_booking(
+        db, booking_date=date(2026, 3, 2),
+        start_time=time(9, 0), end_time=time(11, 0),
+    )
+    db.commit()
+    lv = booking.latest_version
+
+    schedule = assign_guide_to_booking(lv, guide, db)
+    db.commit()
+
+    assert schedule.start_date == dt(2026, 3, 2, 9, 0)
+    assert schedule.end_date == dt(2026, 3, 2, 11, 0)
+
+
 def test_manual_assign_creates_schedule(db):
     guide = make_guide(db)
     tour = make_tour(db)

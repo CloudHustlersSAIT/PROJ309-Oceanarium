@@ -15,6 +15,9 @@ until docker compose exec db pg_isready -U postgres > /dev/null 2>&1; do
 done
 echo "    PostgreSQL is healthy."
 
+echo "==> Creating test database..."
+docker compose exec db psql -U postgres -c "CREATE DATABASE oceanarium_test" 2>/dev/null || true
+
 echo "==> Running Alembic migrations..."
 python3 -m alembic upgrade head
 

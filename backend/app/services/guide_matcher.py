@@ -1,6 +1,6 @@
 import logging
-from datetime import date, datetime
-from typing import Dict, List
+from datetime import date, datetime, time
+from typing import Dict, List, Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -20,7 +20,7 @@ def find_eligible_guides(
     """Find all guides eligible for a booking version, sorted by fewest assignments that day.
 
     A guide is eligible only if ALL rules pass (AND logic):
-      Rule 1: Available (slot covers the day, no blocking exception, no overlap, active)
+      Rule 1: Available (slot covers the tour time window, no blocking exception, no overlap, active)
       Rule 2: Can lead this tour type (via guide_tour_types)
       Rule 3: Speaks the requested language (via guide_languages)
     """
@@ -50,22 +50,32 @@ def find_eligible_guides(
     return eligible
 
 
-def is_guide_available_on_date(
-    guide: Guide, target_date: date, db: Session
+def is_guide_available(
+    guide: Guide,
+    target_date: date,
+    db: Session,
+    start_time: Optional[time] = None,
+    end_time: Optional[time] = None,
 ) -> bool:
-    """Check whether *guide* can work on *target_date*.
+    """Check whether *guide* can work on *target_date* during the given window.
 
     Rules (all must pass):
-      1. Guide has an availability pattern with a slot covering the weekday.
+      1. Guide has an availability pattern with a slot covering the weekday
+         AND whose time range covers [start_time, end_time].
       2. No blocking exception exists for that date.
-      3. No overlapping schedule already exists for the guide on that date.
+      3. No overlapping schedule exists for the guide during the window.
     """
     pattern = guide.availability_pattern
     if pattern is None:
         return False
 
-    if not any(slot.day_of_week == target_date.weekday() for slot in pattern.slots):
+    matching_slots = [s for s in pattern.slots if s.day_of_week == target_date.weekday()]
+    if not matching_slots:
         return False
+
+    if start_time and end_time:
+        if not any(s.start_time <= start_time and s.end_time >= end_time for s in matching_slots):
+            return False
 
     has_blocking = (
         db.query(AvailabilityException)
@@ -79,14 +89,14 @@ def is_guide_available_on_date(
     if has_blocking:
         return False
 
-    start_dt = datetime.combine(target_date, datetime.min.time())
-    end_dt = datetime.combine(target_date, datetime.max.time())
+    window_start = datetime.combine(target_date, start_time or datetime.min.time())
+    window_end = datetime.combine(target_date, end_time or datetime.max.time())
     overlapping = (
         db.query(Schedule)
         .filter(
             Schedule.guide_id == guide.id,
-            Schedule.start_date < end_dt,
-            Schedule.end_date > start_dt,
+            Schedule.start_date < window_end,
+            Schedule.end_date > window_start,
         )
         .first()
     )
@@ -96,10 +106,23 @@ def is_guide_available_on_date(
     return True
 
 
+def is_guide_available_on_date(
+    guide: Guide, target_date: date, db: Session
+) -> bool:
+    """Backward-compatible day-level check (used by reschedule endpoint)."""
+    return is_guide_available(guide, target_date, db)
+
+
 def _check_availability(
     guide: Guide, booking_version: BookingVersion, db: Session
 ) -> bool:
-    return is_guide_available_on_date(guide, booking_version.start_date, db)
+    return is_guide_available(
+        guide,
+        booking_version.start_date,
+        db,
+        start_time=booking_version.start_time,
+        end_time=booking_version.end_time,
+    )
 
 
 def _check_tour_type(guide: Guide, tour_id: int) -> bool:

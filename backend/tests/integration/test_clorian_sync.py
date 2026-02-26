@@ -193,13 +193,15 @@ def test_idempotent_sync(db):
     assert len(bookings) == 1
 
 
-def test_update_preserves_assigned_status(db):
+def test_update_releases_guide_for_rematching(db):
+    """Changed bookings release the guide and go back to unassigned for re-matching."""
     from app.models.schedule import Schedule
     from app.services.assignment import assign_guide_to_booking
 
     booking = make_booking(
         db, clorian_booking_id="CLR-STAT",
         booking_date=date(2026, 3, 2),
+        start_time=time(9, 0), end_time=time(11, 0),
     )
     guide = make_guide(db)
     make_availability(db, guide, slots=[
@@ -210,7 +212,6 @@ def test_update_preserves_assigned_status(db):
     lv = booking.latest_version
     assign_guide_to_booking(lv, guide, db)
     db.commit()
-
     assert booking.latest_version.status == "assigned"
 
     updated = _sample_booking(clorian_booking_id="CLR-STAT", date=date(2026, 3, 5))
@@ -222,23 +223,23 @@ def test_update_preserves_assigned_status(db):
     assert sync_log.changed_count == 1
     db.refresh(booking)
     new_lv = booking.latest_version
-    assert new_lv.status == "assigned"
     assert new_lv.start_date == date(2026, 3, 5)
 
-    new_schedules = db.query(Schedule).filter(
-        Schedule.booking_version_id == new_lv.id
+    old_schedules = db.query(Schedule).filter(
+        Schedule.booking_version_id == lv.id
     ).all()
-    assert len(new_schedules) == 1
-    assert new_schedules[0].guide_id == guide.id
+    assert len(old_schedules) == 0
 
 
-def test_update_migrates_schedules_to_new_version(db):
+def test_update_deletes_old_schedules(db):
+    """When a booking changes, old schedules are deleted (not migrated)."""
     from app.models.schedule import Schedule
     from app.services.assignment import assign_guide_to_booking
 
     booking = make_booking(
         db, clorian_booking_id="CLR-MIG",
         booking_date=date(2026, 3, 2),
+        start_time=time(9, 0), end_time=time(11, 0),
     )
     guide = make_guide(db)
     db.commit()
@@ -260,10 +261,43 @@ def test_update_migrates_schedules_to_new_version(db):
 
     db.refresh(booking)
     new_lv = booking.latest_version
+    assert new_lv.status == "unassigned"
     new_schedules = db.query(Schedule).filter(
         Schedule.booking_version_id == new_lv.id
     ).all()
-    assert len(new_schedules) == 1
+    assert len(new_schedules) == 0
+
+
+def test_cancel_releases_schedules(db):
+    """Cancelled bookings release the guide's schedule."""
+    from app.models.schedule import Schedule
+    from app.services.assignment import assign_guide_to_booking
+
+    booking = make_booking(
+        db, clorian_booking_id="CLR-CANCEL-REL",
+        booking_date=date(2026, 3, 2),
+        start_time=time(9, 0), end_time=time(11, 0),
+    )
+    guide = make_guide(db)
+    db.commit()
+
+    lv = booking.latest_version
+    assign_guide_to_booking(lv, guide, db)
+    db.commit()
+    assert lv.status == "assigned"
+
+    client = _make_client([])
+    service = ClorianSyncService(client)
+    sync_log = service.run_sync(db)
+
+    assert sync_log.cancelled_count == 1
+    db.refresh(booking)
+    assert booking.latest_version.status == "cancelled"
+
+    old_schedules = db.query(Schedule).filter(
+        Schedule.booking_version_id == lv.id
+    ).all()
+    assert len(old_schedules) == 0
 
 
 def test_sync_triggers_auto_assignment(db):

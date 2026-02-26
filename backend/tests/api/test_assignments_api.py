@@ -157,11 +157,12 @@ def test_auto_assign_no_pending(client, db):
 
 
 def test_auto_assign_matches_guide(client, db):
-    from datetime import date
+    from datetime import date, time
 
     booking_date = date(2026, 3, 2)
     booking = make_booking(
         db, clorian_booking_id="CLR-AUTO", booking_date=booking_date,
+        start_time=time(9, 0), end_time=time(11, 0),
     )
     guide = make_guide(db, email="auto@test.com")
     make_availability(db, guide, slots=[

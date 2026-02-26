@@ -184,11 +184,10 @@ class ClorianSyncService:
         self, db: Session, booking: Booking, cb: ClorianBooking, poll_id: int
     ) -> int:
         lv = booking.latest_version
-        status = lv.status if lv else "unassigned"
 
         version_hash = _compute_hash(
             booking.booking_id,
-            status,
+            "unassigned",
             cb.adult_tickets,
             cb.child_tickets,
             cb.date,
@@ -211,7 +210,7 @@ class ClorianSyncService:
         version = BookingVersion(
             booking_id=booking.booking_id,
             hash=version_hash,
-            status=status,
+            status="unassigned",
             adult_tickets=cb.adult_tickets,
             child_tickets=cb.child_tickets,
             start_date=cb.date,
@@ -225,14 +224,6 @@ class ClorianSyncService:
 
         if lv:
             for old_schedule in lv.schedules:
-                new_schedule = Schedule(
-                    booking_version_id=version.id,
-                    guide_id=old_schedule.guide_id,
-                    resource_id=old_schedule.resource_id,
-                    start_date=datetime.combine(cb.date, datetime.min.time()),
-                    end_date=datetime.combine(cb.date, datetime.min.time()),
-                )
-                db.add(new_schedule)
                 db.delete(old_schedule)
             db.flush()
 
@@ -267,6 +258,11 @@ class ClorianSyncService:
         )
         db.add(version)
         db.flush()
+
+        if lv:
+            for old_schedule in lv.schedules:
+                db.delete(old_schedule)
+            db.flush()
 
         return 1
 

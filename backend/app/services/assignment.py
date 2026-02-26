@@ -13,15 +13,24 @@ from ..models.tour import Tour
 logger = logging.getLogger(__name__)
 
 
+def _schedule_window(bv: BookingVersion) -> tuple:
+    """Derive (start_datetime, end_datetime) from a BookingVersion."""
+    return (
+        datetime.combine(bv.start_date, bv.start_time or datetime.min.time()),
+        datetime.combine(bv.start_date, bv.end_time or datetime.max.time()),
+    )
+
+
 def assign_guide_to_booking(
     booking_version: BookingVersion, guide: Guide, db: Session
 ) -> Schedule:
     """Create a Schedule record linking a booking version to a guide."""
+    start_dt, end_dt = _schedule_window(booking_version)
     schedule = Schedule(
         booking_version_id=booking_version.id,
         guide_id=guide.id,
-        start_date=datetime.combine(booking_version.start_date, datetime.min.time()),
-        end_date=datetime.combine(booking_version.start_date, datetime.min.time()),
+        start_date=start_dt,
+        end_date=end_dt,
     )
     db.add(schedule)
 
@@ -61,11 +70,12 @@ def manual_assign(
         db.delete(existing)
         db.flush()
 
+    start_dt, end_dt = _schedule_window(booking_version)
     schedule = Schedule(
         booking_version_id=booking_version.id,
         guide_id=guide.id,
-        start_date=datetime.combine(booking_version.start_date, datetime.min.time()),
-        end_date=datetime.combine(booking_version.start_date, datetime.min.time()),
+        start_date=start_dt,
+        end_date=end_dt,
     )
     db.add(schedule)
 

@@ -173,6 +173,8 @@ def make_booking(
     child_tickets=0,
     status="unassigned",
     requested_language_code=None,
+    start_time=None,
+    end_time=None,
 ):
     if clorian_booking_id is None:
         import uuid
@@ -190,7 +192,10 @@ def make_booking(
     db.flush()
 
     import hashlib
-    raw = f"{booking.booking_id}|{status}|{adult_tickets}|{child_tickets}|{booking_date}"
+    raw = (
+        f"{booking.booking_id}|{status}|{adult_tickets}|{child_tickets}"
+        f"|{booking_date}|{start_time}|{end_time}"
+    )
     version_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
     version = BookingVersion(
@@ -200,6 +205,8 @@ def make_booking(
         adult_tickets=adult_tickets,
         child_tickets=child_tickets,
         start_date=booking_date,
+        start_time=start_time,
+        end_time=end_time,
         valid_from=datetime.now(timezone.utc),
     )
     db.add(version)

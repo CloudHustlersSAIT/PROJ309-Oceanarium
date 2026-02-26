@@ -94,7 +94,10 @@ def test_overlapping_schedule_excludes_guide(db):
     make_availability(db, guide, slots=[
         {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(17, 0)},
     ])
-    booking1 = make_booking(db, clorian_booking_id="EXISTING", booking_date=date(2026, 3, 2))
+    booking1 = make_booking(
+        db, clorian_booking_id="EXISTING", booking_date=date(2026, 3, 2),
+        start_time=time(9, 0), end_time=time(11, 0),
+    )
     db.flush()
     lv = booking1.latest_version
     schedule = Schedule(
@@ -106,7 +109,10 @@ def test_overlapping_schedule_excludes_guide(db):
     db.add(schedule)
     db.flush()
 
-    booking2 = make_booking(db, clorian_booking_id="NEW", booking_date=date(2026, 3, 2))
+    booking2 = make_booking(
+        db, clorian_booking_id="NEW", booking_date=date(2026, 3, 2),
+        start_time=time(10, 0), end_time=time(12, 0),
+    )
     db.commit()
 
     result = find_eligible_guides(booking2.latest_version, db)
@@ -207,3 +213,107 @@ def test_booking_without_language_skips_language_check(db):
 
     result = find_eligible_guides(booking.latest_version, db)
     assert len(result) == 1
+
+
+# -- Time Window Matching --
+
+
+def test_slot_covers_tour_window_eligible(db):
+    guide = make_guide(db)
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(17, 0)},
+    ])
+    booking = make_booking(
+        db, booking_date=date(2026, 3, 2),
+        start_time=time(9, 0), end_time=time(11, 0),
+    )
+    db.commit()
+
+    result = find_eligible_guides(booking.latest_version, db)
+    assert len(result) == 1
+
+
+def test_slot_does_not_cover_tour_start_excluded(db):
+    guide = make_guide(db)
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(10, 0), "end_time": time(17, 0)},
+    ])
+    booking = make_booking(
+        db, booking_date=date(2026, 3, 2),
+        start_time=time(9, 0), end_time=time(11, 0),
+    )
+    db.commit()
+
+    result = find_eligible_guides(booking.latest_version, db)
+    assert len(result) == 0
+
+
+def test_slot_does_not_cover_tour_end_excluded(db):
+    guide = make_guide(db)
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(10, 0)},
+    ])
+    booking = make_booking(
+        db, booking_date=date(2026, 3, 2),
+        start_time=time(9, 0), end_time=time(11, 0),
+    )
+    db.commit()
+
+    result = find_eligible_guides(booking.latest_version, db)
+    assert len(result) == 0
+
+
+def test_non_overlapping_schedules_same_day_eligible(db):
+    from datetime import datetime as dt
+
+    guide = make_guide(db)
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(17, 0)},
+    ])
+    booking1 = make_booking(
+        db, clorian_booking_id="MORNING", booking_date=date(2026, 3, 2),
+        start_time=time(9, 0), end_time=time(11, 0),
+    )
+    db.flush()
+    lv = booking1.latest_version
+    db.add(Schedule(
+        booking_version_id=lv.id, guide_id=guide.id,
+        start_date=dt(2026, 3, 2, 9, 0), end_date=dt(2026, 3, 2, 11, 0),
+    ))
+    db.flush()
+
+    booking2 = make_booking(
+        db, clorian_booking_id="AFTERNOON", booking_date=date(2026, 3, 2),
+        start_time=time(14, 0), end_time=time(16, 0),
+    )
+    db.commit()
+
+    result = find_eligible_guides(booking2.latest_version, db)
+    assert len(result) == 1
+
+
+def test_booking_without_times_falls_back_to_day_level(db):
+    from datetime import datetime as dt
+
+    guide = make_guide(db)
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(17, 0)},
+    ])
+    booking1 = make_booking(
+        db, clorian_booking_id="EXISTING-NOTIME", booking_date=date(2026, 3, 2),
+    )
+    db.flush()
+    lv = booking1.latest_version
+    db.add(Schedule(
+        booking_version_id=lv.id, guide_id=guide.id,
+        start_date=dt(2026, 3, 2, 9, 0), end_date=dt(2026, 3, 2, 11, 0),
+    ))
+    db.flush()
+
+    booking2 = make_booking(
+        db, clorian_booking_id="NEW-NOTIME", booking_date=date(2026, 3, 2),
+    )
+    db.commit()
+
+    result = find_eligible_guides(booking2.latest_version, db)
+    assert len(result) == 0
