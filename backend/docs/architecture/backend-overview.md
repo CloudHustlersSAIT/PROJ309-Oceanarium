@@ -5,7 +5,7 @@
 | **Project**      | Oceanarium Tour Scheduling System       |
 | **Author**       | Evandro Maciel                          |
 | **Last Updated** | February 25, 2026                       |
-| **Stack**        | Python 3.9+ / FastAPI / SQLAlchemy / PostgreSQL |
+| **Stack**        | Python 3.12 / FastAPI / SQLAlchemy / PostgreSQL |
 
 ---
 

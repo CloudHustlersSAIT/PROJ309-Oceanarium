@@ -1,0 +1,58 @@
+"""add bookings and issues tables
+
+Revision ID: 89059e6406ba
+Revises: 7fac8eb8796f
+Create Date: 2026-02-25 15:05:57.984056
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '89059e6406ba'
+down_revision: Union[str, Sequence[str], None] = '7fac8eb8796f'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    op.create_table('issues',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('description', sa.String(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_issues_id'), 'issues', ['id'], unique=False)
+    op.create_table('bookings',
+    sa.Column('booking_id', sa.Integer(), nullable=False),
+    sa.Column('clorian_booking_id', sa.String(), nullable=False),
+    sa.Column('date', sa.Date(), nullable=False),
+    sa.Column('start_time', sa.Time(), nullable=False),
+    sa.Column('end_time', sa.Time(), nullable=False),
+    sa.Column('required_expertise', sa.String(), nullable=True),
+    sa.Column('required_category', sa.String(), nullable=True),
+    sa.Column('requested_language_code', sa.String(), nullable=True),
+    sa.Column('customer_id', sa.String(), nullable=True),
+    sa.Column('adult_tickets', sa.Integer(), nullable=False),
+    sa.Column('child_tickets', sa.Integer(), nullable=False),
+    sa.Column('status', sa.String(), nullable=False),
+    sa.Column('tour_id', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['tour_id'], ['tours.id'], ),
+    sa.PrimaryKeyConstraint('booking_id')
+    )
+    op.create_index(op.f('ix_bookings_booking_id'), 'bookings', ['booking_id'], unique=False)
+    op.create_index(op.f('ix_bookings_clorian_booking_id'), 'bookings', ['clorian_booking_id'], unique=True)
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    op.drop_index(op.f('ix_bookings_clorian_booking_id'), table_name='bookings')
+    op.drop_index(op.f('ix_bookings_booking_id'), table_name='bookings')
+    op.drop_table('bookings')
+    op.drop_index(op.f('ix_issues_id'), table_name='issues')
+    op.drop_table('issues')

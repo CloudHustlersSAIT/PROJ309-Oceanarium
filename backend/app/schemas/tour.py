@@ -3,18 +3,23 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class TourCreate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    duration: Optional[int] = None
+
+
+class TourUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    duration: Optional[int] = None
+
+
 class TourOut(BaseModel):
     id: int
-    clorian_booking_id: str
-    date: str
-    start_time: str
-    end_time: str
-    required_expertise: Optional[str]
-    required_category: Optional[str]
-    requested_language_code: Optional[str]
-    status: str
-    assigned_guide_id: Optional[int]
-    assigned_guide_name: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    duration: Optional[int] = None
 
     model_config = {"from_attributes": True}
 

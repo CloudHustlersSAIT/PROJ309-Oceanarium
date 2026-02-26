@@ -154,14 +154,13 @@ async function handleReschedule() {
 
     alert('Booking rescheduled successfully!')
     closeAllModals()
+    await loadData()
 
-    // Reset form
     rescheduleForm.value = {
       bookingId: '',
       newDate: '',
     }
   } catch (error) {
-    // Failed to reschedule booking
     alert('Failed to reschedule booking')
   }
 }

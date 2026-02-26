@@ -1,0 +1,21 @@
+[run]
+source = app
+omit =
+    app/__init__.py
+    app/models/__init__.py
+    app/schemas/__init__.py
+    app/routers/__init__.py
+    app/services/__init__.py
+    app/adapters/__init__.py
+    app/jobs/__init__.py
+    app/mock_poller.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.
+    ^\s*pass\s*$
+    ^\s*\.\.\.\s*$
+    @abstractmethod
+    raise ValueError
+show_missing = true

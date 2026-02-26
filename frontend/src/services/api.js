@@ -1,6 +1,5 @@
-const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' // FastAPI default port
+const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-// Generic fetch helper
 async function fetchAPI(endpoint, options = {}) {
   try {
     const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
@@ -15,39 +14,47 @@ async function fetchAPI(endpoint, options = {}) {
       throw new Error(`API Error: ${response.statusText}`)
     }
 
+    if (response.status === 204) return null
+
     return await response.json()
   } catch (error) {
-    // API request failed - error will be handled by caller
     throw error
   }
 }
 
-// Get all guides
+// Guides
 export async function getGuides() {
   return fetchAPI('/guides')
 }
 
-// Get all tours
+// Tours
 export async function getTours() {
   return fetchAPI('/tours')
 }
 
-// Get all notifications
+export async function createTour(tourData) {
+  return fetchAPI('/tours', {
+    method: 'POST',
+    body: JSON.stringify(tourData),
+  })
+}
+
+// Notifications
 export async function getNotifications() {
   return fetchAPI('/notifications')
 }
 
-// Get dashboard stats
+// Stats
 export async function getStats() {
   return fetchAPI('/stats')
 }
 
-// Get all bookings
-export async function getBookings() {
-  return fetchAPI('/bookings')
+// Bookings
+export async function getBookings(status) {
+  const query = status ? `?status=${encodeURIComponent(status)}` : ''
+  return fetchAPI(`/bookings${query}`)
 }
 
-// Create a new booking
 export async function createBooking(bookingData) {
   return fetchAPI('/bookings', {
     method: 'POST',
@@ -55,7 +62,6 @@ export async function createBooking(bookingData) {
   })
 }
 
-// Reschedule a booking
 export async function rescheduleBooking(bookingId, newDate) {
   return fetchAPI(`/bookings/${bookingId}/reschedule`, {
     method: 'PATCH',
@@ -63,14 +69,81 @@ export async function rescheduleBooking(bookingId, newDate) {
   })
 }
 
-// Cancel a booking
+export async function confirmBooking(bookingId) {
+  return fetchAPI(`/bookings/${bookingId}/confirm`, {
+    method: 'PATCH',
+  })
+}
+
 export async function cancelBooking(bookingId) {
   return fetchAPI(`/bookings/${bookingId}/cancel`, {
     method: 'PATCH',
   })
 }
 
-// Report an issue
+// Costs
+export async function getCosts(tourId) {
+  const query = tourId ? `?tour_id=${tourId}` : ''
+  return fetchAPI(`/costs${query}`)
+}
+
+export async function createCost(costData) {
+  return fetchAPI('/costs', {
+    method: 'POST',
+    body: JSON.stringify(costData),
+  })
+}
+
+// Schedules
+export async function getSchedules(guideId) {
+  const query = guideId ? `?guide_id=${guideId}` : ''
+  return fetchAPI(`/schedules${query}`)
+}
+
+export async function createSchedule(scheduleData) {
+  return fetchAPI('/schedules', {
+    method: 'POST',
+    body: JSON.stringify(scheduleData),
+  })
+}
+
+// Customers
+export async function getCustomers() {
+  return fetchAPI('/customers')
+}
+
+export async function createCustomer(customerData) {
+  return fetchAPI('/customers', {
+    method: 'POST',
+    body: JSON.stringify(customerData),
+  })
+}
+
+// Resources
+export async function getResources() {
+  return fetchAPI('/resources')
+}
+
+export async function createResource(resourceData) {
+  return fetchAPI('/resources', {
+    method: 'POST',
+    body: JSON.stringify(resourceData),
+  })
+}
+
+// Surveys
+export async function getSurveys() {
+  return fetchAPI('/surveys')
+}
+
+export async function createSurvey(surveyData) {
+  return fetchAPI('/surveys', {
+    method: 'POST',
+    body: JSON.stringify(surveyData),
+  })
+}
+
+// Issues
 export async function reportIssue(description) {
   return fetchAPI('/issues', {
     method: 'POST',

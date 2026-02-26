@@ -5,87 +5,120 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from ..models.audit_log import TourAssignmentLog
+from ..models.booking_version import BookingVersion
 from ..models.guide import Guide
+from ..models.schedule import Schedule
 from ..models.tour import Tour
-from .guide_matcher import find_eligible_guides
 
 logger = logging.getLogger(__name__)
 
 
-def assign_guide_to_tour(tour: Tour, db: Session) -> Optional[Guide]:
-    """Automatically assign the best-fit guide to a tour.
+def _schedule_window(bv: BookingVersion) -> tuple:
+    """Derive (start_datetime, end_datetime) from a BookingVersion."""
+    return (
+        datetime.combine(bv.start_date, bv.start_time or datetime.min.time()),
+        datetime.combine(bv.start_date, bv.end_time or datetime.max.time()),
+    )
 
-    Returns the assigned Guide, or None if no suitable guide was found.
-    """
-    eligible = find_eligible_guides(tour, db)
 
-    if not eligible:
-        tour.status = "unassigned"
-        db.flush()
-        logger.warning("Tour %s flagged as unassigned — no suitable guide", tour.id)
-        _log_assignment(db, tour, guide=None, action="unassigned", assignment_type="auto")
-        return None
+def assign_guide_to_booking(
+    booking_version: BookingVersion, guide: Guide, db: Session
+) -> Schedule:
+    """Create a Schedule record linking a booking version to a guide."""
+    start_dt, end_dt = _schedule_window(booking_version)
+    schedule = Schedule(
+        booking_version_id=booking_version.id,
+        guide_id=guide.id,
+        start_date=start_dt,
+        end_date=end_dt,
+    )
+    db.add(schedule)
 
-    chosen = eligible[0]
-
-    tour.assigned_guide_id = chosen.id
-    tour.status = "assigned"
+    booking_version.status = "assigned"
     db.flush()
 
-    _log_assignment(db, tour, guide=chosen, action="assigned", assignment_type="auto")
-    logger.info("Tour %s auto-assigned to guide %s (%s)", tour.id, chosen.id, chosen.name)
-    return chosen
+    booking = booking_version.booking
+    if booking and booking.tour_id:
+        _log_assignment(db, booking.tour_id, guide, action="assigned", assignment_type="auto")
+
+    logger.info(
+        "BookingVersion %s assigned to guide %s (%s %s)",
+        booking_version.id, guide.id, guide.first_name, guide.last_name,
+    )
+    return schedule
 
 
 def manual_assign(
-    tour: Tour, guide: Guide, db: Session, assigned_by: str
-) -> None:
-    """Manually assign (or override) a guide to a tour, bypassing suitability checks."""
-    if tour.assigned_guide_id is not None and tour.assigned_guide_id != guide.id:
-        previous_guide = db.get(Guide, tour.assigned_guide_id)
-        _log_assignment(
-            db, tour, guide=previous_guide, action="released",
-            assignment_type="manual", assigned_by=assigned_by,
-        )
+    booking_version: BookingVersion,
+    guide: Guide,
+    db: Session,
+    assigned_by: str,
+) -> Schedule:
+    """Manually assign a guide to a booking version, bypassing suitability checks."""
+    existing = (
+        db.query(Schedule)
+        .filter(Schedule.booking_version_id == booking_version.id)
+        .first()
+    )
+    if existing:
+        old_guide = db.get(Guide, existing.guide_id)
+        if old_guide and booking_version.booking and booking_version.booking.tour_id:
+            _log_assignment(
+                db, booking_version.booking.tour_id, old_guide,
+                action="released", assignment_type="manual", assigned_by=assigned_by,
+            )
+        db.delete(existing)
+        db.flush()
 
-    tour.assigned_guide_id = guide.id
-    tour.status = "assigned"
+    start_dt, end_dt = _schedule_window(booking_version)
+    schedule = Schedule(
+        booking_version_id=booking_version.id,
+        guide_id=guide.id,
+        start_date=start_dt,
+        end_date=end_dt,
+    )
+    db.add(schedule)
+
+    booking_version.status = "assigned"
     db.flush()
 
-    _log_assignment(
-        db, tour, guide=guide, action="assigned",
-        assignment_type="manual", assigned_by=assigned_by,
-    )
+    if booking_version.booking and booking_version.booking.tour_id:
+        _log_assignment(
+            db, booking_version.booking.tour_id, guide,
+            action="assigned", assignment_type="manual", assigned_by=assigned_by,
+        )
+
     logger.info(
-        "Tour %s manually assigned to guide %s by %s",
-        tour.id, guide.id, assigned_by,
+        "BookingVersion %s manually assigned to guide %s by %s",
+        booking_version.id, guide.id, assigned_by,
     )
+    return schedule
 
 
-def release_guide(tour: Tour, db: Session, reason: str = "released") -> None:
-    """Release the currently assigned guide from a tour."""
-    if tour.assigned_guide_id is None:
-        return
+def release_guide_from_schedule(schedule: Schedule, db: Session, reason: str = "released") -> None:
+    """Remove a guide from a schedule."""
+    if schedule.booking_version:
+        schedule.booking_version.status = "unassigned"
+        if schedule.booking_version.booking:
+            tour_id = schedule.booking_version.booking.tour_id
+            if tour_id:
+                guide = db.get(Guide, schedule.guide_id)
+                _log_assignment(db, tour_id, guide, action=reason, assignment_type="auto")
 
-    guide = db.get(Guide, tour.assigned_guide_id)
-    _log_assignment(db, tour, guide=guide, action=reason, assignment_type="auto")
-
-    tour.assigned_guide_id = None
-    if tour.status != "cancelled":
-        tour.status = "pending"
+    db.delete(schedule)
     db.flush()
 
 
 def _log_assignment(
     db: Session,
-    tour: Tour,
+    tour_id: int,
     guide: Optional[Guide],
     action: str,
     assignment_type: str,
     assigned_by: Optional[str] = None,
 ) -> TourAssignmentLog:
     log = TourAssignmentLog(
-        tour_id=tour.id,
+        tour_id=tour_id,
         guide_id=guide.id if guide else None,
         assigned_at=datetime.now(timezone.utc),
         assigned_by=assigned_by,

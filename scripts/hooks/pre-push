@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+VENV_DIR="$REPO_ROOT/backend/.venv"
+TEST_DB_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/oceanarium_test"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+        continue
+    fi
+
+    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+        range="$local_sha"
+    else
+        range="$remote_sha..$local_sha"
+    fi
+
+    if git diff --name-only "$range" -- backend/ | grep -q .; then
+        echo "==> Backend changes detected. Running CI checks..."
+
+        if [ ! -d "$VENV_DIR" ]; then
+            echo "ERROR: Python venv not found at $VENV_DIR"
+            echo "Set it up with:"
+            echo "  cd backend && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+            exit 1
+        fi
+
+        # Ensure PostgreSQL is running via Docker Compose
+        docker compose -f "$REPO_ROOT/backend/docker-compose.yml" up -d db --wait 2>/dev/null || true
+
+        # Create test database if it doesn't exist
+        docker compose -f "$REPO_ROOT/backend/docker-compose.yml" exec -T db \
+            psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'oceanarium_test'" \
+            | grep -q 1 \
+            || docker compose -f "$REPO_ROOT/backend/docker-compose.yml" exec -T db \
+                psql -U postgres -c "CREATE DATABASE oceanarium_test" 2>/dev/null
+
+        source "$VENV_DIR/bin/activate"
+
+        cd "$REPO_ROOT/backend"
+
+        DATABASE_URL="$TEST_DB_URL" \
+        TEST_DATABASE_URL="$TEST_DB_URL" \
+            python -m pytest tests/ \
+                -v \
+                --tb=short \
+                --cov=app \
+                --cov-report=term-missing \
+                --cov-fail-under=95
+
+        echo "==> All checks passed."
+        exit 0
+    fi
+done
+
+echo "==> No backend changes to validate."

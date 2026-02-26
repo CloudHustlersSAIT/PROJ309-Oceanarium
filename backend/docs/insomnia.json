@@ -1,14 +1,14 @@
 {
   "_type": "export",
   "__export_format": 4,
-  "__export_date": "2026-02-24T00:00:00.000Z",
+  "__export_date": "2026-02-26T00:00:00.000Z",
   "__export_source": "insomnia.desktop.app:v2023.5.8",
   "resources": [
     {
       "_id": "wrk_oceanarium",
       "_type": "workspace",
       "name": "Oceanarium API",
-      "description": "FDR-001 Guide Assignment API",
+      "description": "Oceanarium Tour Scheduling API",
       "scope": "collection"
     },
     {
@@ -36,13 +36,213 @@
       "url": "{{ _.base_url }}/health",
       "headers": []
     },
+
     {
-      "_id": "req_health_db",
+      "_id": "fld_quickstart",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Quick Start (run in order)",
+      "description": "End-to-end setup: creates 5 tours, 3 guides with availability, triggers Clorian sync (10 bookings), then verifies auto-assignment.\n\nExpected result: Ana=2, Bruno=5, Clara=1 bookings assigned (2 unassigned due to time-window or language mismatches)."
+    },
+    {
+      "_id": "req_qs_tour_1",
       "_type": "request",
-      "parentId": "fld_health",
-      "name": "GET /health/db",
+      "parentId": "fld_quickstart",
+      "name": "01. Create Tour: Whale Watching",
+      "method": "POST",
+      "url": "{{ _.base_url }}/tours",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Whale Watching\",\n  \"description\": \"Observe whales in their natural habitat from the observation deck\",\n  \"duration\": 60\n}"
+      }
+    },
+    {
+      "_id": "req_qs_tour_2",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "02. Create Tour: Night at the Oceanarium",
+      "method": "POST",
+      "url": "{{ _.base_url }}/tours",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Night at the Oceanarium\",\n  \"description\": \"Exclusive after-hours tour with nocturnal species viewing\",\n  \"duration\": 120\n}"
+      }
+    },
+    {
+      "_id": "req_qs_tour_3",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "03. Create Tour: Penguin Encounter",
+      "method": "POST",
+      "url": "{{ _.base_url }}/tours",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Penguin Encounter\",\n  \"description\": \"Get up close with our penguin colony\",\n  \"duration\": 60\n}"
+      }
+    },
+    {
+      "_id": "req_qs_tour_4",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "04. Create Tour: Behind the Scenes",
+      "method": "POST",
+      "url": "{{ _.base_url }}/tours",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Behind the Scenes\",\n  \"description\": \"See how the oceanarium operates behind closed doors\",\n  \"duration\": 90\n}"
+      }
+    },
+    {
+      "_id": "req_qs_tour_5",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "05. Create Tour: Coral Explorer",
+      "method": "POST",
+      "url": "{{ _.base_url }}/tours",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Coral Explorer\",\n  \"description\": \"Guided dive through the coral reef exhibit\",\n  \"duration\": 90\n}"
+      }
+    },
+    {
+      "_id": "req_qs_guide_ana",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "06. Create Guide: Ana Costa (en/pt, Whale+Night)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/guides",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"first_name\": \"Ana\",\n  \"last_name\": \"Costa\",\n  \"email\": \"ana.costa@oceanarium.com\",\n  \"phone\": \"+351912345678\",\n  \"guide_rating\": 4.5,\n  \"is_active\": true,\n  \"languages\": [\"en\", \"pt\"],\n  \"tour_type_ids\": [1, 2]\n}"
+      }
+    },
+    {
+      "_id": "req_qs_avail_ana",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "07. Set Availability: Ana (Mon-Fri 08-17)",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/guides/1/availability",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"timezone\": \"Europe/Lisbon\",\n  \"slots\": [\n    { \"day_of_week\": 0, \"start_time\": \"08:00\", \"end_time\": \"17:00\" },\n    { \"day_of_week\": 1, \"start_time\": \"08:00\", \"end_time\": \"17:00\" },\n    { \"day_of_week\": 2, \"start_time\": \"08:00\", \"end_time\": \"17:00\" },\n    { \"day_of_week\": 3, \"start_time\": \"08:00\", \"end_time\": \"17:00\" },\n    { \"day_of_week\": 4, \"start_time\": \"08:00\", \"end_time\": \"17:00\" }\n  ],\n  \"exceptions\": [\n    { \"date\": \"2026-03-15\", \"type\": \"blocked\", \"reason\": \"Personal leave\" }\n  ]\n}"
+      }
+    },
+    {
+      "_id": "req_qs_guide_bruno",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "08. Create Guide: Bruno Silva (en/es, Penguin+BTS+Coral)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/guides",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"first_name\": \"Bruno\",\n  \"last_name\": \"Silva\",\n  \"email\": \"bruno.silva@oceanarium.com\",\n  \"phone\": \"+351923456789\",\n  \"guide_rating\": 4.2,\n  \"is_active\": true,\n  \"languages\": [\"en\", \"es\"],\n  \"tour_type_ids\": [3, 4, 5]\n}"
+      }
+    },
+    {
+      "_id": "req_qs_avail_bruno",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "09. Set Availability: Bruno (Mon-Sat 08-18)",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/guides/2/availability",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"timezone\": \"Europe/Lisbon\",\n  \"slots\": [\n    { \"day_of_week\": 0, \"start_time\": \"08:00\", \"end_time\": \"18:00\" },\n    { \"day_of_week\": 1, \"start_time\": \"08:00\", \"end_time\": \"18:00\" },\n    { \"day_of_week\": 2, \"start_time\": \"08:00\", \"end_time\": \"18:00\" },\n    { \"day_of_week\": 3, \"start_time\": \"08:00\", \"end_time\": \"18:00\" },\n    { \"day_of_week\": 4, \"start_time\": \"08:00\", \"end_time\": \"18:00\" },\n    { \"day_of_week\": 5, \"start_time\": \"08:00\", \"end_time\": \"18:00\" }\n  ],\n  \"exceptions\": []\n}"
+      }
+    },
+    {
+      "_id": "req_qs_guide_clara",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "10. Create Guide: Clara Mendes (pt/es, Whale+Night)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/guides",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"first_name\": \"Clara\",\n  \"last_name\": \"Mendes\",\n  \"email\": \"clara.mendes@oceanarium.com\",\n  \"phone\": \"+351934567890\",\n  \"guide_rating\": 4.8,\n  \"is_active\": true,\n  \"languages\": [\"pt\", \"es\"],\n  \"tour_type_ids\": [1, 2]\n}"
+      }
+    },
+    {
+      "_id": "req_qs_avail_clara",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "11. Set Availability: Clara (Wed-Sun 10-20)",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/guides/3/availability",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"timezone\": \"Europe/Lisbon\",\n  \"slots\": [\n    { \"day_of_week\": 2, \"start_time\": \"10:00\", \"end_time\": \"20:00\" },\n    { \"day_of_week\": 3, \"start_time\": \"10:00\", \"end_time\": \"20:00\" },\n    { \"day_of_week\": 4, \"start_time\": \"10:00\", \"end_time\": \"20:00\" },\n    { \"day_of_week\": 5, \"start_time\": \"10:00\", \"end_time\": \"20:00\" },\n    { \"day_of_week\": 6, \"start_time\": \"10:00\", \"end_time\": \"20:00\" }\n  ],\n  \"exceptions\": []\n}"
+      }
+    },
+    {
+      "_id": "req_qs_sync",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "12. Trigger Clorian Sync (creates 10 bookings + auto-assigns)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/sync/trigger",
+      "headers": []
+    },
+    {
+      "_id": "req_qs_check_bookings",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "13. Check Bookings (expect 8 assigned, 2 unassigned)",
       "method": "GET",
-      "url": "{{ _.base_url }}/health/db",
+      "url": "{{ _.base_url }}/bookings",
+      "headers": []
+    },
+    {
+      "_id": "req_qs_check_schedules",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "14. Check Schedules (expect 8 entries)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/schedules",
+      "headers": []
+    },
+    {
+      "_id": "req_qs_check_unassigned",
+      "_type": "request",
+      "parentId": "fld_quickstart",
+      "name": "15. Check Unassigned Bookings (expect 2)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/bookings/unassigned",
       "headers": []
     },
 
@@ -73,7 +273,7 @@
       ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"name\": \"Ana Costa\",\n  \"email\": \"ana.costa@oceanarium.com\",\n  \"is_active\": true,\n  \"languages\": [\"en\", \"pt\"],\n  \"expertises\": [\"Sharks\", \"Coral Reef\"]\n}"
+        "text": "{\n  \"first_name\": \"Ana\",\n  \"last_name\": \"Costa\",\n  \"email\": \"ana.costa@oceanarium.com\",\n  \"phone\": \"+351912345678\",\n  \"guide_rating\": 4.5,\n  \"is_active\": true,\n  \"languages\": [\"en\", \"pt\"],\n  \"tour_type_ids\": [1, 2]\n}"
       }
     },
     {
@@ -97,7 +297,7 @@
       ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"name\": \"Ana Costa Updated\",\n  \"is_active\": true,\n  \"languages\": [\"en\", \"pt\", \"es\"]\n}"
+        "text": "{\n  \"first_name\": \"Ana\",\n  \"last_name\": \"Costa Updated\",\n  \"is_active\": true,\n  \"languages\": [\"en\", \"pt\", \"es\"]\n}"
       }
     },
     {
@@ -132,13 +332,19 @@
       "headers": []
     },
     {
-      "_id": "req_unassigned_tours",
+      "_id": "req_create_tour",
       "_type": "request",
       "parentId": "fld_tours",
-      "name": "GET /tours/unassigned",
-      "method": "GET",
-      "url": "{{ _.base_url }}/tours/unassigned",
-      "headers": []
+      "name": "POST /tours",
+      "method": "POST",
+      "url": "{{ _.base_url }}/tours",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Shark Encounter\",\n  \"description\": \"Guided tour through the shark exhibit\",\n  \"duration\": 90\n}"
+      }
     },
     {
       "_id": "req_get_tour",
@@ -149,50 +355,28 @@
       "url": "{{ _.base_url }}/tours/1",
       "headers": []
     },
-
     {
-      "_id": "fld_assignments",
-      "_type": "request_group",
-      "parentId": "wrk_oceanarium",
-      "name": "Assignments"
-    },
-    {
-      "_id": "req_assign_guide",
+      "_id": "req_update_tour",
       "_type": "request",
-      "parentId": "fld_assignments",
-      "name": "POST /tours/:id/assign",
-      "method": "POST",
-      "url": "{{ _.base_url }}/tours/1/assign",
+      "parentId": "fld_tours",
+      "name": "PATCH /tours/:id",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/tours/1",
       "headers": [
         { "name": "Content-Type", "value": "application/json" }
       ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"guide_id\": 1,\n  \"assigned_by\": \"admin@oceanarium.com\"\n}"
+        "text": "{\n  \"name\": \"Shark Encounter VIP\",\n  \"duration\": 120\n}"
       }
     },
     {
-      "_id": "req_reassign_guide",
+      "_id": "req_delete_tour",
       "_type": "request",
-      "parentId": "fld_assignments",
-      "name": "POST /tours/:id/reassign",
-      "method": "POST",
-      "url": "{{ _.base_url }}/tours/1/reassign",
-      "headers": [
-        { "name": "Content-Type", "value": "application/json" }
-      ],
-      "body": {
-        "mimeType": "application/json",
-        "text": "{\n  \"guide_id\": 2,\n  \"assigned_by\": \"admin@oceanarium.com\"\n}"
-      }
-    },
-    {
-      "_id": "req_assignment_log",
-      "_type": "request",
-      "parentId": "fld_assignments",
-      "name": "GET /tours/:id/assignment-log",
-      "method": "GET",
-      "url": "{{ _.base_url }}/tours/1/assignment-log",
+      "parentId": "fld_tours",
+      "name": "DELETE /tours/:id",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/tours/1",
       "headers": []
     },
 
@@ -212,6 +396,24 @@
       "headers": []
     },
     {
+      "_id": "req_list_bookings_by_status",
+      "_type": "request",
+      "parentId": "fld_bookings",
+      "name": "GET /bookings?status=pending",
+      "method": "GET",
+      "url": "{{ _.base_url }}/bookings?status=pending",
+      "headers": []
+    },
+    {
+      "_id": "req_unassigned_bookings",
+      "_type": "request",
+      "parentId": "fld_bookings",
+      "name": "GET /bookings/unassigned",
+      "method": "GET",
+      "url": "{{ _.base_url }}/bookings/unassigned",
+      "headers": []
+    },
+    {
       "_id": "req_create_booking",
       "_type": "request",
       "parentId": "fld_bookings",
@@ -223,7 +425,7 @@
       ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"customer_id\": \"CUST-001\",\n  \"tour_id\": 1,\n  \"date\": \"2026-03-10\",\n  \"adult_tickets\": 2,\n  \"child_tickets\": 1\n}"
+        "text": "{\n  \"clorian_booking_id\": \"CLR-MANUAL-001\",\n  \"customer_id\": 1,\n  \"tour_id\": 1,\n  \"status\": \"unassigned\",\n  \"adult_tickets\": 2,\n  \"child_tickets\": 1,\n  \"start_date\": \"2026-03-10\"\n}"
       }
     },
     {
@@ -252,6 +454,519 @@
     },
 
     {
+      "_id": "fld_assignments",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Assignments"
+    },
+    {
+      "_id": "req_auto_assign",
+      "_type": "request",
+      "parentId": "fld_assignments",
+      "name": "POST /bookings/auto-assign",
+      "method": "POST",
+      "url": "{{ _.base_url }}/bookings/auto-assign",
+      "headers": []
+    },
+    {
+      "_id": "req_assign_guide",
+      "_type": "request",
+      "parentId": "fld_assignments",
+      "name": "POST /bookings/:id/assign",
+      "method": "POST",
+      "url": "{{ _.base_url }}/bookings/1/assign",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"guide_id\": 1,\n  \"assigned_by\": \"admin@oceanarium.com\"\n}"
+      }
+    },
+    {
+      "_id": "req_reassign_guide",
+      "_type": "request",
+      "parentId": "fld_assignments",
+      "name": "POST /bookings/:id/reassign",
+      "method": "POST",
+      "url": "{{ _.base_url }}/bookings/1/reassign",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"guide_id\": 2,\n  \"assigned_by\": \"admin@oceanarium.com\"\n}"
+      }
+    },
+    {
+      "_id": "req_assignment_log",
+      "_type": "request",
+      "parentId": "fld_assignments",
+      "name": "GET /bookings/:id/assignment-log",
+      "method": "GET",
+      "url": "{{ _.base_url }}/bookings/1/assignment-log",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_customers",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Customers"
+    },
+    {
+      "_id": "req_list_customers",
+      "_type": "request",
+      "parentId": "fld_customers",
+      "name": "GET /customers",
+      "method": "GET",
+      "url": "{{ _.base_url }}/customers",
+      "headers": []
+    },
+    {
+      "_id": "req_create_customer",
+      "_type": "request",
+      "parentId": "fld_customers",
+      "name": "POST /customers",
+      "method": "POST",
+      "url": "{{ _.base_url }}/customers",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\"\n}"
+      }
+    },
+    {
+      "_id": "req_get_customer",
+      "_type": "request",
+      "parentId": "fld_customers",
+      "name": "GET /customers/:id",
+      "method": "GET",
+      "url": "{{ _.base_url }}/customers/1",
+      "headers": []
+    },
+    {
+      "_id": "req_update_customer",
+      "_type": "request",
+      "parentId": "fld_customers",
+      "name": "PATCH /customers/:id",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/customers/1",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"phone\": \"+1987654321\"\n}"
+      }
+    },
+    {
+      "_id": "req_delete_customer",
+      "_type": "request",
+      "parentId": "fld_customers",
+      "name": "DELETE /customers/:id",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/customers/1",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_users",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Users"
+    },
+    {
+      "_id": "req_list_users",
+      "_type": "request",
+      "parentId": "fld_users",
+      "name": "GET /users",
+      "method": "GET",
+      "url": "{{ _.base_url }}/users",
+      "headers": []
+    },
+    {
+      "_id": "req_create_user",
+      "_type": "request",
+      "parentId": "fld_users",
+      "name": "POST /users",
+      "method": "POST",
+      "url": "{{ _.base_url }}/users",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"jsmith\",\n  \"email\": \"jsmith@oceanarium.com\",\n  \"password_hash\": \"hashed_password_here\",\n  \"full_name\": \"John Smith\",\n  \"role\": \"admin\",\n  \"is_active\": true\n}"
+      }
+    },
+    {
+      "_id": "req_get_user",
+      "_type": "request",
+      "parentId": "fld_users",
+      "name": "GET /users/:id",
+      "method": "GET",
+      "url": "{{ _.base_url }}/users/1",
+      "headers": []
+    },
+    {
+      "_id": "req_update_user",
+      "_type": "request",
+      "parentId": "fld_users",
+      "name": "PATCH /users/:id",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/users/1",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"full_name\": \"John Smith Jr.\",\n  \"role\": \"manager\"\n}"
+      }
+    },
+    {
+      "_id": "req_delete_user",
+      "_type": "request",
+      "parentId": "fld_users",
+      "name": "DELETE /users/:id",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/users/1",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_resources",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Resources"
+    },
+    {
+      "_id": "req_list_resources",
+      "_type": "request",
+      "parentId": "fld_resources",
+      "name": "GET /resources",
+      "method": "GET",
+      "url": "{{ _.base_url }}/resources",
+      "headers": []
+    },
+    {
+      "_id": "req_create_resource",
+      "_type": "request",
+      "parentId": "fld_resources",
+      "name": "POST /resources",
+      "method": "POST",
+      "url": "{{ _.base_url }}/resources",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Diving Suit\",\n  \"type\": \"Equipment\",\n  \"quantity_available\": 10\n}"
+      }
+    },
+    {
+      "_id": "req_get_resource",
+      "_type": "request",
+      "parentId": "fld_resources",
+      "name": "GET /resources/:id",
+      "method": "GET",
+      "url": "{{ _.base_url }}/resources/1",
+      "headers": []
+    },
+    {
+      "_id": "req_update_resource",
+      "_type": "request",
+      "parentId": "fld_resources",
+      "name": "PATCH /resources/:id",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/resources/1",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"quantity_available\": 15\n}"
+      }
+    },
+    {
+      "_id": "req_delete_resource",
+      "_type": "request",
+      "parentId": "fld_resources",
+      "name": "DELETE /resources/:id",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/resources/1",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_schedules",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Schedules"
+    },
+    {
+      "_id": "req_list_schedules",
+      "_type": "request",
+      "parentId": "fld_schedules",
+      "name": "GET /schedules",
+      "method": "GET",
+      "url": "{{ _.base_url }}/schedules",
+      "headers": []
+    },
+    {
+      "_id": "req_list_schedules_by_guide",
+      "_type": "request",
+      "parentId": "fld_schedules",
+      "name": "GET /schedules?guide_id=1",
+      "method": "GET",
+      "url": "{{ _.base_url }}/schedules?guide_id=1",
+      "headers": []
+    },
+    {
+      "_id": "req_list_schedules_by_bv",
+      "_type": "request",
+      "parentId": "fld_schedules",
+      "name": "GET /schedules?booking_version_id=1",
+      "method": "GET",
+      "url": "{{ _.base_url }}/schedules?booking_version_id=1",
+      "headers": []
+    },
+    {
+      "_id": "req_create_schedule",
+      "_type": "request",
+      "parentId": "fld_schedules",
+      "name": "POST /schedules",
+      "method": "POST",
+      "url": "{{ _.base_url }}/schedules",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"booking_version_id\": 1,\n  \"guide_id\": 1,\n  \"resource_id\": 1,\n  \"start_date\": \"2026-03-02T09:00:00\",\n  \"end_date\": \"2026-03-02T11:00:00\"\n}"
+      }
+    },
+    {
+      "_id": "req_get_schedule",
+      "_type": "request",
+      "parentId": "fld_schedules",
+      "name": "GET /schedules/:id",
+      "method": "GET",
+      "url": "{{ _.base_url }}/schedules/1",
+      "headers": []
+    },
+    {
+      "_id": "req_update_schedule",
+      "_type": "request",
+      "parentId": "fld_schedules",
+      "name": "PATCH /schedules/:id",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/schedules/1",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"start_date\": \"2026-03-02T10:00:00\",\n  \"end_date\": \"2026-03-02T12:00:00\"\n}"
+      }
+    },
+    {
+      "_id": "req_delete_schedule",
+      "_type": "request",
+      "parentId": "fld_schedules",
+      "name": "DELETE /schedules/:id",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/schedules/1",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_costs",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Costs"
+    },
+    {
+      "_id": "req_list_costs",
+      "_type": "request",
+      "parentId": "fld_costs",
+      "name": "GET /costs",
+      "method": "GET",
+      "url": "{{ _.base_url }}/costs",
+      "headers": []
+    },
+    {
+      "_id": "req_list_costs_by_tour",
+      "_type": "request",
+      "parentId": "fld_costs",
+      "name": "GET /costs?tour_id=1",
+      "method": "GET",
+      "url": "{{ _.base_url }}/costs?tour_id=1",
+      "headers": []
+    },
+    {
+      "_id": "req_create_cost",
+      "_type": "request",
+      "parentId": "fld_costs",
+      "name": "POST /costs",
+      "method": "POST",
+      "url": "{{ _.base_url }}/costs",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tour_id\": 1,\n  \"ticket_type\": \"adult\",\n  \"price\": 29.99,\n  \"valid_from\": \"2026-03-01T00:00:00\",\n  \"valid_to\": \"2026-12-31T23:59:59\"\n}"
+      }
+    },
+    {
+      "_id": "req_get_cost",
+      "_type": "request",
+      "parentId": "fld_costs",
+      "name": "GET /costs/:id",
+      "method": "GET",
+      "url": "{{ _.base_url }}/costs/1",
+      "headers": []
+    },
+    {
+      "_id": "req_update_cost",
+      "_type": "request",
+      "parentId": "fld_costs",
+      "name": "PATCH /costs/:id",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/costs/1",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"price\": 34.99\n}"
+      }
+    },
+    {
+      "_id": "req_delete_cost",
+      "_type": "request",
+      "parentId": "fld_costs",
+      "name": "DELETE /costs/:id",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/costs/1",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_surveys",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Surveys"
+    },
+    {
+      "_id": "req_list_surveys",
+      "_type": "request",
+      "parentId": "fld_surveys",
+      "name": "GET /surveys",
+      "method": "GET",
+      "url": "{{ _.base_url }}/surveys",
+      "headers": []
+    },
+    {
+      "_id": "req_create_survey",
+      "_type": "request",
+      "parentId": "fld_surveys",
+      "name": "POST /surveys",
+      "method": "POST",
+      "url": "{{ _.base_url }}/surveys",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customer_id\": 1,\n  \"guide_id\": 1,\n  \"booking_version_id\": 1,\n  \"comment\": \"Amazing tour! The guide was very knowledgeable.\",\n  \"rating\": 5\n}"
+      }
+    },
+    {
+      "_id": "req_get_survey",
+      "_type": "request",
+      "parentId": "fld_surveys",
+      "name": "GET /surveys/:id",
+      "method": "GET",
+      "url": "{{ _.base_url }}/surveys/1",
+      "headers": []
+    },
+    {
+      "_id": "req_update_survey",
+      "_type": "request",
+      "parentId": "fld_surveys",
+      "name": "PATCH /surveys/:id",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/surveys/1",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"rating\": 4,\n  \"comment\": \"Good tour, but a bit crowded.\"\n}"
+      }
+    },
+    {
+      "_id": "req_delete_survey",
+      "_type": "request",
+      "parentId": "fld_surveys",
+      "name": "DELETE /surveys/:id",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/surveys/1",
+      "headers": []
+    },
+
+    {
+      "_id": "fld_issues",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Issues"
+    },
+    {
+      "_id": "req_create_issue",
+      "_type": "request",
+      "parentId": "fld_issues",
+      "name": "POST /issues",
+      "method": "POST",
+      "url": "{{ _.base_url }}/issues",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"description\": \"Water temperature sensor malfunction in Shark tank\"\n}"
+      }
+    },
+
+    {
+      "_id": "fld_dashboard",
+      "_type": "request_group",
+      "parentId": "wrk_oceanarium",
+      "name": "Dashboard"
+    },
+    {
+      "_id": "req_stats",
+      "_type": "request",
+      "parentId": "fld_dashboard",
+      "name": "GET /stats",
+      "method": "GET",
+      "url": "{{ _.base_url }}/stats",
+      "headers": []
+    },
+    {
+      "_id": "req_notifications",
+      "_type": "request",
+      "parentId": "fld_dashboard",
+      "name": "GET /notifications",
+      "method": "GET",
+      "url": "{{ _.base_url }}/notifications",
+      "headers": []
+    },
+
+    {
       "_id": "fld_sync",
       "_type": "request_group",
       "parentId": "wrk_oceanarium",
@@ -273,6 +988,15 @@
       "name": "GET /sync/logs",
       "method": "GET",
       "url": "{{ _.base_url }}/sync/logs",
+      "headers": []
+    },
+    {
+      "_id": "req_sync_logs_paginated",
+      "_type": "request",
+      "parentId": "fld_sync",
+      "name": "GET /sync/logs?limit=5&offset=0",
+      "method": "GET",
+      "url": "{{ _.base_url }}/sync/logs?limit=5&offset=0",
       "headers": []
     }
   ]

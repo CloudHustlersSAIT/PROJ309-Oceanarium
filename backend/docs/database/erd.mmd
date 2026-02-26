@@ -1,0 +1,202 @@
+erDiagram
+    bookings {
+        int booking_id PK
+        string clorian_booking_id UK
+        int customer_id FK
+        int tour_id FK
+        string requested_language_code
+        datetime created_at
+    }
+
+    booking_versions {
+        int id PK
+        int booking_id FK
+        string hash
+        string status
+        int adult_tickets
+        int child_tickets
+        date start_date
+        time start_time
+        time end_time
+        datetime received_at
+        datetime valid_from
+        int poll_execution_id FK
+    }
+
+    customers {
+        int id PK
+        string first_name
+        string last_name
+        string email
+        string phone
+    }
+
+    guides {
+        int id PK
+        string first_name
+        string last_name
+        string email UK
+        string phone
+        numeric guide_rating
+        boolean is_active
+    }
+
+    languages {
+        int id PK
+        string code UK
+        string name
+    }
+
+    guide_languages {
+        int guide_id FK
+        int language_id FK
+    }
+
+    guide_tour_types {
+        int guide_id FK
+        int tour_id FK
+    }
+
+    availability_patterns {
+        int id PK
+        int guide_id FK
+        string timezone
+    }
+
+    availability_slots {
+        int id PK
+        int pattern_id FK
+        int day_of_week
+        time start_time
+        time end_time
+    }
+
+    availability_exceptions {
+        int id PK
+        int pattern_id FK
+        date date
+        string type
+        string reason
+    }
+
+    tours {
+        int id PK
+        string name
+        string description
+        int duration
+    }
+
+    schedule {
+        int id PK
+        int booking_version_id FK
+        int guide_id FK
+        int resource_id FK
+        datetime start_date
+        datetime end_date
+    }
+
+    cost {
+        int id PK
+        int tour_id FK
+        string ticket_type
+        numeric price
+        datetime valid_from
+        datetime valid_to
+    }
+
+    resources {
+        int id PK
+        string name
+        string type
+        int quantity_available
+    }
+
+    tour_resources {
+        int tour_id FK
+        int resource_id FK
+        int quantity_required
+    }
+
+    surveys {
+        int id PK
+        int customer_id FK
+        int guide_id FK
+        int booking_version_id FK
+        string comment
+        int rating
+    }
+
+    poll_execution {
+        int id PK
+        datetime window_start
+        datetime window_end
+        datetime executed_at
+        string status
+    }
+
+    sync_logs {
+        int id PK
+        datetime started_at
+        datetime finished_at
+        int new_count
+        int changed_count
+        int cancelled_count
+        string status
+        text errors
+    }
+
+    tour_assignment_logs {
+        int id PK
+        int tour_id FK
+        int guide_id FK
+        datetime assigned_at
+        string assigned_by
+        string assignment_type
+        string action
+    }
+
+    users {
+        int id PK
+        string username UK
+        string email UK
+        string password_hash
+        string full_name
+        string role
+        boolean is_active
+        datetime created_at
+    }
+
+    issues {
+        int id PK
+        string description
+        datetime created_at
+    }
+
+    bookings ||--o{ booking_versions : "has many"
+    bookings }o--|| customers : "belongs to"
+    bookings }o--|| tours : "belongs to"
+    booking_versions }o--|| poll_execution : "created by"
+    booking_versions ||--o{ schedule : "has many"
+    booking_versions ||--o{ surveys : "has many"
+
+    guides ||--o{ guide_languages : "has many"
+    languages ||--o{ guide_languages : "has many"
+    guides ||--o{ guide_tour_types : "has many"
+    tours ||--o{ guide_tour_types : "has many"
+
+    guides ||--o| availability_patterns : "has one"
+    availability_patterns ||--o{ availability_slots : "has many"
+    availability_patterns ||--o{ availability_exceptions : "has many"
+
+    guides ||--o{ schedule : "assigned in"
+    guides ||--o{ surveys : "rated in"
+    resources ||--o{ schedule : "used in"
+
+    tours ||--o{ bookings : "has many"
+    tours ||--o{ cost : "has many"
+    tours ||--o{ tour_resources : "has many"
+    resources ||--o{ tour_resources : "has many"
+    tours ||--o{ tour_assignment_logs : "has many"
+    guides ||--o{ tour_assignment_logs : "has many"
+
+    customers ||--o{ surveys : "submits"
