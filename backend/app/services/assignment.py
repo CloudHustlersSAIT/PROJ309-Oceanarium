@@ -24,6 +24,8 @@ def assign_guide_to_booking(
         end_date=datetime.combine(booking_version.start_date, datetime.min.time()),
     )
     db.add(schedule)
+
+    booking_version.status = "assigned"
     db.flush()
 
     booking = booking_version.booking
@@ -66,6 +68,8 @@ def manual_assign(
         end_date=datetime.combine(booking_version.start_date, datetime.min.time()),
     )
     db.add(schedule)
+
+    booking_version.status = "assigned"
     db.flush()
 
     if booking_version.booking and booking_version.booking.tour_id:
@@ -83,11 +87,13 @@ def manual_assign(
 
 def release_guide_from_schedule(schedule: Schedule, db: Session, reason: str = "released") -> None:
     """Remove a guide from a schedule."""
-    if schedule.booking_version and schedule.booking_version.booking:
-        tour_id = schedule.booking_version.booking.tour_id
-        if tour_id:
-            guide = db.get(Guide, schedule.guide_id)
-            _log_assignment(db, tour_id, guide, action=reason, assignment_type="auto")
+    if schedule.booking_version:
+        schedule.booking_version.status = "unassigned"
+        if schedule.booking_version.booking:
+            tour_id = schedule.booking_version.booking.tour_id
+            if tour_id:
+                guide = db.get(Guide, schedule.guide_id)
+                _log_assignment(db, tour_id, guide, action=reason, assignment_type="auto")
 
     db.delete(schedule)
     db.flush()

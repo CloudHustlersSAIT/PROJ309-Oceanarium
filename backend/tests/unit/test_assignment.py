@@ -66,6 +66,35 @@ def test_manual_reassign_replaces_schedule(db):
     assert len(all_schedules) == 1
 
 
+def test_assign_guide_sets_status_assigned(db):
+    guide = make_guide(db)
+    booking = make_booking(db)
+    db.commit()
+    lv = booking.latest_version
+    assert lv.status == "unassigned"
+
+    assign_guide_to_booking(lv, guide, db)
+    db.commit()
+
+    db.refresh(lv)
+    assert lv.status == "assigned"
+
+
+def test_manual_assign_sets_status_assigned(db):
+    guide = make_guide(db)
+    tour = make_tour(db)
+    booking = make_booking(db, tour_id=tour.id)
+    db.commit()
+    lv = booking.latest_version
+    assert lv.status == "unassigned"
+
+    manual_assign(lv, guide, db, assigned_by="admin@oceanarium.com")
+    db.commit()
+
+    db.refresh(lv)
+    assert lv.status == "assigned"
+
+
 def test_release_guide_removes_schedule(db):
     guide = make_guide(db)
     tour = make_tour(db)
@@ -83,3 +112,20 @@ def test_release_guide_removes_schedule(db):
         Schedule.booking_version_id == lv.id
     ).all()
     assert len(remaining) == 0
+
+
+def test_release_guide_resets_status_to_pending(db):
+    guide = make_guide(db)
+    booking = make_booking(db)
+    db.commit()
+    lv = booking.latest_version
+
+    schedule = assign_guide_to_booking(lv, guide, db)
+    db.flush()
+    assert lv.status == "assigned"
+
+    release_guide_from_schedule(schedule, db)
+    db.commit()
+
+    db.refresh(lv)
+    assert lv.status == "unassigned"

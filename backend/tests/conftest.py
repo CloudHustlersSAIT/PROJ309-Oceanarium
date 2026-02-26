@@ -185,7 +185,7 @@ def make_booking(
     booking_date=None,
     adult_tickets=0,
     child_tickets=0,
-    status="pending",
+    status="unassigned",
 ):
     if clorian_booking_id is None:
         import uuid
@@ -223,7 +223,7 @@ def make_booking(
 def make_booking_version(
     db,
     booking_id,
-    status="pending",
+    status="unassigned",
     adult_tickets=0,
     child_tickets=0,
     start_date=None,

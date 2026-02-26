@@ -1,15 +1,18 @@
 import hashlib
 import logging
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from ..adapters.clorian_client import ClorianBooking, ClorianClientBase
 from ..models.booking import Booking
 from ..models.booking_version import BookingVersion
+from ..models.customer import Customer
 from ..models.poll_execution import PollExecution
 from ..models.schedule import Schedule
 from ..models.sync_log import SyncLog
+from ..models.tour import Tour
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +23,14 @@ def _compute_hash(
     adult_tickets: int,
     child_tickets: int,
     start_date,
+    start_time=None,
+    end_time=None,
 ) -> str:
-    raw = f"{booking_id}|{status}|{adult_tickets}|{child_tickets}|{start_date}"
-    return hashlib.md5(raw.encode()).hexdigest()
+    raw = (
+        f"{booking_id}|{status}|{adult_tickets}|{child_tickets}"
+        f"|{start_date}|{start_time}|{end_time}"
+    )
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 class ClorianSyncService:
@@ -68,9 +76,11 @@ class ClorianSyncService:
 
             self._consecutive_failures = 0
 
+            assigned = assign_unassigned_bookings(db)
+
             logger.info(
-                "Sync completed: new=%d changed=%d cancelled=%d",
-                new_count, changed_count, cancelled_count,
+                "Sync completed: new=%d changed=%d cancelled=%d auto_assigned=%d",
+                new_count, changed_count, cancelled_count, assigned,
             )
             return sync_log
 
@@ -129,22 +139,35 @@ class ClorianSyncService:
         return new_count, changed_count, cancelled_count
 
     def _create_booking(self, db: Session, cb: ClorianBooking, poll_id: int) -> int:
+        customer_id = _resolve_customer(db, cb)
+        tour_id = _resolve_tour(db, cb)
+
         booking = Booking(
             clorian_booking_id=cb.clorian_booking_id,
+            customer_id=customer_id,
+            tour_id=tour_id,
         )
         db.add(booking)
         db.flush()
 
         version_hash = _compute_hash(
-            booking.booking_id, "pending", 0, 0, cb.date,
+            booking.booking_id,
+            "unassigned",
+            cb.adult_tickets,
+            cb.child_tickets,
+            cb.date,
+            cb.start_time,
+            cb.end_time,
         )
         version = BookingVersion(
             booking_id=booking.booking_id,
             hash=version_hash,
-            status="pending",
-            adult_tickets=0,
-            child_tickets=0,
+            status="unassigned",
+            adult_tickets=cb.adult_tickets,
+            child_tickets=cb.child_tickets,
             start_date=cb.date,
+            start_time=cb.start_time,
+            end_time=cb.end_time,
             valid_from=datetime.now(timezone.utc),
             poll_execution_id=poll_id,
         )
@@ -157,27 +180,55 @@ class ClorianSyncService:
         self, db: Session, booking: Booking, cb: ClorianBooking, poll_id: int
     ) -> int:
         lv = booking.latest_version
-        status = lv.status if lv else "pending"
+        status = lv.status if lv else "unassigned"
 
         version_hash = _compute_hash(
-            booking.booking_id, status, 0, 0, cb.date,
+            booking.booking_id,
+            status,
+            cb.adult_tickets,
+            cb.child_tickets,
+            cb.date,
+            cb.start_time,
+            cb.end_time,
         )
 
         if lv and lv.hash == version_hash:
             return 0
 
+        customer_id = _resolve_customer(db, cb)
+        tour_id = _resolve_tour(db, cb)
+        if customer_id and booking.customer_id != customer_id:
+            booking.customer_id = customer_id
+        if tour_id and booking.tour_id != tour_id:
+            booking.tour_id = tour_id
+
         version = BookingVersion(
             booking_id=booking.booking_id,
             hash=version_hash,
-            status="pending",
-            adult_tickets=lv.adult_tickets if lv else 0,
-            child_tickets=lv.child_tickets if lv else 0,
+            status=status,
+            adult_tickets=cb.adult_tickets,
+            child_tickets=cb.child_tickets,
             start_date=cb.date,
+            start_time=cb.start_time,
+            end_time=cb.end_time,
             valid_from=datetime.now(timezone.utc),
             poll_execution_id=poll_id,
         )
         db.add(version)
         db.flush()
+
+        if lv:
+            for old_schedule in lv.schedules:
+                new_schedule = Schedule(
+                    booking_version_id=version.id,
+                    guide_id=old_schedule.guide_id,
+                    resource_id=old_schedule.resource_id,
+                    start_date=datetime.combine(cb.date, datetime.min.time()),
+                    end_date=datetime.combine(cb.date, datetime.min.time()),
+                )
+                db.add(new_schedule)
+                db.delete(old_schedule)
+            db.flush()
 
         return 1
 
@@ -192,6 +243,8 @@ class ClorianSyncService:
             lv.adult_tickets if lv else 0,
             lv.child_tickets if lv else 0,
             lv.start_date if lv else "1970-01-01",
+            lv.start_time if lv else None,
+            lv.end_time if lv else None,
         )
 
         version = BookingVersion(
@@ -201,6 +254,8 @@ class ClorianSyncService:
             adult_tickets=lv.adult_tickets if lv else 0,
             child_tickets=lv.child_tickets if lv else 0,
             start_date=lv.start_date if lv else datetime.now(timezone.utc).date(),
+            start_time=lv.start_time if lv else None,
+            end_time=lv.end_time if lv else None,
             valid_from=datetime.now(timezone.utc),
             poll_execution_id=poll_id,
         )
@@ -214,7 +269,46 @@ class ClorianSyncService:
         lv = booking.latest_version
         if lv is None:
             return True
-        return lv.start_date != cb.date
+        return (
+            lv.start_date != cb.date
+            or lv.adult_tickets != cb.adult_tickets
+            or lv.child_tickets != cb.child_tickets
+            or lv.start_time != cb.start_time
+            or lv.end_time != cb.end_time
+        )
+
+
+def _resolve_customer(db: Session, cb: ClorianBooking) -> Optional[int]:
+    """Find or create a Customer from Clorian booking data."""
+    if not cb.customer_email:
+        return None
+    customer = db.query(Customer).filter(Customer.email == cb.customer_email).first()
+    if customer:
+        return customer.id
+    parts = (cb.customer_name or "").split(None, 1)
+    first_name = parts[0] if parts else "Unknown"
+    last_name = parts[1] if len(parts) > 1 else ""
+    customer = Customer(
+        first_name=first_name,
+        last_name=last_name,
+        email=cb.customer_email,
+    )
+    db.add(customer)
+    db.flush()
+    return customer.id
+
+
+def _resolve_tour(db: Session, cb: ClorianBooking) -> Optional[int]:
+    """Find or create a Tour from Clorian booking data."""
+    if not cb.tour_name:
+        return None
+    tour = db.query(Tour).filter(Tour.name == cb.tour_name).first()
+    if tour:
+        return tour.id
+    tour = Tour(name=cb.tour_name)
+    db.add(tour)
+    db.flush()
+    return tour.id
 
 
 def assign_unassigned_bookings(db: Session) -> int:
@@ -223,8 +317,10 @@ def assign_unassigned_bookings(db: Session) -> int:
     Called when guides are created/updated/given availability.
     Returns the number of newly assigned bookings.
     """
-    from ..models.booking_version import BookingVersion
     from sqlalchemy import func
+
+    from ..services.assignment import assign_guide_to_booking
+    from ..services.guide_matcher import find_eligible_guides
 
     latest_version_ids = (
         db.query(func.max(BookingVersion.id))
@@ -235,7 +331,7 @@ def assign_unassigned_bookings(db: Session) -> int:
         db.query(BookingVersion)
         .filter(
             BookingVersion.id.in_(latest_version_ids),
-            BookingVersion.status == "pending",
+            BookingVersion.status == "unassigned",
         )
         .all()
     )
@@ -250,6 +346,11 @@ def assign_unassigned_bookings(db: Session) -> int:
         if existing_schedule:
             continue
 
+        eligible_guides = find_eligible_guides(version, db)
+        if not eligible_guides:
+            continue
+
+        assign_guide_to_booking(version, eligible_guides[0], db)
         assigned_count += 1
 
     if assigned_count > 0:

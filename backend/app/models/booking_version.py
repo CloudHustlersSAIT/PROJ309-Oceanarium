@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Time,
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
@@ -24,6 +25,8 @@ class BookingVersion(Base):
     adult_tickets = Column(Integer, nullable=False)
     child_tickets = Column(Integer, nullable=False)
     start_date = Column(Date, nullable=False)
+    start_time = Column(Time, nullable=True)
+    end_time = Column(Time, nullable=True)
     received_at = Column(
         DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )

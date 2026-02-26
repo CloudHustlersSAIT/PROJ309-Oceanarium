@@ -26,7 +26,7 @@ function onWindowClick() {
 
 const filters = [
   { key: 'all', label: 'All' },
-  { key: 'pending', label: 'Pending' },
+  { key: 'unassigned', label: 'Unassigned' },
   { key: 'assigned', label: 'Assigned' },
   { key: 'completed', label: 'Completed' },
   { key: 'cancelled', label: 'Cancelled' },
@@ -44,7 +44,13 @@ const filteredBookings = computed(() => {
 })
 
 const statusCounts = computed(() => {
-  const counts = { all: bookings.value.length, pending: 0, assigned: 0, completed: 0, cancelled: 0 }
+  const counts = {
+    all: bookings.value.length,
+    unassigned: 0,
+    assigned: 0,
+    completed: 0,
+    cancelled: 0,
+  }
   bookings.value.forEach((b) => {
     if (counts[b.status] !== undefined) counts[b.status]++
   })
@@ -102,7 +108,7 @@ async function handleReschedule() {
 
 function statusColor(status) {
   switch (status) {
-    case 'pending':
+    case 'unassigned':
       return 'bg-yellow-100 text-yellow-800'
     case 'assigned':
       return 'bg-blue-100 text-blue-800'
@@ -124,7 +130,7 @@ let pollInterval = null
 
 onMounted(() => {
   loadBookings()
-  pollInterval = setInterval(loadBookings, 5000)
+  pollInterval = setInterval(loadBookings, 10000)
   window.addEventListener('click', onWindowClick)
 })
 
@@ -189,6 +195,7 @@ onBeforeUnmount(() => {
                 <th class="py-3 px-4">Tour</th>
                 <th class="py-3 px-4">Guide</th>
                 <th class="py-3 px-4">Date</th>
+                <th class="py-3 px-4">Time</th>
                 <th class="py-3 px-4 text-center">Tickets</th>
                 <th class="py-3 px-4">Status</th>
                 <th class="py-3 px-4 text-center">Actions</th>
@@ -202,13 +209,17 @@ onBeforeUnmount(() => {
               >
                 <td class="py-3 px-4 font-medium text-gray-700">#{{ b.booking_id }}</td>
                 <td class="py-3 px-4 text-gray-600">
-                  {{ b.customer_id || 'Clorian sync' }}
+                  {{ b.customer_name || '—' }}
                 </td>
-                <td class="py-3 px-4 text-gray-600">
-                  {{ b.tour_id ? 'Tour ' + b.tour_id : '—' }}
-                </td>
+                <td class="py-3 px-4 text-gray-600">{{ b.tour_name || '—' }}</td>
                 <td class="py-3 px-4 text-gray-600">{{ b.guide_name || '—' }}</td>
                 <td class="py-3 px-4 text-gray-600">{{ b.date }}</td>
+                <td class="py-3 px-4 text-gray-600 whitespace-nowrap">
+                  <template v-if="b.start_time && b.end_time">
+                    {{ b.start_time }}–{{ b.end_time }}
+                  </template>
+                  <template v-else>—</template>
+                </td>
                 <td class="py-3 px-4 text-center text-gray-600">
                   {{ b.adult_tickets }} adult{{ b.adult_tickets !== 1 ? 's' : '' }},
                   {{ b.child_tickets }} child{{ b.child_tickets !== 1 ? 'ren' : '' }}
@@ -256,14 +267,14 @@ onBeforeUnmount(() => {
                         Complete
                       </button>
                       <button
-                        v-if="b.status === 'pending' || b.status === 'assigned'"
+                        v-if="b.status === 'unassigned' || b.status === 'assigned'"
                         class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                         @click="openReschedule(b)"
                       >
                         Reschedule
                       </button>
                       <button
-                        v-if="b.status === 'pending' || b.status === 'assigned'"
+                        v-if="b.status === 'unassigned' || b.status === 'assigned'"
                         class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition"
                         @click="handleCancel(b.booking_id)"
                       >

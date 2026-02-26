@@ -145,7 +145,7 @@ def test_booking_create_with_all_fields():
         clorian_booking_id="CLR-2",
         customer_id=1,
         tour_id=1,
-        status="pending",
+        status="unassigned",
         adult_tickets=2,
         child_tickets=1,
         start_date="2026-03-02",
@@ -166,7 +166,7 @@ def test_booking_reschedule_valid():
 
 def test_booking_version_create_valid():
     bv = BookingVersionCreate(start_date="2026-03-02", adult_tickets=2, child_tickets=1)
-    assert bv.status == "pending"
+    assert bv.status == "unassigned"
 
 
 # -- CostCreate --

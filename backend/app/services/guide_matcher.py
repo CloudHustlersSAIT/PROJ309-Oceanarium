@@ -45,27 +45,28 @@ def find_eligible_guides(
     return eligible
 
 
-def _check_availability(
-    guide: Guide, booking_version: BookingVersion, db: Session
+def is_guide_available_on_date(
+    guide: Guide, target_date: date, db: Session
 ) -> bool:
+    """Check whether *guide* can work on *target_date*.
+
+    Rules (all must pass):
+      1. Guide has an availability pattern with a slot covering the weekday.
+      2. No blocking exception exists for that date.
+      3. No overlapping schedule already exists for the guide on that date.
+    """
     pattern = guide.availability_pattern
     if pattern is None:
         return False
 
-    bv_day = booking_version.start_date.weekday()
-
-    has_covering_slot = any(
-        slot.day_of_week == bv_day
-        for slot in pattern.slots
-    )
-    if not has_covering_slot:
+    if not any(slot.day_of_week == target_date.weekday() for slot in pattern.slots):
         return False
 
     has_blocking = (
         db.query(AvailabilityException)
         .filter(
             AvailabilityException.pattern_id == pattern.id,
-            AvailabilityException.date == booking_version.start_date,
+            AvailabilityException.date == target_date,
             AvailabilityException.type == "blocked",
         )
         .first()
@@ -73,8 +74,8 @@ def _check_availability(
     if has_blocking:
         return False
 
-    start_dt = datetime.combine(booking_version.start_date, datetime.min.time())
-    end_dt = datetime.combine(booking_version.start_date, datetime.max.time())
+    start_dt = datetime.combine(target_date, datetime.min.time())
+    end_dt = datetime.combine(target_date, datetime.max.time())
     overlapping = (
         db.query(Schedule)
         .filter(
@@ -88,6 +89,12 @@ def _check_availability(
         return False
 
     return True
+
+
+def _check_availability(
+    guide: Guide, booking_version: BookingVersion, db: Session
+) -> bool:
+    return is_guide_available_on_date(guide, booking_version.start_date, db)
 
 
 def _check_tour_type(guide: Guide, tour_id: int) -> bool:

@@ -137,6 +137,89 @@ def test_update_schedule(client, db):
     assert data["guide_id"] == guide_b.id
 
 
+def test_create_schedule_sets_status_assigned(client, db):
+    guide = make_guide(db)
+    booking = make_booking(db)
+    db.commit()
+    lv = booking.latest_version
+    assert lv.status == "unassigned"
+
+    resp = client.post("/schedules", json={
+        "booking_version_id": lv.id,
+        "guide_id": guide.id,
+        "start_date": "2026-03-02T09:00:00",
+        "end_date": "2026-03-02T11:00:00",
+    })
+    assert resp.status_code == 201
+    db.refresh(lv)
+    assert lv.status == "assigned"
+
+
+def test_create_schedule_invalid_booking_version(client, db):
+    guide = make_guide(db)
+    db.commit()
+
+    resp = client.post("/schedules", json={
+        "booking_version_id": 9999,
+        "guide_id": guide.id,
+        "start_date": "2026-03-02T09:00:00",
+        "end_date": "2026-03-02T11:00:00",
+    })
+    assert resp.status_code == 404
+
+
+def test_delete_schedule_resets_status_to_pending(client, db):
+    guide = make_guide(db)
+    booking = make_booking(db)
+    db.commit()
+    lv = booking.latest_version
+
+    create = client.post("/schedules", json={
+        "booking_version_id": lv.id,
+        "guide_id": guide.id,
+        "start_date": "2026-03-02T09:00:00",
+        "end_date": "2026-03-02T11:00:00",
+    })
+    schedule_id = create.json()["id"]
+    db.refresh(lv)
+    assert lv.status == "assigned"
+
+    resp = client.delete(f"/schedules/{schedule_id}")
+    assert resp.status_code == 204
+    db.refresh(lv)
+    assert lv.status == "unassigned"
+
+
 def test_update_schedule_not_found(client, db):
     resp = client.patch("/schedules/9999", json={"guide_id": 1})
     assert resp.status_code == 404
+
+
+def test_delete_schedule_triggers_auto_assignment(client, db):
+    """Deleting a schedule frees the guide and auto-assigns another pending booking."""
+    from datetime import date
+    from tests.conftest import make_availability, make_booking
+
+    guide = make_guide(db, email="del-auto@test.com")
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": "08:00", "end_time": "17:00"},
+    ])
+    booking_a = make_booking(db, clorian_booking_id="CLR-DEL-A", booking_date=date(2026, 3, 2))
+    booking_b = make_booking(db, clorian_booking_id="CLR-DEL-B", booking_date=date(2026, 3, 2))
+    db.commit()
+
+    lv_a = booking_a.latest_version
+    resp = client.post("/schedules", json={
+        "booking_version_id": lv_a.id,
+        "guide_id": guide.id,
+        "start_date": "2026-03-02T09:00:00",
+        "end_date": "2026-03-02T11:00:00",
+    })
+    schedule_id = resp.json()["id"]
+
+    assert booking_b.latest_version.status == "unassigned"
+
+    client.delete(f"/schedules/{schedule_id}")
+
+    db.refresh(booking_b)
+    assert booking_b.latest_version.status == "assigned"

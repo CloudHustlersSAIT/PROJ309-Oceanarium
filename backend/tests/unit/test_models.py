@@ -101,7 +101,7 @@ def test_booking_creation_with_version(db):
     db.commit()
     assert booking.booking_id is not None
     assert booking.latest_version is not None
-    assert booking.latest_version.status == "pending"
+    assert booking.latest_version.status == "unassigned"
 
 
 def test_booking_multiple_versions(db):

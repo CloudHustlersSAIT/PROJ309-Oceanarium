@@ -4,8 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..models.booking_version import BookingVersion
 from ..models.schedule import Schedule
 from ..schemas.schedule import ScheduleCreate, ScheduleUpdate
+from ..services.clorian_sync import assign_unassigned_bookings
 
 router = APIRouter(prefix="/schedules", tags=["Schedules"])
 
@@ -34,6 +36,12 @@ def get_schedule(schedule_id: int, db: Session = Depends(get_db)):
 
 @router.post("", status_code=201)
 def create_schedule(payload: ScheduleCreate, db: Session = Depends(get_db)):
+    booking_version = db.query(BookingVersion).filter(
+        BookingVersion.id == payload.booking_version_id
+    ).first()
+    if not booking_version:
+        raise HTTPException(status_code=404, detail="BookingVersion not found")
+
     schedule = Schedule(
         booking_version_id=payload.booking_version_id,
         guide_id=payload.guide_id,
@@ -42,6 +50,7 @@ def create_schedule(payload: ScheduleCreate, db: Session = Depends(get_db)):
         end_date=payload.end_date,
     )
     db.add(schedule)
+    booking_version.status = "assigned"
     db.commit()
     db.refresh(schedule)
     return _schedule_to_dict(schedule)
@@ -72,8 +81,19 @@ def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
     schedule = db.query(Schedule).filter(Schedule.id == schedule_id).first()
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
+
+    bv = schedule.booking_version
     db.delete(schedule)
+    if bv:
+        remaining = (
+            db.query(Schedule)
+            .filter(Schedule.booking_version_id == bv.id, Schedule.id != schedule.id)
+            .count()
+        )
+        if remaining == 0:
+            bv.status = "unassigned"
     db.commit()
+    assign_unassigned_bookings(db)
 
 
 def _schedule_to_dict(schedule: Schedule) -> dict:

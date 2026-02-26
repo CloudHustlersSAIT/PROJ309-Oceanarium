@@ -4,7 +4,7 @@ FastAPI backend for the Oceanarium Tour Scheduling system.
 
 ## Prerequisites
 
-- Python 3.12
+- Python 3.9+
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
 
 ## Quick Start — Local Backend + Docker DB (recommended)
@@ -17,19 +17,25 @@ cd backend
 # 1. Start PostgreSQL only
 docker compose up -d db
 
-# 2. Install Python dependencies
-python3 -m pip install -r requirements.txt
+# 2. Create and activate a virtual environment (once per clone)
+python3 -m venv .venv
+source .venv/bin/activate        # macOS / Linux
+# .venv\Scripts\activate         # Windows
 
-# 3. Run database migrations
+# 3. Install Python dependencies
+pip install -r requirements.txt
+
+# 4. Run database migrations
 DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/oceanarium \
   python3 -m alembic upgrade head
 
-# 4. Start the backend with hot-reload
+# 5. Start the backend with hot-reload
 DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/oceanarium \
-  python3 -m uvicorn app.main:app --reload --port 8000
+  uvicorn app.main:app --reload --port 8000
 ```
 
 The API is now available at:
+
 - **API:** http://localhost:8000
 - **Swagger Docs:** http://localhost:8000/docs
 - **Health Check:** http://localhost:8000/health
@@ -69,6 +75,18 @@ docker compose down -v
 
 # Rebuild backend image after dependency changes
 docker compose --profile full up -d --build
+```
+
+## Reset Database
+
+A helper script wipes the database volume and re-runs all Alembic migrations:
+
+```bash
+cd backend/scripts
+bash reset-db.sh
+
+# Optionally seed data via the sync endpoint (backend must be running)
+bash reset-db.sh --seed
 ```
 
 ## Running Tests
@@ -132,30 +150,70 @@ DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/oceanarium \
 
 ## API Endpoints
 
-| Method  | Endpoint                         | Description             |
-|---------|----------------------------------|-------------------------|
-| GET     | /health                          | Health + DB status      |
-| GET     | /guides                          | List all guides         |
-| POST    | /guides                          | Create guide            |
-| GET     | /guides/{id}                     | Get guide details       |
-| PATCH   | /guides/{id}                     | Update guide            |
-| PUT     | /guides/{id}/availability        | Set guide availability  |
-| GET     | /tours                           | List all tours          |
-| GET     | /tours/unassigned                | List unassigned tours   |
-| GET     | /tours/{id}                      | Get tour details        |
-| POST    | /tours/{id}/assign               | Assign guide to tour    |
-| POST    | /tours/{id}/reassign             | Reassign guide to tour  |
-| GET     | /tours/{id}/assignment-log       | Assignment history      |
-| GET     | /bookings                        | List all bookings       |
-| GET     | /bookings/unassigned             | Bookings without guide  |
-| POST    | /bookings                        | Create booking          |
-| PATCH   | /bookings/{id}/reschedule        | Reschedule booking      |
-| PATCH   | /bookings/{id}/cancel            | Cancel booking          |
-| POST    | /issues                          | Report an issue         |
-| GET     | /stats                           | Dashboard statistics    |
-| GET     | /notifications                   | Notifications           |
-| POST    | /sync/trigger                    | Trigger Clorian sync    |
-| GET     | /sync/logs                       | Sync history            |
+Full interactive docs are available at http://localhost:8000/docs once the server is running.
+
+| Method | Endpoint                      | Description                 |
+| ------ | ----------------------------- | --------------------------- |
+| GET    | /health                       | Health + DB status          |
+| GET    | /guides                       | List all guides             |
+| POST   | /guides                       | Create guide                |
+| GET    | /guides/{id}                  | Get guide details           |
+| PATCH  | /guides/{id}                  | Update guide                |
+| PUT    | /guides/{id}/availability     | Set guide availability      |
+| GET    | /tours                        | List all tours              |
+| POST   | /tours                        | Create tour                 |
+| GET    | /tours/{id}                   | Get tour details            |
+| PATCH  | /tours/{id}                   | Update tour                 |
+| DELETE | /tours/{id}                   | Delete tour                 |
+| GET    | /bookings                     | List all bookings           |
+| GET    | /bookings/unassigned          | Bookings without guide      |
+| POST   | /bookings                     | Create booking              |
+| PATCH  | /bookings/{id}/reschedule     | Reschedule booking          |
+| PATCH  | /bookings/{id}/cancel         | Cancel booking              |
+| POST   | /bookings/{id}/assign         | Assign guide to booking     |
+| POST   | /bookings/{id}/reassign       | Reassign guide to booking   |
+| POST   | /bookings/auto-assign         | Auto-assign guides          |
+| GET    | /bookings/{id}/assignment-log | Assignment history          |
+| GET    | /schedules                    | List schedules              |
+| POST   | /schedules                    | Create schedule             |
+| GET    | /schedules/{id}               | Get schedule details        |
+| PATCH  | /schedules/{id}               | Update schedule             |
+| DELETE | /schedules/{id}               | Delete schedule             |
+| GET    | /customers                    | List all customers          |
+| POST   | /customers                    | Create customer             |
+| GET    | /customers/{id}               | Get customer details        |
+| PATCH  | /customers/{id}               | Update customer             |
+| DELETE | /customers/{id}               | Delete customer             |
+| GET    | /resources                    | List all resources          |
+| POST   | /resources                    | Create resource             |
+| GET    | /resources/{id}               | Get resource details        |
+| PATCH  | /resources/{id}               | Update resource             |
+| DELETE | /resources/{id}               | Delete resource             |
+| GET    | /costs                        | List costs (filter by tour) |
+| POST   | /costs                        | Create cost                 |
+| GET    | /costs/{id}                   | Get cost details            |
+| PATCH  | /costs/{id}                   | Update cost                 |
+| DELETE | /costs/{id}                   | Delete cost                 |
+| GET    | /surveys                      | List all surveys            |
+| POST   | /surveys                      | Create survey               |
+| GET    | /surveys/{id}                 | Get survey details          |
+| PATCH  | /surveys/{id}                 | Update survey               |
+| DELETE | /surveys/{id}                 | Delete survey               |
+| GET    | /users                        | List all users              |
+| POST   | /users                        | Create user                 |
+| GET    | /users/{id}                   | Get user details            |
+| PATCH  | /users/{id}                   | Update user                 |
+| DELETE | /users/{id}                   | Delete user                 |
+| POST   | /issues                       | Report an issue             |
+| GET    | /stats                        | Dashboard statistics        |
+| GET    | /notifications                | Notifications               |
+| POST   | /sync/trigger                 | Trigger Clorian sync        |
+| GET    | /sync/logs                    | Sync history                |
+
+## Docs & Tools
+
+- **ERD:** `docs/database-erd.md` — entity-relationship diagram in Mermaid format
+- **Insomnia:** `docs/insomnia.json` — importable API collection for [Insomnia](https://insomnia.rest/)
 
 ## Project Structure
 
@@ -171,6 +229,11 @@ backend/
 │   ├── schemas/             # Pydantic request/response models
 │   └── services/            # Business logic
 ├── alembic/                 # Database migrations
+├── docs/
+│   ├── database-erd.md      # ERD (Mermaid)
+│   └── insomnia.json        # Insomnia API collection
+├── scripts/
+│   └── reset-db.sh          # Wipe DB + re-run migrations
 ├── tests/
 │   ├── conftest.py          # Test fixtures
 │   ├── api/                 # API endpoint tests

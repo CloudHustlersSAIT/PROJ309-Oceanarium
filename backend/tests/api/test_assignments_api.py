@@ -2,7 +2,7 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from tests.conftest import make_booking, make_guide, make_tour
+from tests.conftest import make_availability, make_booking, make_guide, make_tour
 
 
 def test_manual_assign(client, db):
@@ -147,3 +147,29 @@ def test_assignment_log_no_tour(client, db):
     resp = client.get(f"/bookings/{booking.booking_id}/assignment-log")
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+def test_auto_assign_no_pending(client, db):
+    resp = client.post("/bookings/auto-assign")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["assigned_count"] == 0
+
+
+def test_auto_assign_matches_guide(client, db):
+    from datetime import date
+
+    booking_date = date(2026, 3, 2)
+    booking = make_booking(
+        db, clorian_booking_id="CLR-AUTO", booking_date=booking_date,
+    )
+    guide = make_guide(db, email="auto@test.com")
+    make_availability(db, guide, slots=[
+        {"day_of_week": booking_date.weekday(), "start_time": "08:00", "end_time": "17:00"},
+    ])
+    db.commit()
+
+    resp = client.post("/bookings/auto-assign")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["assigned_count"] == 1

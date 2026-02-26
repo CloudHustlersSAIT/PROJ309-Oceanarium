@@ -251,6 +251,15 @@
       "name": "Assignments"
     },
     {
+      "_id": "req_auto_assign",
+      "_type": "request",
+      "parentId": "fld_assignments",
+      "name": "POST /bookings/auto-assign",
+      "method": "POST",
+      "url": "{{ _.base_url }}/bookings/auto-assign",
+      "headers": []
+    },
+    {
       "_id": "req_assign_guide",
       "_type": "request",
       "parentId": "fld_assignments",

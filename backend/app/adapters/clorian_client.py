@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from typing import List, Optional
 
@@ -10,9 +10,14 @@ class ClorianBooking:
     date: date
     start_time: time
     end_time: time
-    required_expertise: Optional[str]
-    required_category: Optional[str]
-    requested_language_code: Optional[str]
+    required_expertise: Optional[str] = None
+    required_category: Optional[str] = None
+    requested_language_code: Optional[str] = None
+    adult_tickets: int = 0
+    child_tickets: int = 0
+    customer_name: Optional[str] = None
+    customer_email: Optional[str] = None
+    tour_name: Optional[str] = None
 
 
 class ClorianClientBase(ABC):

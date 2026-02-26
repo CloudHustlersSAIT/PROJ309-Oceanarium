@@ -9,6 +9,7 @@ from ..models.guide import Guide
 from ..models.schedule import Schedule
 from ..schemas.tour import ManualAssignIn
 from ..services.assignment import manual_assign, release_guide_from_schedule
+from ..services.clorian_sync import assign_unassigned_bookings
 
 router = APIRouter(prefix="/bookings", tags=["Assignments"])
 
@@ -58,6 +59,15 @@ def reassign_guide(booking_id: int, payload: ManualAssignIn, db: Session = Depen
         "booking_id": booking.booking_id,
         "guide_id": guide.id,
         "schedule_id": schedule.id,
+    }
+
+
+@router.post("/auto-assign")
+def auto_assign(db: Session = Depends(get_db)):
+    assigned_count = assign_unassigned_bookings(db)
+    return {
+        "message": f"{assigned_count} booking(s) auto-assigned",
+        "assigned_count": assigned_count,
     }
 
 
