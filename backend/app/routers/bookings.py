@@ -16,7 +16,7 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 def _compute_hash(booking_id, status, adult_tickets, child_tickets, start_date):
     raw = f"{booking_id}|{status}|{adult_tickets}|{child_tickets}|{start_date}"
-    return hashlib.md5(raw.encode()).hexdigest()
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 @router.get("")

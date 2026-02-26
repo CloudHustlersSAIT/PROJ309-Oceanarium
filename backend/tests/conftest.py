@@ -203,7 +203,7 @@ def make_booking(
 
     import hashlib
     raw = f"{booking.booking_id}|{status}|{adult_tickets}|{child_tickets}|{booking_date}"
-    version_hash = hashlib.md5(raw.encode()).hexdigest()
+    version_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
     version = BookingVersion(
         booking_id=booking.booking_id,
@@ -234,7 +234,7 @@ def make_booking_version(
 
     import hashlib
     raw = f"{booking_id}|{status}|{adult_tickets}|{child_tickets}|{start_date}"
-    version_hash = hashlib.md5(raw.encode()).hexdigest()
+    version_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
     version = BookingVersion(
         booking_id=booking_id,
