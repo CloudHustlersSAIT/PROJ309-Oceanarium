@@ -1,6 +1,6 @@
 import logging
 from datetime import date, time
-from typing import List
+from typing import Dict, List
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -32,7 +32,10 @@ def find_eligible_guides(tour: Tour, db: Session) -> List[Guide]:
             continue
         eligible.append(guide)
 
-    eligible.sort(key=lambda g: _count_tours_on_date(g, tour.date, db))
+    tour_counts = _batch_count_tours_on_date(
+        [g.id for g in eligible], tour.date, db
+    )
+    eligible.sort(key=lambda g: tour_counts.get(g.id, 0))
 
     return eligible
 
@@ -44,16 +47,13 @@ def _check_availability(guide: Guide, tour: Tour, db: Session) -> bool:
 
     tour_day = tour.date.weekday()  # 0=Monday ... 6=Sunday
 
-    matching_slot = None
-    for slot in pattern.slots:
-        if slot.day_of_week == tour_day:
-            matching_slot = slot
-            break
-
-    if matching_slot is None:
-        return False
-
-    if matching_slot.start_time > tour.start_time or matching_slot.end_time < tour.end_time:
+    has_covering_slot = any(
+        slot.day_of_week == tour_day
+        and slot.start_time <= tour.start_time
+        and slot.end_time >= tour.end_time
+        for slot in pattern.slots
+    )
+    if not has_covering_slot:
         return False
 
     has_blocking = (
@@ -110,13 +110,19 @@ def _check_language(guide: Guide, tour: Tour) -> bool:
     return False
 
 
-def _count_tours_on_date(guide: Guide, tour_date: date, db: Session) -> int:
-    return (
-        db.query(func.count(Tour.id))
+def _batch_count_tours_on_date(
+    guide_ids: List[int], tour_date: date, db: Session
+) -> Dict[int, int]:
+    if not guide_ids:
+        return {}
+    rows = (
+        db.query(Tour.assigned_guide_id, func.count(Tour.id))
         .filter(
-            Tour.assigned_guide_id == guide.id,
+            Tour.assigned_guide_id.in_(guide_ids),
             Tour.date == tour_date,
             Tour.status != "cancelled",
         )
-        .scalar()
+        .group_by(Tour.assigned_guide_id)
+        .all()
     )
+    return {guide_id: count for guide_id, count in rows}

@@ -479,7 +479,8 @@ def test_slot_exact_boundary_match(db):
     assert len(result) == 1
 
 
-def test_multiple_slots_same_day_first_matching_used(db):
+def test_multiple_slots_same_day_later_slot_covers_tour(db):
+    """A guide with split shifts should be eligible when any slot covers the tour."""
     guide = make_guide(db)
     make_availability(db, guide, slots=[
         {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(12, 0)},
@@ -489,4 +490,5 @@ def test_multiple_slots_same_day_first_matching_used(db):
     db.commit()
 
     result = find_eligible_guides(tour, db)
-    assert len(result) == 0
+    assert len(result) == 1
+    assert result[0].id == guide.id

@@ -1,7 +1,9 @@
+import logging
 from datetime import date as date_type
 from datetime import time
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -19,20 +21,38 @@ from ..schemas.guide import (
 )
 from ..services.clorian_sync import assign_unassigned_bookings
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/guides", tags=["Guides"])
 
 
-@router.get("", response_model=list)
+@router.get("", response_model=list[GuideOut])
 def list_guides(db: Session = Depends(get_db)):
     guides = db.query(Guide).all()
     return [_guide_to_dict(g) for g in guides]
+
+
+def _upsert_expertise(db: Session, name: str, category: str) -> Expertise:
+    exp = db.query(Expertise).filter(Expertise.name == name).first()
+    if not exp:
+        exp = Expertise(name=name, category=category)
+        db.add(exp)
+        db.flush()
+    return exp
 
 
 @router.post("", status_code=201)
 def create_guide(payload: GuideCreate, db: Session = Depends(get_db)):
     guide = Guide(name=payload.name, email=payload.email, is_active=payload.is_active)
     db.add(guide)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=f"A guide with email '{payload.email}' already exists",
+        )
 
     for code in payload.languages:
         lang = db.query(Language).filter(Language.code == code).first()
@@ -42,13 +62,9 @@ def create_guide(payload: GuideCreate, db: Session = Depends(get_db)):
             db.flush()
         guide.languages.append(lang)
 
-    for exp_name in payload.expertises:
-        exp = db.query(Expertise).filter(Expertise.name == exp_name).first()
-        if not exp:
-            exp = Expertise(name=exp_name, category="General")
-            db.add(exp)
-            db.flush()
-        guide.expertises.append(exp)
+    for exp in payload.expertises:
+        expertise = _upsert_expertise(db, exp.name, exp.category)
+        guide.expertises.append(expertise)
 
     db.commit()
     db.refresh(guide)
@@ -89,13 +105,9 @@ def update_guide(guide_id: int, payload: GuideUpdate, db: Session = Depends(get_
 
     if payload.expertises is not None:
         guide.expertises.clear()
-        for exp_name in payload.expertises:
-            exp = db.query(Expertise).filter(Expertise.name == exp_name).first()
-            if not exp:
-                exp = Expertise(name=exp_name, category="General")
-                db.add(exp)
-                db.flush()
-            guide.expertises.append(exp)
+        for exp in payload.expertises:
+            expertise = _upsert_expertise(db, exp.name, exp.category)
+            guide.expertises.append(expertise)
 
     db.commit()
     db.refresh(guide)
@@ -120,13 +132,21 @@ def set_availability(
     db.flush()
 
     for s in payload.slots:
-        parts_start = s.start_time.split(":")
-        parts_end = s.end_time.split(":")
+        try:
+            parts_start = s.start_time.split(":")
+            parts_end = s.end_time.split(":")
+            start_time_obj = time(int(parts_start[0]), int(parts_start[1]))
+            end_time_obj = time(int(parts_end[0]), int(parts_end[1]))
+        except (ValueError, IndexError):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid time format '{s.start_time}' or '{s.end_time}'; expected 'HH:MM'",
+            )
         slot = AvailabilitySlot(
             pattern_id=pattern.id,
             day_of_week=s.day_of_week,
-            start_time=time(int(parts_start[0]), int(parts_start[1])),
-            end_time=time(int(parts_end[0]), int(parts_end[1])),
+            start_time=start_time_obj,
+            end_time=end_time_obj,
         )
         db.add(slot)
 

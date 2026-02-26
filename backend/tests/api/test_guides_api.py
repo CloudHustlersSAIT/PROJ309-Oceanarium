@@ -3,27 +3,46 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
+def _shark_expertise(category="Marine Biology"):
+    return {"name": "Sharks", "category": category}
+
+
 def test_create_guide(client):
     resp = client.post("/guides", json={
         "name": "Ana Costa",
         "email": "ana@oceanarium.com",
         "is_active": True,
         "languages": ["en", "pt"],
-        "expertises": ["Sharks"],
+        "expertises": [_shark_expertise()],
     })
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "Ana Costa"
     assert len(data["languages"]) == 2
     assert len(data["expertises"]) == 1
+    assert data["expertises"][0]["category"] == "Marine Biology"
+
+
+def test_create_guide_duplicate_email(client):
+    client.post("/guides", json={
+        "name": "First", "email": "dupe@test.com",
+        "languages": ["en"], "expertises": [_shark_expertise()],
+    })
+    resp = client.post("/guides", json={
+        "name": "Second", "email": "dupe@test.com",
+        "languages": ["en"], "expertises": [_shark_expertise()],
+    })
+    assert resp.status_code == 409
 
 
 def test_list_guides(client):
     client.post("/guides", json={
-        "name": "Guide 1", "email": "g1@test.com", "languages": ["en"], "expertises": ["Sharks"],
+        "name": "Guide 1", "email": "g1@test.com",
+        "languages": ["en"], "expertises": [_shark_expertise()],
     })
     client.post("/guides", json={
-        "name": "Guide 2", "email": "g2@test.com", "languages": ["pt"], "expertises": ["Dolphins"],
+        "name": "Guide 2", "email": "g2@test.com",
+        "languages": ["pt"], "expertises": [{"name": "Dolphins", "category": "Marine Biology"}],
     })
 
     resp = client.get("/guides")
@@ -35,7 +54,7 @@ def test_list_guides(client):
 def test_update_guide_availability(client):
     create_resp = client.post("/guides", json={
         "name": "Avail Guide", "email": "avail@test.com",
-        "languages": ["en"], "expertises": ["Sharks"],
+        "languages": ["en"], "expertises": [_shark_expertise()],
     })
     guide_id = create_resp.json()["id"]
 
@@ -57,6 +76,21 @@ def test_update_guide_availability(client):
     assert len(pattern["exceptions"]) == 1
 
 
+def test_update_guide_availability_invalid_time(client):
+    create_resp = client.post("/guides", json={
+        "name": "Bad Time", "email": "badtime@test.com",
+        "languages": ["en"], "expertises": [_shark_expertise()],
+    })
+    guide_id = create_resp.json()["id"]
+
+    resp = client.put(f"/guides/{guide_id}/availability", json={
+        "timezone": "UTC",
+        "slots": [{"day_of_week": 0, "start_time": "bad", "end_time": "17:00"}],
+        "exceptions": [],
+    })
+    assert resp.status_code == 422
+
+
 def test_get_guide_not_found(client):
     resp = client.get("/guides/9999")
     assert resp.status_code == 404
@@ -65,7 +99,7 @@ def test_get_guide_not_found(client):
 def test_get_guide_detail(client):
     create_resp = client.post("/guides", json={
         "name": "Detail Guide", "email": "detail@test.com",
-        "languages": ["en"], "expertises": ["Sharks"],
+        "languages": ["en"], "expertises": [_shark_expertise()],
     })
     guide_id = create_resp.json()["id"]
 
@@ -81,7 +115,7 @@ def test_get_guide_detail(client):
 def test_update_guide(client):
     create_resp = client.post("/guides", json={
         "name": "Original", "email": "update@test.com",
-        "languages": ["en"], "expertises": ["Sharks"],
+        "languages": ["en"], "expertises": [_shark_expertise()],
     })
     guide_id = create_resp.json()["id"]
 
@@ -98,7 +132,7 @@ def test_update_guide(client):
 def test_update_guide_languages(client):
     create_resp = client.post("/guides", json={
         "name": "Lang Guide", "email": "lang@test.com",
-        "languages": ["en"], "expertises": ["Sharks"],
+        "languages": ["en"], "expertises": [_shark_expertise()],
     })
     guide_id = create_resp.json()["id"]
 
@@ -113,22 +147,27 @@ def test_update_guide_languages(client):
 def test_update_guide_expertises(client):
     create_resp = client.post("/guides", json={
         "name": "Exp Guide", "email": "exp@test.com",
-        "languages": ["en"], "expertises": ["Sharks"],
+        "languages": ["en"], "expertises": [_shark_expertise()],
     })
     guide_id = create_resp.json()["id"]
 
     resp = client.patch(f"/guides/{guide_id}", json={
-        "expertises": ["Dolphins", "Coral Reef"],
+        "expertises": [
+            {"name": "Dolphins", "category": "Marine Biology"},
+            {"name": "Coral Reef", "category": "Marine Ecology"},
+        ],
     })
     assert resp.status_code == 200
     names = {e["name"] for e in resp.json()["expertises"]}
     assert names == {"Dolphins", "Coral Reef"}
+    categories = {e["category"] for e in resp.json()["expertises"]}
+    assert "Marine Ecology" in categories
 
 
 def test_update_guide_email(client):
     create_resp = client.post("/guides", json={
         "name": "Email Guide", "email": "oldemail@test.com",
-        "languages": ["en"], "expertises": ["Sharks"],
+        "languages": ["en"], "expertises": [_shark_expertise()],
     })
     guide_id = create_resp.json()["id"]
 
@@ -154,7 +193,7 @@ def test_set_availability_not_found(client):
 def test_set_availability_replaces_existing(client):
     create_resp = client.post("/guides", json={
         "name": "Avail Replace", "email": "replace@test.com",
-        "languages": ["en"], "expertises": ["Sharks"],
+        "languages": ["en"], "expertises": [_shark_expertise()],
     })
     guide_id = create_resp.json()["id"]
 
@@ -182,7 +221,19 @@ def test_set_availability_replaces_existing(client):
 def test_create_guide_default_is_active(client):
     resp = client.post("/guides", json={
         "name": "Default Active", "email": "default@test.com",
-        "languages": ["en"], "expertises": ["Sharks"],
+        "languages": ["en"], "expertises": [_shark_expertise()],
     })
     assert resp.status_code == 201
     assert resp.json()["is_active"] is True
+
+
+def test_create_guide_expertise_with_category(client):
+    resp = client.post("/guides", json={
+        "name": "Cat Guide", "email": "cat@test.com",
+        "languages": ["en"],
+        "expertises": [{"name": "Penguins", "category": "Antarctic Wildlife"}],
+    })
+    assert resp.status_code == 201
+    exp = resp.json()["expertises"][0]
+    assert exp["name"] == "Penguins"
+    assert exp["category"] == "Antarctic Wildlife"

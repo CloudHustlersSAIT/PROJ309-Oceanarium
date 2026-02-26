@@ -35,10 +35,12 @@ def test_guide_create_with_all_fields():
         email="ana@test.com",
         is_active=False,
         languages=["en", "pt"],
-        expertises=["Sharks"],
+        expertises=[{"name": "Sharks", "category": "Marine Biology"}],
     )
     assert guide.is_active is False
     assert len(guide.languages) == 2
+    assert guide.expertises[0].name == "Sharks"
+    assert guide.expertises[0].category == "Marine Biology"
 
 
 def test_guide_create_missing_name():

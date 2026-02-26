@@ -58,12 +58,17 @@ class GuideOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ExpertiseIn(BaseModel):
+    name: str
+    category: str = "General"
+
+
 class GuideCreate(BaseModel):
     name: str
     email: str
     is_active: bool = True
     languages: List[str] = []
-    expertises: List[str] = []
+    expertises: List[ExpertiseIn] = []
 
 
 class GuideUpdate(BaseModel):
@@ -71,7 +76,7 @@ class GuideUpdate(BaseModel):
     email: Optional[str] = None
     is_active: Optional[bool] = None
     languages: Optional[List[str]] = None
-    expertises: Optional[List[str]] = None
+    expertises: Optional[List[ExpertiseIn]] = None
 
 
 class AvailabilitySlotIn(BaseModel):

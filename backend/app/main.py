@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -7,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(level=logging.INFO)
 
-from .adapters.clorian_mock import ClorianMockClient
 from .jobs.sync_scheduler import init_sync_service, run_sync_job
 from .routers import (
     assignments,
@@ -21,12 +21,26 @@ from .routers import (
     tours,
 )
 
-scheduler = BackgroundScheduler()
+
+def _create_clorian_client():
+    env = os.getenv("APP_ENV", "development")
+    if env == "production":
+        from .adapters.clorian_client import ClorianClientBase
+
+        raise NotImplementedError(
+            "Production Clorian client not yet implemented. "
+            "Set APP_ENV=development to use the mock client."
+        )
+    from .adapters.clorian_mock import ClorianMockClient
+
+    return ClorianMockClient()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_sync_service(ClorianMockClient())
+    scheduler = BackgroundScheduler()
+    client = _create_clorian_client()
+    init_sync_service(client)
     scheduler.add_job(run_sync_job, "interval", minutes=15, id="clorian_sync")
     scheduler.start()
     yield
@@ -39,12 +53,12 @@ def create_app() -> FastAPI:
     origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://*.vercel.app",
     ]
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

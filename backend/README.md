@@ -4,7 +4,7 @@ FastAPI backend for the Oceanarium Tour Scheduling system.
 
 ## Prerequisites
 
-- Python 3.9+
+- Python 3.12
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
 
 ## Quick Start — Local Backend + Docker DB (recommended)
