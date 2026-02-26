@@ -4,7 +4,7 @@
 | ---------------- | --------------------------------------- |
 | **Project**      | Oceanarium Tour Scheduling System       |
 | **Author**       | Evandro Maciel                          |
-| **Last Updated** | February 25, 2026                       |
+| **Last Updated** | February 26, 2026                       |
 | **Stack**        | Python 3.12 / FastAPI / SQLAlchemy / PostgreSQL |
 
 ---
@@ -58,27 +58,50 @@ backend/
 │   ├── db.py                   # SQLAlchemy engine, session, Base, get_db dependency
 │   │
 │   ├── models/                 # SQLAlchemy ORM models (database tables)
-│   │   ├── guide.py            #   Guide, Language, Expertise, association tables
+│   │   ├── guide.py            #   Guide, Language, guide_languages, guide_tour_types
 │   │   ├── availability.py     #   AvailabilityPattern, Slot, Exception
-│   │   ├── tour.py             #   Tour (synced from Clorian)
-│   │   ├── audit_log.py        #   TourAssignmentLog
-│   │   └── sync_log.py         #   SyncLog
+│   │   ├── tour.py             #   Tour
+│   │   ├── booking.py          #   Booking
+│   │   ├── booking_version.py  #   BookingVersion (immutable temporal snapshots)
+│   │   ├── customer.py         #   Customer
+│   │   ├── schedule.py         #   Schedule (guide-to-booking assignments)
+│   │   ├── cost.py             #   Cost (ticket pricing with validity periods)
+│   │   ├── resource.py         #   Resource (physical resources)
+│   │   ├── tour_resource.py    #   TourResource (tour ↔ resource junction)
+│   │   ├── survey.py           #   Survey (post-visit feedback)
+│   │   ├── poll_execution.py   #   PollExecution (Clorian polling cycles)
+│   │   ├── sync_log.py         #   SyncLog (sync audit)
+│   │   ├── audit_log.py        #   TourAssignmentLog (assignment audit trail)
+│   │   ├── user.py             #   User (application users)
+│   │   └── issue.py            #   Issue (operational issue tracker)
 │   │
 │   ├── schemas/                # Pydantic models (request/response validation)
 │   │   ├── guide.py            #   GuideCreate, GuideUpdate, AvailabilitySetIn, GuideOut
-│   │   ├── tour.py             #   TourOut, ManualAssignIn, AssignmentLogOut, SyncLogOut
-│   │   └── booking.py          #   BookingCreate, BookingReschedule
+│   │   ├── booking.py          #   BookingCreate, BookingReschedule, BookingOut
+│   │   ├── tour.py             #   TourCreate, TourUpdate, ManualAssignIn
+│   │   ├── customer.py         #   CustomerCreate, CustomerUpdate, CustomerOut
+│   │   ├── schedule.py         #   ScheduleCreate, ScheduleUpdate, ScheduleOut
+│   │   ├── resource.py         #   ResourceCreate, ResourceUpdate, ResourceOut
+│   │   ├── cost.py             #   CostCreate, CostUpdate, CostOut
+│   │   ├── survey.py           #   SurveyCreate, SurveyUpdate, SurveyOut
+│   │   └── user.py             #   UserCreate, UserUpdate, UserOut
 │   │
 │   ├── routers/                # FastAPI route handlers (one per domain)
-│   │   ├── guides.py           #   CRUD for guide profiles + availability
-│   │   ├── tours.py            #   Tour listing + detail + unassigned filter
-│   │   ├── assignments.py      #   Manual assign/reassign + audit trail
-│   │   ├── bookings.py         #   Legacy booking endpoints
-│   │   ├── sync.py             #   Admin sync trigger + log viewer
 │   │   ├── health.py           #   Health check + DB connectivity
+│   │   ├── guides.py           #   CRUD for guide profiles + availability
+│   │   ├── tours.py            #   Tour CRUD
+│   │   ├── bookings.py         #   Booking CRUD + reschedule/cancel
+│   │   ├── assignments.py      #   Manual assign/reassign, auto-assign, audit trail
+│   │   ├── customers.py        #   Customer CRUD
+│   │   ├── schedules.py        #   Schedule CRUD
+│   │   ├── resources.py        #   Resource CRUD
+│   │   ├── costs.py            #   Cost CRUD
+│   │   ├── surveys.py          #   Survey CRUD
+│   │   ├── users.py            #   User CRUD
 │   │   ├── issues.py           #   Issue reporting
 │   │   ├── stats.py            #   Dashboard statistics
-│   │   └── notifications.py    #   Notification feed
+│   │   ├── notifications.py    #   Notification feed
+│   │   └── sync.py             #   Admin sync trigger + log viewer
 │   │
 │   ├── services/               # Business logic (framework-agnostic)
 │   │   ├── guide_matcher.py    #   find_eligible_guides() — 3-rule AND matching
@@ -94,17 +117,23 @@ backend/
 │
 ├── alembic/                    # Database migration scripts
 ├── alembic.ini
-├── tests/                      # Test suite (52 tests)
+├── tests/                      # Test suite (224 tests)
 │   ├── conftest.py             #   Shared fixtures + factories
-│   ├── unit/                   #   Guide matcher + assignment logic
+│   ├── unit/                   #   Model, schema, service, adapter tests
 │   ├── integration/            #   Clorian sync service
 │   └── api/                    #   Endpoint tests via TestClient
 │
 ├── docs/                       # Project documentation
-│   ├── fdr/                    #   Functional Requirements Documents
 │   ├── architecture/           #   Architecture docs (this file)
+│   ├── database/               #   ERD and database schema documentation
+│   ├── fdr/                    #   Functional Requirements Documents
 │   └── insomnia.json           #   Insomnia API collection
 │
+├── scripts/                    # Helper scripts
+│   └── reset-db.sh             #   Wipe DB and re-run migrations
+│
+├── Dockerfile
+├── docker-compose.yml
 └── requirements.txt
 ```
 
@@ -127,7 +156,7 @@ All business logic lives here. Services are framework-agnostic — they receive 
 
 | Service              | Responsibility                                                       |
 | -------------------- | -------------------------------------------------------------------- |
-| `guide_matcher.py`   | Evaluates guide eligibility (availability + expertise + language)     |
+| `guide_matcher.py`   | Evaluates guide eligibility (availability + tour type + language)     |
 | `assignment.py`      | Orchestrates auto-assignment, manual override, release, audit logging |
 | `clorian_sync.py`    | Pulls bookings from Clorian, detects changes, triggers assignment    |
 
@@ -161,23 +190,23 @@ APScheduler (every 15 min)
   → sync_scheduler.run_sync_job()
     → ClorianSyncService.run_sync(db)
       → ClorianClient.fetch_bookings()
-      → Compare with local Tour records
-      → For each new/changed tour:
-          → assignment.assign_guide_to_tour(tour, db)
-            → guide_matcher.find_eligible_guides(tour, db)
-            → Pick best guide (fewest tours that day)
+      → Compare with local Booking records
+      → For each new/changed booking:
+          → assignment.assign_guide_to_booking(booking_version, db)
+            → guide_matcher.find_eligible_guides(booking_version, db)
+            → Pick best guide (fewest assignments that day)
             → Log to TourAssignmentLog
-      → For cancelled tours:
-          → assignment.release_guide(tour, db)
+      → For cancelled bookings:
+          → assignment.release_guide_from_schedule(schedule, db)
       → Write SyncLog entry
 ```
 
 ### Manual Assignment (admin)
 
 ```
-POST /tours/{id}/assign
+POST /bookings/{id}/assign
   → assignments router
-    → assignment.manual_assign(tour, guide, db, assigned_by)
+    → assignment.manual_assign(booking, guide, db, assigned_by)
       → Bypasses suitability rules
       → Releases previous guide if any
       → Logs to TourAssignmentLog with type="manual"
@@ -197,60 +226,163 @@ POST /tours/{id}/assign
 ### Entity Relationship Diagram
 
 ```
-Guide ──┬── GuideLanguage ──── Language
-        ├── GuideExpertise ─── Expertise
-        ├── AvailabilityPattern ──┬── AvailabilitySlot
-        │                        └── AvailabilityException
-        └── Tour (assigned_guide_id)
-                └── TourAssignmentLog
-
+Booking ──┬── BookingVersion ──┬── Schedule ──── Guide
+          │                   └── Survey         │
+          ├── Customer                           ├── GuideLanguage ──── Language
+          └── Tour                               ├── GuideTourType ──── Tour
+                ├── Cost                          ├── AvailabilityPattern
+                ├── TourResource ── Resource      │     ├── AvailabilitySlot
+                └── TourAssignmentLog             │     └── AvailabilityException
+                                                  └── TourAssignmentLog
+PollExecution ── BookingVersion
 SyncLog (standalone)
+Users (standalone)
+Issues (standalone)
 ```
+
+See the [Database ERD](../database/database-erd.md) for the full schema and table descriptions.
 
 ### Tables
 
-| Table                      | Purpose                                        |
-| -------------------------- | ---------------------------------------------- |
-| `guides`                   | Guide profiles (name, email, active status)    |
-| `languages`                | Language reference data (code, name)           |
-| `expertises`               | Expertise reference data (name, category)      |
-| `guide_languages`          | Many-to-many: guide ↔ language                 |
-| `guide_expertises`         | Many-to-many: guide ↔ expertise                |
-| `availability_patterns`    | One per guide: timezone config                 |
-| `availability_slots`       | Recurring weekly slots (day, start, end)       |
-| `availability_exceptions`  | Date-specific overrides (blocked, note)        |
-| `tours`                    | Synced from Clorian, with assignment status    |
-| `tour_assignment_logs`     | Audit trail for all assignment changes         |
-| `sync_logs`                | Record of each Clorian sync cycle              |
+| Domain             | Tables                                                                          | Count |
+| ------------------ | ------------------------------------------------------------------------------- | ----- |
+| **Booking**        | `bookings`, `booking_versions`, `customers`                                     | 3     |
+| **Guide**          | `guides`, `languages`, `guide_languages`, `guide_tour_types`                    | 4     |
+| **Availability**   | `availability_patterns`, `availability_slots`, `availability_exceptions`        | 3     |
+| **Tour & Scheduling** | `tours`, `schedule`, `cost`, `resources`, `tour_resources`                   | 5     |
+| **Feedback**       | `surveys`                                                                       | 1     |
+| **Sync / Ops**     | `poll_execution`, `sync_logs`, `tour_assignment_logs`                           | 3     |
+| **Auth / Standalone** | `users`, `issues`                                                            | 2     |
+| **Total**          |                                                                                 | **21** |
 
 ---
 
 ## 6. API Endpoints
 
-| Method | Path                           | Router       | Description                        |
-| ------ | ------------------------------ | ------------ | ---------------------------------- |
-| GET    | `/health`                      | health       | Basic health check                 |
-| GET    | `/health/db`                   | health       | Database connectivity check        |
-| GET    | `/guides`                      | guides       | List all guides with full profiles |
-| POST   | `/guides`                      | guides       | Create a new guide                 |
-| GET    | `/guides/{id}`                 | guides       | Get guide by ID                    |
-| PATCH  | `/guides/{id}`                 | guides       | Update guide profile               |
-| PUT    | `/guides/{id}/availability`    | guides       | Set availability pattern + slots   |
-| GET    | `/tours`                       | tours        | List all tours                     |
-| GET    | `/tours/unassigned`            | tours        | List unassigned tours              |
-| GET    | `/tours/{id}`                  | tours        | Get tour detail                    |
-| POST   | `/tours/{id}/assign`           | assignments  | Manual guide assignment            |
-| POST   | `/tours/{id}/reassign`         | assignments  | Reassign guide to tour             |
-| GET    | `/tours/{id}/assignment-log`   | assignments  | View assignment audit trail        |
-| GET    | `/bookings`                    | bookings     | List bookings                      |
-| POST   | `/bookings`                    | bookings     | Create booking                     |
-| PATCH  | `/bookings/{id}/reschedule`    | bookings     | Reschedule booking                 |
-| PATCH  | `/bookings/{id}/cancel`        | bookings     | Cancel booking                     |
-| POST   | `/issues`                      | issues       | Report an issue                    |
-| GET    | `/stats`                       | stats        | Dashboard statistics               |
-| GET    | `/notifications`               | notifications| Notification feed                  |
-| POST   | `/sync/trigger`                | sync         | Manually trigger Clorian sync      |
-| GET    | `/sync/logs`                   | sync         | View sync history                  |
+### Health
+
+| Method | Path      | Description                         |
+| ------ | --------- | ----------------------------------- |
+| GET    | `/health` | Health check with DB connectivity   |
+
+### Guides
+
+| Method | Path                        | Description                        |
+| ------ | --------------------------- | ---------------------------------- |
+| GET    | `/guides`                   | List all guides with full profiles |
+| POST   | `/guides`                   | Create a new guide                 |
+| GET    | `/guides/{id}`              | Get guide by ID                    |
+| PATCH  | `/guides/{id}`              | Update guide profile               |
+| PUT    | `/guides/{id}/availability` | Set availability pattern + slots   |
+
+### Tours
+
+| Method | Path           | Description      |
+| ------ | -------------- | ---------------- |
+| GET    | `/tours`       | List all tours   |
+| POST   | `/tours`       | Create tour      |
+| GET    | `/tours/{id}`  | Get tour detail  |
+| PATCH  | `/tours/{id}`  | Update tour      |
+| DELETE | `/tours/{id}`  | Delete tour      |
+
+### Bookings
+
+| Method | Path                             | Description                   |
+| ------ | -------------------------------- | ----------------------------- |
+| GET    | `/bookings`                      | List bookings (optional `?status=` filter) |
+| GET    | `/bookings/unassigned`           | List unassigned bookings      |
+| POST   | `/bookings`                      | Create booking                |
+| PATCH  | `/bookings/{id}/reschedule`      | Reschedule booking            |
+| PATCH  | `/bookings/{id}/cancel`          | Cancel booking                |
+
+### Assignments
+
+| Method | Path                              | Description                   |
+| ------ | --------------------------------- | ----------------------------- |
+| POST   | `/bookings/{id}/assign`           | Manual guide assignment       |
+| POST   | `/bookings/{id}/reassign`         | Reassign guide to booking     |
+| POST   | `/bookings/auto-assign`           | Trigger auto-assignment       |
+| GET    | `/bookings/{id}/assignment-log`   | View assignment audit trail   |
+
+### Customers
+
+| Method | Path               | Description         |
+| ------ | ------------------ | ------------------- |
+| GET    | `/customers`       | List customers      |
+| POST   | `/customers`       | Create customer     |
+| GET    | `/customers/{id}`  | Get customer detail |
+| PATCH  | `/customers/{id}`  | Update customer     |
+| DELETE | `/customers/{id}`  | Delete customer     |
+
+### Schedules
+
+| Method | Path               | Description                                               |
+| ------ | ------------------ | --------------------------------------------------------- |
+| GET    | `/schedules`       | List schedules (optional `?guide_id=` or `?booking_version_id=`) |
+| POST   | `/schedules`       | Create schedule     |
+| GET    | `/schedules/{id}`  | Get schedule detail |
+| PATCH  | `/schedules/{id}`  | Update schedule     |
+| DELETE | `/schedules/{id}`  | Delete schedule     |
+
+### Resources
+
+| Method | Path               | Description         |
+| ------ | ------------------ | ------------------- |
+| GET    | `/resources`       | List resources      |
+| POST   | `/resources`       | Create resource     |
+| GET    | `/resources/{id}`  | Get resource detail |
+| PATCH  | `/resources/{id}`  | Update resource     |
+| DELETE | `/resources/{id}`  | Delete resource     |
+
+### Costs
+
+| Method | Path            | Description                         |
+| ------ | --------------- | ----------------------------------- |
+| GET    | `/costs`        | List costs (optional `?tour_id=`)   |
+| POST   | `/costs`        | Create cost                         |
+| GET    | `/costs/{id}`   | Get cost detail                     |
+| PATCH  | `/costs/{id}`   | Update cost                         |
+| DELETE | `/costs/{id}`   | Delete cost                         |
+
+### Surveys
+
+| Method | Path              | Description        |
+| ------ | ----------------- | ------------------ |
+| GET    | `/surveys`        | List surveys       |
+| POST   | `/surveys`        | Create survey      |
+| GET    | `/surveys/{id}`   | Get survey detail  |
+| PATCH  | `/surveys/{id}`   | Update survey      |
+| DELETE | `/surveys/{id}`   | Delete survey      |
+
+### Users
+
+| Method | Path            | Description       |
+| ------ | --------------- | ----------------- |
+| GET    | `/users`        | List users        |
+| POST   | `/users`        | Create user       |
+| GET    | `/users/{id}`   | Get user detail   |
+| PATCH  | `/users/{id}`   | Update user       |
+| DELETE | `/users/{id}`   | Delete user       |
+
+### Issues
+
+| Method | Path      | Description      |
+| ------ | --------- | ---------------- |
+| POST   | `/issues` | Report an issue  |
+
+### Stats & Notifications
+
+| Method | Path             | Description          |
+| ------ | ---------------- | -------------------- |
+| GET    | `/stats`         | Dashboard statistics |
+| GET    | `/notifications` | Notification feed    |
+
+### Sync
+
+| Method | Path            | Description                  |
+| ------ | --------------- | ---------------------------- |
+| POST   | `/sync/trigger` | Manually trigger Clorian sync |
+| GET    | `/sync/logs`    | View sync history (paginated) |
 
 ---
 
@@ -258,25 +390,47 @@ SyncLog (standalone)
 
 ```
 tests/
-├── conftest.py           # In-memory SQLite, shared factories, TestClient
-├── unit/                 # Pure logic tests (no HTTP)
-│   ├── test_guide_matcher.py   (22 tests)
-│   └── test_assignment.py      (8 tests)
-├── integration/          # Service-level tests with DB
-│   └── test_clorian_sync.py    (10 tests)
-└── api/                  # Full HTTP endpoint tests
-    ├── test_guides_api.py       (4 tests)
-    ├── test_tours_api.py        (3 tests)
-    ├── test_assignments_api.py  (3 tests)
-    └── test_sync_api.py         (2 tests)
+├── conftest.py                    # PostgreSQL test DB, shared factories, TestClient
+├── unit/                          # Pure logic tests (no HTTP)
+│   ├── test_models.py                (19 tests)
+│   ├── test_schemas.py               (26 tests)
+│   ├── test_guide_matcher.py         (18 tests)
+│   ├── test_assignment.py            (8 tests)
+│   ├── test_db.py                    (3 tests)
+│   ├── test_adapters.py              (9 tests)
+│   └── test_sync_scheduler.py        (4 tests)
+├── integration/                   # Service-level tests with DB
+│   └── test_clorian_sync.py         (14 tests)
+└── api/                           # Full HTTP endpoint tests
+    ├── test_health_api.py            (2 tests)
+    ├── test_guides_api.py            (11 tests)
+    ├── test_tours_api.py             (9 tests)
+    ├── test_bookings_api.py          (16 tests)
+    ├── test_assignments_api.py       (13 tests)
+    ├── test_customers_api.py         (9 tests)
+    ├── test_schedules_api.py         (14 tests)
+    ├── test_resources_api.py         (9 tests)
+    ├── test_costs_api.py             (10 tests)
+    ├── test_surveys_api.py           (8 tests)
+    ├── test_users_api.py             (9 tests)
+    ├── test_issues_api.py            (4 tests)
+    ├── test_stats_api.py             (2 tests)
+    ├── test_notifications_api.py     (2 tests)
+    └── test_sync_api.py              (5 tests)
 ```
 
-**52 tests total** covering all 12 acceptance criteria from FDR-001.
+**224 tests total** (87 unit + 14 integration + 123 API) covering all acceptance criteria from FDR-001 plus full CRUD coverage for every domain.
 
 Run the full suite:
 
 ```bash
 cd backend && python3 -m pytest tests/ -v
+```
+
+With coverage:
+
+```bash
+cd backend && python3 -m pytest tests/ -v --cov=app --cov-report=term-missing
 ```
 
 ---
@@ -287,11 +441,13 @@ cd backend && python3 -m pytest tests/ -v
 | --------------------------------- | ------------------------------------------------------------------------- |
 | **Layered architecture**          | Separates HTTP handling from business logic, making services independently testable |
 | **Adapter pattern for Clorian**   | Allows mock implementation now, real HTTP client later, without changing services |
+| **Booking versioning (immutable snapshots)** | Each change creates a new `BookingVersion` with a content hash, preserving full history for auditability |
 | **APScheduler (not Celery)**      | Lightweight in-process scheduler suitable for a single-instance deployment |
 | **Alembic for migrations**        | Versioned, reproducible schema changes tracked in git                     |
 | **App factory pattern**           | Enables different configurations for production vs testing                |
 | **Request-scoped DB sessions**    | Prevents connection leaks; each request gets its own session via `get_db` |
 | **Audit log table**               | Every assignment change is traceable (NFR-02 compliance)                  |
+| **Tour type matching (not expertise)** | Guides are linked to specific tours they can lead via `guide_tour_types`, simplifying eligibility checks |
 
 ---
 
@@ -308,3 +464,12 @@ cd backend && python3 -m pytest tests/ -v
 | `httpx`            | Async HTTP client (for future Clorian) |
 | `pytest`           | Test runner                            |
 | `pytest-cov`       | Test coverage reporting                |
+
+---
+
+## Revision History
+
+| Version | Date           | Author          | Changes                                               |
+| ------- | -------------- | --------------- | ----------------------------------------------------- |
+| 1.0     | Feb 25, 2026   | Evandro Maciel  | Initial version                                       |
+| 1.1     | Feb 26, 2026   | Evandro Maciel  | Full update: added all 21 tables, 50+ endpoints, 224 tests, booking versioning model, corrected data flow |

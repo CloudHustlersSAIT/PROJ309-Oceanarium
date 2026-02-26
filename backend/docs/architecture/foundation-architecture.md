@@ -4,8 +4,8 @@
 | ---------------- | ---------------------------------------------------- |
 | **Project**      | Oceanarium Tour Scheduling System                    |
 | **Author**       | Evandro Maciel                                       |
-| **Version**      | 1.0                                                  |
-| **Last Updated** | February 24, 2026                                    |
+| **Version**      | 1.1                                                  |
+| **Last Updated** | February 26, 2026                                    |
 | **Status**       | Living document — updated as the architecture evolves |
 
 ---
@@ -19,6 +19,7 @@ This document describes the foundational architecture of the Oceanarium Tour Sch
 **Companion documents**:
 
 - [Backend Architecture Overview](backend-overview.md) — detailed backend layers, data flow, and API reference
+- [Database ERD](../database/database-erd.md) — full database schema documentation with 21 tables
 - [FDR-001: Guide Assignment](../fdr/FDR-001-Guide-Assignment.md) — functional requirements for the core feature
 
 ---
@@ -32,9 +33,13 @@ The Oceanarium Tour Scheduling System automates what was previously a manual pro
 | Capability              | Description                                                        |
 | ----------------------- | ------------------------------------------------------------------ |
 | **Tour Synchronization** | Periodically pulls booking data from the external Clorian ticketing system |
-| **Guide Assignment**     | Automatically matches and assigns guides to tours based on availability, language, and expertise |
+| **Guide Assignment**     | Automatically matches and assigns guides to bookings based on availability, tour type, and language |
 | **Schedule Management**  | Guides and admins can view and manage tour schedules               |
-| **Booking Management**   | Create, reschedule, and cancel bookings                            |
+| **Booking Management**   | Create, reschedule, and cancel bookings with immutable versioning  |
+| **Resource Management**  | Track physical resources and their allocation to tours             |
+| **Customer Management**  | Maintain customer profiles linked to bookings                      |
+| **Cost Management**      | Define ticket pricing with temporal validity periods               |
+| **Survey / Feedback**    | Collect and manage post-visit customer feedback                    |
 | **Dashboard & Metrics**  | Interactive dashboard with operational statistics                   |
 | **Notification System**  | Alerts for schedule changes, new assignments, and issues           |
 | **Issue Reporting**      | Staff can report operational issues                                |
@@ -118,13 +123,13 @@ The Oceanarium Tour Scheduling System automates what was previously a manual pro
 
 | Concern          | Technology                    | Version   |
 | ---------------- | ----------------------------- | --------- |
-| Framework        | FastAPI                       | latest    |
-| Language         | Python                        | 3.11      |
-| ORM              | SQLAlchemy                    | 2.x       |
+| Framework        | FastAPI                       | 0.128.x   |
+| Language         | Python                        | 3.12      |
+| ORM              | SQLAlchemy                    | 2.0.x     |
 | Database Driver  | psycopg2-binary               | latest    |
-| Migrations       | Alembic                       | latest    |
-| Scheduler        | APScheduler (BackgroundScheduler) | latest |
-| HTTP Client      | httpx (for future Clorian)    | latest    |
+| Migrations       | Alembic                       | 1.16.x    |
+| Scheduler        | APScheduler (BackgroundScheduler) | 3.11.x |
+| HTTP Client      | httpx (for future Clorian)    | 0.28.x    |
 | ASGI Server      | Uvicorn                       | latest    |
 | Config           | python-dotenv                 | latest    |
 
@@ -207,15 +212,19 @@ Routers → Services → Models / Adapters → Database / External APIs
 
 ### 6.3 Database
 
-PostgreSQL with 10 tables organized around three domains:
+PostgreSQL with 21 tables organized around seven domains:
 
-| Domain         | Tables                                                                    |
-| -------------- | ------------------------------------------------------------------------- |
-| **Guide**      | `guides`, `languages`, `expertises`, `guide_languages`, `guide_expertises` |
-| **Availability** | `availability_patterns`, `availability_slots`, `availability_exceptions` |
-| **Tour & Audit** | `tours`, `tour_assignment_logs`, `sync_logs`                            |
+| Domain             | Tables                                                                          | Count |
+| ------------------ | ------------------------------------------------------------------------------- | ----- |
+| **Booking**        | `bookings`, `booking_versions`, `customers`                                     | 3     |
+| **Guide**          | `guides`, `languages`, `guide_languages`, `guide_tour_types`                    | 4     |
+| **Availability**   | `availability_patterns`, `availability_slots`, `availability_exceptions`        | 3     |
+| **Tour & Scheduling** | `tours`, `schedule`, `cost`, `resources`, `tour_resources`                   | 5     |
+| **Feedback**       | `surveys`                                                                       | 1     |
+| **Sync / Ops**     | `poll_execution`, `sync_logs`, `tour_assignment_logs`                           | 3     |
+| **Auth / Standalone** | `users`, `issues`                                                            | 2     |
 
-See the [Backend Architecture Overview](backend-overview.md#5-database) for the full ERD and table descriptions.
+See the [Database ERD](../database/database-erd.md) for the full schema documentation and the [Backend Architecture Overview](backend-overview.md#5-database) for table descriptions.
 
 ---
 
@@ -400,7 +409,7 @@ VITE_FIREBASE_APP_ID=...
 | Attribute        | Target                                                                  | How Achieved                                      |
 | ---------------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
 | **Maintainability** | New features require changes in ≤ 2 layers                           | Layered architecture, single-responsibility modules |
-| **Testability**  | 52 backend tests, all acceptance criteria covered                       | Framework-agnostic services, DI via `get_db`, mock adapters |
+| **Testability**  | 224 backend tests (87 unit + 14 integration + 123 API), all acceptance criteria covered | Framework-agnostic services, DI via `get_db`, mock adapters |
 | **Deployability** | Zero-downtime deploy in < 5 min                                       | Docker + GitHub Actions CI/CD, independent frontend/backend deploys |
 | **Reliability**  | Sync failures don't crash the system                                    | Overlap guard, error logging to `sync_logs`, `--restart always` |
 | **Scalability**  | Single-instance sufficient for current load (~50 tours/day)             | Stateless API, can scale horizontally if needed    |
@@ -493,6 +502,7 @@ PROJ309-Oceanarium/
 
 ## Revision History
 
-| Version | Date           | Author          | Changes            |
-| ------- | -------------- | --------------- | ------------------ |
-| 1.0     | Feb 24, 2026   | Evandro Maciel  | Initial version    |
+| Version | Date           | Author          | Changes                                                        |
+| ------- | -------------- | --------------- | -------------------------------------------------------------- |
+| 1.0     | Feb 24, 2026   | Evandro Maciel  | Initial version                                                |
+| 1.1     | Feb 26, 2026   | Evandro Maciel  | Updated database to 21 tables / 7 domains, 224 tests, added companion doc links, corrected tech versions |

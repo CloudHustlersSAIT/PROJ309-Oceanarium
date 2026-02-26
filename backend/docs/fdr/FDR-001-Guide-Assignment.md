@@ -5,7 +5,7 @@
 | **FDR Number**   | FDR-001            |
 | **Author**       | Evandro Maciel     |
 | **Date Created** | February 12, 2026  |
-| **Version**      | 1.1                |
+| **Version**      | 1.2                |
 
 ---
 
@@ -61,9 +61,9 @@ It does not cover the Clorian booking interface itself, visitor-facing features,
 
 ### FR-02: Guide Profile Management
 
-- The system must store each guide's name, email, and active status.
+- The system must store each guide's name, email, phone, rating, and active status.
 - The system must support associating one or more languages to a guide.
-- The system must support associating one or more expertise areas (with name and category) to a guide.
+- The system must support associating one or more tour types to a guide (indicating which tours the guide is qualified to lead).
 
 ### FR-03: Availability Pattern Management
 
@@ -95,18 +95,17 @@ isAvailable =
     AND NO overlapping tour assignment exists
 ```
 
-#### Rule 2: Expertise
+#### Rule 2: Tour Type
 
-The guide must have expertise that matches the tour's required expertise.
+The guide must be qualified to lead the booking's tour type.
 
-1. Retrieve the guide's list of `Expertise` entries.
-2. Check if at least one expertise matches the tour's required expertise by name or category.
+1. Retrieve the guide's associated tour types via the `guide_tour_types` junction table.
+2. Check if the booking's tour is among the guide's qualified tour types.
 
 ```
-hasExpertise =
-    guide.expertises
-        .ANY(e => e.name == tour.requiredExpertise
-             OR e.category == tour.requiredCategory)
+hasTourType =
+    guide.tour_types
+        .ANY(t => t.id == booking.tour_id)
 ```
 
 #### Rule 3: Language
@@ -125,7 +124,7 @@ speaksLanguage =
 #### Final Eligibility
 
 ```
-isSuitable = isAvailable AND hasExpertise AND speaksLanguage
+isSuitable = isAvailable AND hasTourType AND speaksLanguage
 ```
 
 ### FR-05: Assignment Execution
@@ -156,12 +155,12 @@ isSuitable = isAvailable AND hasExpertise AND speaksLanguage
 | ID    | Scenario                                                          | Expected Result                                                    |
 | ----- | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
 | AC-01 | New booking detected in Clorian sync                              | Tour is created locally and guide assignment is triggered          |
-| AC-02 | Booking changed in Clorian (different time/language/expertise)    | Current assignment is reassessed; guide is reassigned if no longer suitable |
+| AC-02 | Booking changed in Clorian (different time/language/tour type)    | Current assignment is reassessed; guide is reassigned if no longer suitable |
 | AC-03 | Booking cancelled in Clorian                                      | Assigned guide is released, tour marked as cancelled               |
 | AC-04 | Clorian API is unreachable                                        | Sync is retried next cycle; admin notified after 3 consecutive failures |
-| AC-05 | Guide is available, has matching expertise, speaks requested language | Guide is assigned to the tour                                   |
+| AC-05 | Guide is available, is qualified for the tour type, speaks requested language | Guide is assigned to the booking                          |
 | AC-06 | Guide has a blocking exception on the tour date                   | Guide is excluded from assignment                                  |
-| AC-07 | Guide lacks the required expertise                                | Guide is excluded from assignment                                  |
+| AC-07 | Guide is not qualified for the booking's tour type                | Guide is excluded from assignment                                  |
 | AC-08 | Guide does not speak the requested language                       | Guide is excluded from assignment                                  |
 | AC-09 | No suitable guide exists                                          | Tour is flagged as "Unassigned" and admin is notified              |
 | AC-10 | Multiple suitable guides exist                                    | Guide with fewest tours that day is assigned                       |
@@ -173,9 +172,9 @@ isSuitable = isAvailable AND hasExpertise AND speaksLanguage
 ## 8. Dependencies
 
 - **Clorian System**: Must expose an API or data export for booking retrieval (new, changed, cancelled).
-- Guide profiles must be populated with languages and expertise before assignment can run.
+- Guide profiles must be populated with languages and tour type qualifications before assignment can run.
 - Availability patterns and slots must be configured per guide.
-- Tour data (date, time, required expertise, requested language) is sourced from Clorian bookings.
+- Booking data (date, time, tour type, requested language) is sourced from Clorian bookings.
 
 ---
 
@@ -185,3 +184,13 @@ isSuitable = isAvailable AND hasExpertise AND speaksLanguage
 - Visitor-facing booking and payment.
 - Guide performance tracking and ratings.
 - Notification delivery mechanism (email, push, SMS).
+
+---
+
+## Revision History
+
+| Version | Date           | Author          | Changes                                                        |
+| ------- | -------------- | --------------- | -------------------------------------------------------------- |
+| 1.0     | Feb 12, 2026   | Evandro Maciel  | Initial draft                                                  |
+| 1.1     | Feb 12, 2026   | Evandro Maciel  | Refinements                                                    |
+| 1.2     | Feb 26, 2026   | Evandro Maciel  | Replaced expertise matching with tour type matching (FR-02, FR-04 Rule 2, AC-02/05/07) to reflect implemented design |
