@@ -73,12 +73,18 @@ docker compose --profile full up -d --build
 
 ## Running Tests
 
-Tests use an in-memory SQLite database — no Docker or PostgreSQL needed:
+Tests run against PostgreSQL (same engine as production). Start the database first:
 
 ```bash
 cd backend
 
-# Run all tests
+# 1. Start PostgreSQL (if not already running)
+docker compose up -d db
+
+# 2. Create the test database (one-time)
+docker compose exec db psql -U postgres -c "CREATE DATABASE oceanarium_test"
+
+# 3. Run all tests
 python3 -m pytest tests/ -v
 
 # Run with coverage report
@@ -92,7 +98,7 @@ python3 -m pytest tests/integration/ -v   # Integration tests only
 
 ## Git Hooks (pre-push)
 
-A pre-push hook runs the full Backend CI checks (pytest + 95% coverage) before every push that includes `backend/` changes.
+A pre-push hook runs the full Backend CI checks (pytest + 95% coverage) before every push that includes `backend/` changes. It automatically starts the Docker DB and creates the test database if needed.
 
 ### Setup (once per clone)
 

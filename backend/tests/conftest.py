@@ -2,10 +2,13 @@ import os
 from datetime import date, datetime, time, timezone
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///test_unused.db")
+DEFAULT_TEST_DB = "postgresql+psycopg2://postgres:postgres@localhost:5432/oceanarium_test"
+TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", DEFAULT_TEST_DB)
+
+os.environ.setdefault("DATABASE_URL", TEST_DB_URL)
 
 from app.db import Base, get_db
 from app.models.availability import (
@@ -26,21 +29,21 @@ from app.models.survey import Survey
 from app.models.tour import Tour
 from app.models.user import User
 
-TEST_DB_URL = "sqlite:///test_runner.db"
-
-engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
+engine = create_engine(TEST_DB_URL, pool_pre_ping=True)
 TestSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 @pytest.fixture(autouse=True)
 def db():
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     session = TestSession()
     try:
         yield session
     finally:
+        session.rollback()
         session.close()
-        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
 
 
 @pytest.fixture

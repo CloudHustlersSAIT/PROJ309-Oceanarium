@@ -4,7 +4,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from tests.conftest import make_booking, make_guide
+from tests.conftest import make_booking, make_guide, make_resource
 
 
 def test_list_schedules_empty(client, db):
@@ -114,6 +114,7 @@ def test_filter_schedules_by_booking_version(client, db):
 def test_update_schedule(client, db):
     guide_a = make_guide(db, email="a@sched.com")
     guide_b = make_guide(db, email="b@sched.com")
+    resource = make_resource(db)
     booking = make_booking(db)
     db.commit()
     lv = booking.latest_version
@@ -127,7 +128,7 @@ def test_update_schedule(client, db):
     schedule_id = create.json()["id"]
     resp = client.patch(f"/schedules/{schedule_id}", json={
         "guide_id": guide_b.id,
-        "resource_id": 1,
+        "resource_id": resource.id,
         "start_date": "2026-03-03T10:00:00",
         "end_date": "2026-03-03T12:00:00",
     })
