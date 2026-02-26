@@ -51,6 +51,7 @@ class BookingOut(BaseModel):
     customer_name: Optional[str] = None
     tour_id: Optional[int] = None
     tour_name: Optional[str] = None
+    requested_language_code: Optional[str] = None
     created_at: Optional[datetime] = None
     date: Optional[date] = None
     start_time: Optional[str] = None

@@ -40,6 +40,20 @@ def test_create_booking_duplicate_rejected(client, db):
     assert resp.status_code == 409
 
 
+def test_create_booking_returns_language_code(client, db):
+    from tests.conftest import make_booking
+
+    booking = make_booking(db, requested_language_code="pt")
+    db.commit()
+
+    resp = client.get("/bookings")
+    assert resp.status_code == 200
+    data = resp.json()
+    match = [b for b in data if b["booking_id"] == booking.booking_id]
+    assert len(match) == 1
+    assert match[0]["requested_language_code"] == "pt"
+
+
 def test_list_bookings_after_create(client, db):
     client.post("/bookings", json=_booking_payload())
     resp = client.get("/bookings")

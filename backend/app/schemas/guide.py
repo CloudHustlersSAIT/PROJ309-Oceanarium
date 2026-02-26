@@ -11,14 +11,6 @@ class LanguageOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ExpertiseOut(BaseModel):
-    id: int
-    name: str
-    category: str
-
-    model_config = {"from_attributes": True}
-
-
 class AvailabilitySlotOut(BaseModel):
     id: int
     day_of_week: int
@@ -55,15 +47,9 @@ class GuideOut(BaseModel):
     guide_rating: Optional[float] = 0
     is_active: bool
     languages: List[LanguageOut] = []
-    expertises: List[ExpertiseOut] = []
     availability_pattern: Optional[AvailabilityPatternOut] = None
 
     model_config = {"from_attributes": True}
-
-
-class ExpertiseIn(BaseModel):
-    name: str
-    category: str = "General"
 
 
 class GuideCreate(BaseModel):
@@ -74,7 +60,6 @@ class GuideCreate(BaseModel):
     guide_rating: Optional[float] = 0
     is_active: bool = True
     languages: List[str] = []
-    expertises: List[ExpertiseIn] = []
     tour_type_ids: List[int] = []
 
 
@@ -86,7 +71,6 @@ class GuideUpdate(BaseModel):
     guide_rating: Optional[float] = None
     is_active: Optional[bool] = None
     languages: Optional[List[str]] = None
-    expertises: Optional[List[ExpertiseIn]] = None
     tour_type_ids: Optional[List[int]] = None
 
 

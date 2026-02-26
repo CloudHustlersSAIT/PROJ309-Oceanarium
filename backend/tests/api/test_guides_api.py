@@ -12,7 +12,6 @@ def _guide_payload(**overrides):
         "email": "ana@test.com",
         "phone": "+351999",
         "languages": ["en"],
-        "expertises": [{"name": "Sharks", "category": "Marine Biology"}],
     }
     defaults.update(overrides)
     return defaults
@@ -66,7 +65,6 @@ def test_update_guide_all_fields(client, db):
         "guide_rating": 4.5,
         "is_active": False,
         "languages": ["pt"],
-        "expertises": [{"name": "Dolphins", "category": "Marine Biology"}],
         "tour_type_ids": [],
     })
     assert resp.status_code == 200
@@ -77,7 +75,6 @@ def test_update_guide_all_fields(client, db):
     assert data["guide_rating"] == 4.5
     assert data["is_active"] is False
     assert data["languages"][0]["code"] == "pt"
-    assert data["expertises"][0]["name"] == "Dolphins"
 
 
 def test_update_guide_not_found(client, db):

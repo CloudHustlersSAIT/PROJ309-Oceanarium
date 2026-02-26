@@ -22,18 +22,23 @@ def find_eligible_guides(
     A guide is eligible only if ALL rules pass (AND logic):
       Rule 1: Available (slot covers the day, no blocking exception, no overlap, active)
       Rule 2: Can lead this tour type (via guide_tour_types)
+      Rule 3: Speaks the requested language (via guide_languages)
     """
     active_guides = db.query(Guide).filter(Guide.is_active.is_(True)).all()
 
     tour_id = None
+    requested_language = None
     if booking_version.booking:
         tour_id = booking_version.booking.tour_id
+        requested_language = booking_version.booking.requested_language_code
 
     eligible: List[Guide] = []
     for guide in active_guides:
         if not _check_availability(guide, booking_version, db):
             continue
         if tour_id and not _check_tour_type(guide, tour_id):
+            continue
+        if requested_language and not _check_language(guide, requested_language):
             continue
         eligible.append(guide)
 
@@ -102,6 +107,10 @@ def _check_tour_type(guide: Guide, tour_id: int) -> bool:
         if tour.id == tour_id:
             return True
     return False
+
+
+def _check_language(guide: Guide, language_code: str) -> bool:
+    return any(lang.code == language_code for lang in guide.languages)
 
 
 def _batch_count_schedules_on_date(

@@ -45,15 +45,13 @@ def test_guide_languages_relationship(db):
     assert {lang.code for lang in guide.languages} == {"en", "pt", "fr"}
 
 
-def test_guide_expertises_relationship(db):
-    guide = make_guide(
-        db,
-        expertise_names=["Sharks", "Dolphins"],
-        expertise_categories=["Marine Biology", "Marine Biology"],
-    )
+def test_guide_tour_types_many_relationship(db):
+    tour1 = make_tour(db, name="Shark Dive")
+    tour2 = make_tour(db, name="Dolphin Watch")
+    guide = make_guide(db, tour_type_ids=[tour1.id, tour2.id])
     db.commit()
-    assert len(guide.expertises) == 2
-    assert {exp.name for exp in guide.expertises} == {"Sharks", "Dolphins"}
+    assert len(guide.tour_types) == 2
+    assert {t.name for t in guide.tour_types} == {"Shark Dive", "Dolphin Watch"}
 
 
 def test_guide_availability_relationship(db):

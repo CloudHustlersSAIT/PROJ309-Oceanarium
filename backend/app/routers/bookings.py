@@ -217,6 +217,7 @@ def _booking_to_dict(booking: Booking) -> dict:
         "customer_name": customer_name,
         "tour_id": booking.tour_id,
         "tour_name": tour_name,
+        "requested_language_code": booking.requested_language_code,
         "created_at": booking.created_at.isoformat() if booking.created_at else None,
         "date": lv.start_date.isoformat() if lv else None,
         "start_time": lv.start_time.strftime("%H:%M") if lv and lv.start_time else None,

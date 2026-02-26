@@ -20,7 +20,7 @@ from app.models.booking import Booking
 from app.models.booking_version import BookingVersion
 from app.models.cost import Cost
 from app.models.customer import Customer
-from app.models.guide import Expertise, Guide, Language
+from app.models.guide import Guide, Language
 from app.models.issue import Issue
 from app.models.poll_execution import PollExecution
 from app.models.resource import Resource
@@ -75,8 +75,6 @@ def make_guide(
     guide_rating=0,
     is_active=True,
     language_codes=None,
-    expertise_names=None,
-    expertise_categories=None,
     tour_type_ids=None,
 ):
     if email is None:
@@ -84,10 +82,6 @@ def make_guide(
         email = f"{uuid.uuid4().hex[:8]}@test.com"
     if language_codes is None:
         language_codes = ["en"]
-    if expertise_names is None:
-        expertise_names = ["Sharks"]
-    if expertise_categories is None:
-        expertise_categories = ["Marine Biology"] * len(expertise_names)
 
     guide = Guide(
         first_name=first_name,
@@ -107,14 +101,6 @@ def make_guide(
             db.add(lang)
             db.flush()
         guide.languages.append(lang)
-
-    for exp_name, cat in zip(expertise_names, expertise_categories):
-        exp = db.query(Expertise).filter(Expertise.name == exp_name).first()
-        if not exp:
-            exp = Expertise(name=exp_name, category=cat)
-            db.add(exp)
-            db.flush()
-        guide.expertises.append(exp)
 
     if tour_type_ids:
         for tid in tour_type_ids:
@@ -186,6 +172,7 @@ def make_booking(
     adult_tickets=0,
     child_tickets=0,
     status="unassigned",
+    requested_language_code=None,
 ):
     if clorian_booking_id is None:
         import uuid
@@ -197,6 +184,7 @@ def make_booking(
         clorian_booking_id=clorian_booking_id,
         customer_id=customer_id,
         tour_id=tour_id,
+        requested_language_code=requested_language_code,
     )
     db.add(booking)
     db.flush()

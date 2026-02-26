@@ -106,6 +106,18 @@ async function handleReschedule() {
   }
 }
 
+const LANGUAGE_NAMES = {
+  en: 'English',
+  pt: 'Portuguese',
+  es: 'Spanish',
+  fr: 'French',
+}
+
+function languageLabel(code) {
+  if (!code) return '—'
+  return LANGUAGE_NAMES[code] || code.toUpperCase()
+}
+
 function statusColor(status) {
   switch (status) {
     case 'unassigned':
@@ -194,6 +206,7 @@ onBeforeUnmount(() => {
                 <th class="py-3 px-4">Customer</th>
                 <th class="py-3 px-4">Tour</th>
                 <th class="py-3 px-4">Guide</th>
+                <th class="py-3 px-4">Language</th>
                 <th class="py-3 px-4">Date</th>
                 <th class="py-3 px-4">Time</th>
                 <th class="py-3 px-4 text-center">Tickets</th>
@@ -213,6 +226,9 @@ onBeforeUnmount(() => {
                 </td>
                 <td class="py-3 px-4 text-gray-600">{{ b.tour_name || '—' }}</td>
                 <td class="py-3 px-4 text-gray-600">{{ b.guide_name || '—' }}</td>
+                <td class="py-3 px-4 text-gray-600">
+                  {{ languageLabel(b.requested_language_code) }}
+                </td>
                 <td class="py-3 px-4 text-gray-600">{{ b.date }}</td>
                 <td class="py-3 px-4 text-gray-600 whitespace-nowrap">
                   <template v-if="b.start_time && b.end_time">

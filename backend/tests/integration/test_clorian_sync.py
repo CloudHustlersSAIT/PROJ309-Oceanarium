@@ -63,6 +63,7 @@ def test_new_booking_creates_booking_and_version(db):
     assert booking.latest_version.child_tickets == 1
     assert booking.latest_version.start_time == time(9, 0)
     assert booking.latest_version.end_time == time(11, 0)
+    assert booking.requested_language_code == "en"
     assert booking.customer is not None
     assert booking.customer.first_name == "John"
     assert booking.tour is not None

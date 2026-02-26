@@ -32,7 +32,7 @@ def test_guide_create_valid():
     assert guide.first_name == "Ana"
     assert guide.is_active is True
     assert guide.languages == []
-    assert guide.expertises == []
+    assert guide.tour_type_ids == []
 
 
 def test_guide_create_with_all_fields():
@@ -44,7 +44,7 @@ def test_guide_create_with_all_fields():
         guide_rating=4.5,
         is_active=False,
         languages=["en", "pt"],
-        expertises=[],
+        tour_type_ids=[],
     )
     assert guide.is_active is False
     assert len(guide.languages) == 2

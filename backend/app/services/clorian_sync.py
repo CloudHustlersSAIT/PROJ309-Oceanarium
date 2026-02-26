@@ -128,8 +128,11 @@ class ClorianSyncService:
 
             if existing is None:
                 new_count += self._create_booking(db, cb, poll_id)
-            elif self._has_changes(existing, cb):
-                changed_count += self._update_booking(db, existing, cb, poll_id)
+            else:
+                if cb.requested_language_code and existing.requested_language_code != cb.requested_language_code:
+                    existing.requested_language_code = cb.requested_language_code
+                if self._has_changes(existing, cb):
+                    changed_count += self._update_booking(db, existing, cb, poll_id)
 
         for clorian_id, booking in local_map.items():
             if clorian_id not in clorian_ids:
@@ -146,6 +149,7 @@ class ClorianSyncService:
             clorian_booking_id=cb.clorian_booking_id,
             customer_id=customer_id,
             tour_id=tour_id,
+            requested_language_code=cb.requested_language_code,
         )
         db.add(booking)
         db.flush()
@@ -201,6 +205,8 @@ class ClorianSyncService:
             booking.customer_id = customer_id
         if tour_id and booking.tour_id != tour_id:
             booking.tour_id = tour_id
+        if cb.requested_language_code and booking.requested_language_code != cb.requested_language_code:
+            booking.requested_language_code = cb.requested_language_code
 
         version = BookingVersion(
             booking_id=booking.booking_id,

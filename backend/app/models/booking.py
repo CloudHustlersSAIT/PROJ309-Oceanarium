@@ -13,6 +13,7 @@ class Booking(Base):
     clorian_booking_id = Column(String, nullable=False, unique=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
     tour_id = Column(Integer, ForeignKey("tours.id"), nullable=True)
+    requested_language_code = Column(String, nullable=True)
     created_at = Column(
         DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )

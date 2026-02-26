@@ -1,4 +1,4 @@
-from .guide import Guide, Language, Expertise, guide_language, guide_expertise, guide_tour_type
+from .guide import Guide, Language, guide_language, guide_tour_type
 from .availability import AvailabilityPattern, AvailabilitySlot, AvailabilityException
 from .tour import Tour
 from .audit_log import TourAssignmentLog
@@ -18,9 +18,7 @@ from .survey import Survey
 __all__ = [
     "Guide",
     "Language",
-    "Expertise",
     "guide_language",
-    "guide_expertise",
     "guide_tour_type",
     "AvailabilityPattern",
     "AvailabilitySlot",

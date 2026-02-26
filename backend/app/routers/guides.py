@@ -10,7 +10,7 @@ from ..models.availability import (
     AvailabilityPattern,
     AvailabilitySlot,
 )
-from ..models.guide import Expertise, Guide, Language
+from ..models.guide import Guide, Language
 from ..models.tour import Tour
 from ..schemas.guide import (
     AvailabilitySetIn,
@@ -43,7 +43,6 @@ def create_guide(payload: GuideCreate, db: Session = Depends(get_db)):
     db.flush()
 
     _sync_languages(db, guide, payload.languages)
-    _sync_expertises(db, guide, payload.expertises)
     _sync_tour_types(db, guide, payload.tour_type_ids)
 
     db.commit()
@@ -82,10 +81,6 @@ def update_guide(guide_id: int, payload: GuideUpdate, db: Session = Depends(get_
     if payload.languages is not None:
         guide.languages.clear()
         _sync_languages(db, guide, payload.languages)
-
-    if payload.expertises is not None:
-        guide.expertises.clear()
-        _sync_expertises(db, guide, payload.expertises)
 
     if payload.tour_type_ids is not None:
         guide.tour_types.clear()
@@ -149,16 +144,6 @@ def _sync_languages(db, guide, language_codes):
         guide.languages.append(lang)
 
 
-def _sync_expertises(db, guide, expertises):
-    for exp_in in expertises:
-        exp = db.query(Expertise).filter(Expertise.name == exp_in.name).first()
-        if not exp:
-            exp = Expertise(name=exp_in.name, category=exp_in.category)
-            db.add(exp)
-            db.flush()
-        guide.expertises.append(exp)
-
-
 def _sync_tour_types(db, guide, tour_type_ids):
     for tid in tour_type_ids:
         tour = db.query(Tour).filter(Tour.id == tid).first()
@@ -176,9 +161,6 @@ def _guide_to_dict(guide: Guide) -> dict:
         "guide_rating": float(guide.guide_rating) if guide.guide_rating else 0,
         "is_active": guide.is_active,
         "languages": [{"id": l.id, "code": l.code, "name": l.name} for l in guide.languages],
-        "expertises": [
-            {"id": e.id, "name": e.name, "category": e.category} for e in guide.expertises
-        ],
         "tour_types": [{"id": t.id, "name": t.name} for t in guide.tour_types],
     }
     if guide.availability_pattern:

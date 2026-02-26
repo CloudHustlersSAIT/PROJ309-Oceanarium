@@ -162,3 +162,48 @@ def test_booking_without_tour_skips_tour_type_check(db):
 
     result = find_eligible_guides(booking.latest_version, db)
     assert len(result) == 1
+
+
+# -- Language Matching --
+
+
+def test_guide_with_matching_language_eligible(db):
+    guide = make_guide(db, language_codes=["en", "pt"])
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(17, 0)},
+    ])
+    booking = make_booking(
+        db, booking_date=date(2026, 3, 2), requested_language_code="pt",
+    )
+    db.commit()
+
+    result = find_eligible_guides(booking.latest_version, db)
+    assert len(result) == 1
+
+
+def test_guide_without_matching_language_excluded(db):
+    guide = make_guide(db, language_codes=["en"])
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(17, 0)},
+    ])
+    booking = make_booking(
+        db, booking_date=date(2026, 3, 2), requested_language_code="fr",
+    )
+    db.commit()
+
+    result = find_eligible_guides(booking.latest_version, db)
+    assert len(result) == 0
+
+
+def test_booking_without_language_skips_language_check(db):
+    guide = make_guide(db, language_codes=["en"])
+    make_availability(db, guide, slots=[
+        {"day_of_week": 0, "start_time": time(8, 0), "end_time": time(17, 0)},
+    ])
+    booking = make_booking(
+        db, booking_date=date(2026, 3, 2), requested_language_code=None,
+    )
+    db.commit()
+
+    result = find_eligible_guides(booking.latest_version, db)
+    assert len(result) == 1

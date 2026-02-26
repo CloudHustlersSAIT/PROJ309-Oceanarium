@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.db import Base
 from app.models import (  # noqa: F401 — ensure all models are registered
-    Guide, Language, Expertise, guide_language, guide_expertise, guide_tour_type,
+    Guide, Language, guide_language, guide_tour_type,
     AvailabilityPattern, AvailabilitySlot, AvailabilityException,
     Tour, TourAssignmentLog, SyncLog,
     Booking, BookingVersion, Issue,
