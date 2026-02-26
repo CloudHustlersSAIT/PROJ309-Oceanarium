@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
+import OceanError from '../components/OceanError.vue'
 import { getBookings, cancelBooking, rescheduleBooking } from '../services/api'
 
 const bookings = ref([])
@@ -185,9 +186,7 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Error -->
-        <div v-else-if="error" class="text-red-600 text-sm sm:text-base py-4">
-          Error: {{ error }}
-        </div>
+        <OceanError v-else-if="error" :details="error" @retry="loadBookings" />
 
         <!-- Empty state -->
         <div
