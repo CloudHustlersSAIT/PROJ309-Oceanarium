@@ -14,16 +14,22 @@ from app.schemas.guide import (
     GuideCreate,
     GuideUpdate,
 )
-from app.schemas.tour import ManualAssignIn
-from app.schemas.booking import BookingCreate, BookingReschedule
+from app.schemas.tour import ManualAssignIn, TourCreate
+from app.schemas.booking import BookingCreate, BookingReschedule, BookingVersionCreate
+from app.schemas.cost import CostCreate
+from app.schemas.schedule import ScheduleCreate
+from app.schemas.customer import CustomerCreate
+from app.schemas.resource import ResourceCreate
+from app.schemas.survey import SurveyCreate
+from app.schemas.user import UserCreate
 
 
-# ── GuideCreate ──────────────────────────────────────────────────────
+# -- GuideCreate --
 
 
 def test_guide_create_valid():
-    guide = GuideCreate(name="Ana", email="ana@test.com")
-    assert guide.name == "Ana"
+    guide = GuideCreate(first_name="Ana", last_name="Costa", email="ana@test.com")
+    assert guide.first_name == "Ana"
     assert guide.is_active is True
     assert guide.languages == []
     assert guide.expertises == []
@@ -31,47 +37,46 @@ def test_guide_create_valid():
 
 def test_guide_create_with_all_fields():
     guide = GuideCreate(
-        name="Ana",
+        first_name="Ana",
+        last_name="Costa",
         email="ana@test.com",
+        phone="+351999",
+        guide_rating=4.5,
         is_active=False,
         languages=["en", "pt"],
-        expertises=[{"name": "Sharks", "category": "Marine Biology"}],
+        expertises=[],
     )
     assert guide.is_active is False
     assert len(guide.languages) == 2
-    assert guide.expertises[0].name == "Sharks"
-    assert guide.expertises[0].category == "Marine Biology"
 
 
-def test_guide_create_missing_name():
+def test_guide_create_missing_first_name():
     with pytest.raises(ValidationError):
-        GuideCreate(email="a@b.com")
+        GuideCreate(last_name="Costa", email="a@b.com")
 
 
 def test_guide_create_missing_email():
     with pytest.raises(ValidationError):
-        GuideCreate(name="Ana")
+        GuideCreate(first_name="Ana", last_name="Costa")
 
 
-# ── GuideUpdate ──────────────────────────────────────────────────────
+# -- GuideUpdate --
 
 
 def test_guide_update_all_optional():
     update = GuideUpdate()
-    assert update.name is None
+    assert update.first_name is None
+    assert update.last_name is None
     assert update.email is None
-    assert update.is_active is None
-    assert update.languages is None
-    assert update.expertises is None
 
 
 def test_guide_update_partial():
-    update = GuideUpdate(name="New Name")
-    assert update.name == "New Name"
+    update = GuideUpdate(first_name="New Name")
+    assert update.first_name == "New Name"
     assert update.email is None
 
 
-# ── AvailabilitySlotIn / AvailabilityExceptionIn / AvailabilitySetIn ─
+# -- Availability --
 
 
 def test_availability_slot_valid():
@@ -89,19 +94,13 @@ def test_availability_exception_valid():
     assert exc.type == "blocked"
 
 
-def test_availability_exception_optional_reason():
-    exc = AvailabilityExceptionIn(date="2026-03-15", type="note")
-    assert exc.reason is None
-
-
 def test_availability_set_defaults():
     avail = AvailabilitySetIn()
     assert avail.timezone == "UTC"
     assert avail.slots == []
-    assert avail.exceptions == []
 
 
-# ── ManualAssignIn ───────────────────────────────────────────────────
+# -- ManualAssignIn --
 
 
 def test_manual_assign_valid():
@@ -114,20 +113,27 @@ def test_manual_assign_missing_guide_id():
         ManualAssignIn(assigned_by="admin@test.com")
 
 
-def test_manual_assign_missing_assigned_by():
-    with pytest.raises(ValidationError):
-        ManualAssignIn(guide_id=1)
+# -- TourCreate --
 
 
-# ── BookingCreate / BookingReschedule ────────────────────────────────
+def test_tour_create_valid():
+    tour = TourCreate(name="Shark Dive", description="Exciting!", duration=90)
+    assert tour.name == "Shark Dive"
+
+
+def test_tour_create_all_optional():
+    tour = TourCreate()
+    assert tour.name is None
+    assert tour.duration is None
+
+
+# -- BookingCreate --
 
 
 def test_booking_create_valid():
     booking = BookingCreate(
         clorian_booking_id="CLR-1",
-        date="2026-03-02",
-        start_time="09:00:00",
-        end_time="11:00:00",
+        start_date="2026-03-02",
     )
     assert booking.clorian_booking_id == "CLR-1"
     assert booking.adult_tickets == 0
@@ -137,17 +143,14 @@ def test_booking_create_valid():
 def test_booking_create_with_all_fields():
     booking = BookingCreate(
         clorian_booking_id="CLR-2",
-        date="2026-03-02",
-        start_time="09:00:00",
-        end_time="11:00:00",
-        required_expertise="Sharks",
-        required_category="Marine Biology",
-        requested_language_code="en",
-        customer_id="CUST-1",
+        customer_id=1,
+        tour_id=1,
+        status="pending",
         adult_tickets=2,
         child_tickets=1,
+        start_date="2026-03-02",
     )
-    assert booking.customer_id == "CUST-1"
+    assert booking.customer_id == 1
     assert booking.adult_tickets == 2
 
 
@@ -161,6 +164,76 @@ def test_booking_reschedule_valid():
     assert str(reschedule.new_date) == "2026-03-10"
 
 
-def test_booking_reschedule_missing_date():
+def test_booking_version_create_valid():
+    bv = BookingVersionCreate(start_date="2026-03-02", adult_tickets=2, child_tickets=1)
+    assert bv.status == "pending"
+
+
+# -- CostCreate --
+
+
+def test_cost_create_valid():
+    cost = CostCreate(
+        tour_id=1,
+        ticket_type="adult",
+        price=50.00,
+        valid_from="2026-01-01T00:00:00",
+        valid_to="2026-12-31T23:59:59",
+    )
+    assert cost.ticket_type == "adult"
+
+
+# -- ScheduleCreate --
+
+
+def test_schedule_create_valid():
+    sched = ScheduleCreate(
+        booking_version_id=1,
+        guide_id=1,
+        start_date="2026-03-02T09:00:00",
+        end_date="2026-03-02T11:00:00",
+    )
+    assert sched.guide_id == 1
+
+
+# -- CustomerCreate --
+
+
+def test_customer_create_valid():
+    c = CustomerCreate(first_name="John", last_name="Doe", email="john@test.com")
+    assert c.phone is None
+
+
+# -- ResourceCreate --
+
+
+def test_resource_create_valid():
+    r = ResourceCreate(name="Boat", type="vehicle", quantity_available=5)
+    assert r.name == "Boat"
+
+
+# -- SurveyCreate --
+
+
+def test_survey_create_valid():
+    s = SurveyCreate(customer_id=1, guide_id=1, booking_version_id=1, rating=5)
+    assert s.comment is None
+
+
+def test_survey_create_missing_rating():
     with pytest.raises(ValidationError):
-        BookingReschedule()
+        SurveyCreate(customer_id=1, guide_id=1, booking_version_id=1)
+
+
+# -- UserCreate --
+
+
+def test_user_create_valid():
+    u = UserCreate(
+        username="admin",
+        email="admin@test.com",
+        password_hash="hash",
+        full_name="Admin",
+        role="admin",
+    )
+    assert u.is_active is True

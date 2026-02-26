@@ -1,56 +1,61 @@
 import logging
-from datetime import date, time
+from datetime import date, datetime
 from typing import Dict, List
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..models.availability import AvailabilityException, AvailabilitySlot
+from ..models.booking_version import BookingVersion
 from ..models.guide import Guide
+from ..models.schedule import Schedule
 from ..models.tour import Tour
 
 logger = logging.getLogger(__name__)
 
 
-def find_eligible_guides(tour: Tour, db: Session) -> List[Guide]:
-    """Find all guides eligible for a tour, sorted by fewest assignments that day.
+def find_eligible_guides(
+    booking_version: BookingVersion, db: Session
+) -> List[Guide]:
+    """Find all guides eligible for a booking version, sorted by fewest assignments that day.
 
-    A guide is eligible only if ALL three rules pass (AND logic):
-      Rule 1: Available (slot covers window, no blocking exception, no overlap, active)
-      Rule 2: Has matching expertise (by name or category)
-      Rule 3: Speaks the requested language
+    A guide is eligible only if ALL rules pass (AND logic):
+      Rule 1: Available (slot covers the day, no blocking exception, no overlap, active)
+      Rule 2: Can lead this tour type (via guide_tour_types)
     """
     active_guides = db.query(Guide).filter(Guide.is_active.is_(True)).all()
 
+    tour_id = None
+    if booking_version.booking:
+        tour_id = booking_version.booking.tour_id
+
     eligible: List[Guide] = []
     for guide in active_guides:
-        if not _check_availability(guide, tour, db):
+        if not _check_availability(guide, booking_version, db):
             continue
-        if not _check_expertise(guide, tour):
-            continue
-        if not _check_language(guide, tour):
+        if tour_id and not _check_tour_type(guide, tour_id):
             continue
         eligible.append(guide)
 
-    tour_counts = _batch_count_tours_on_date(
-        [g.id for g in eligible], tour.date, db
+    schedule_counts = _batch_count_schedules_on_date(
+        [g.id for g in eligible], booking_version.start_date, db
     )
-    eligible.sort(key=lambda g: tour_counts.get(g.id, 0))
+    eligible.sort(key=lambda g: schedule_counts.get(g.id, 0))
 
     return eligible
 
 
-def _check_availability(guide: Guide, tour: Tour, db: Session) -> bool:
+def _check_availability(
+    guide: Guide, booking_version: BookingVersion, db: Session
+) -> bool:
     pattern = guide.availability_pattern
     if pattern is None:
         return False
 
-    tour_day = tour.date.weekday()  # 0=Monday ... 6=Sunday
+    bv_day = booking_version.start_date.weekday()
 
     has_covering_slot = any(
-        slot.day_of_week == tour_day
-        and slot.start_time <= tour.start_time
-        and slot.end_time >= tour.end_time
+        slot.day_of_week == bv_day
         for slot in pattern.slots
     )
     if not has_covering_slot:
@@ -60,7 +65,7 @@ def _check_availability(guide: Guide, tour: Tour, db: Session) -> bool:
         db.query(AvailabilityException)
         .filter(
             AvailabilityException.pattern_id == pattern.id,
-            AvailabilityException.date == tour.date,
+            AvailabilityException.date == booking_version.start_date,
             AvailabilityException.type == "blocked",
         )
         .first()
@@ -68,15 +73,14 @@ def _check_availability(guide: Guide, tour: Tour, db: Session) -> bool:
     if has_blocking:
         return False
 
+    start_dt = datetime.combine(booking_version.start_date, datetime.min.time())
+    end_dt = datetime.combine(booking_version.start_date, datetime.max.time())
     overlapping = (
-        db.query(Tour)
+        db.query(Schedule)
         .filter(
-            Tour.assigned_guide_id == guide.id,
-            Tour.date == tour.date,
-            Tour.id != tour.id,
-            Tour.status != "cancelled",
-            Tour.start_time < tour.end_time,
-            Tour.end_time > tour.start_time,
+            Schedule.guide_id == guide.id,
+            Schedule.start_date < end_dt,
+            Schedule.end_date > start_dt,
         )
         .first()
     )
@@ -86,43 +90,28 @@ def _check_availability(guide: Guide, tour: Tour, db: Session) -> bool:
     return True
 
 
-def _check_expertise(guide: Guide, tour: Tour) -> bool:
-    if not tour.required_expertise and not tour.required_category:
-        return True
-
-    for exp in guide.expertises:
-        if tour.required_expertise and exp.name == tour.required_expertise:
+def _check_tour_type(guide: Guide, tour_id: int) -> bool:
+    for tour in guide.tour_types:
+        if tour.id == tour_id:
             return True
-        if tour.required_category and exp.category == tour.required_category:
-            return True
-
     return False
 
 
-def _check_language(guide: Guide, tour: Tour) -> bool:
-    if not tour.requested_language_code:
-        return True
-
-    for lang in guide.languages:
-        if lang.code == tour.requested_language_code:
-            return True
-
-    return False
-
-
-def _batch_count_tours_on_date(
-    guide_ids: List[int], tour_date: date, db: Session
+def _batch_count_schedules_on_date(
+    guide_ids: List[int], schedule_date: date, db: Session
 ) -> Dict[int, int]:
     if not guide_ids:
         return {}
+    start_dt = datetime.combine(schedule_date, datetime.min.time())
+    end_dt = datetime.combine(schedule_date, datetime.max.time())
     rows = (
-        db.query(Tour.assigned_guide_id, func.count(Tour.id))
+        db.query(Schedule.guide_id, func.count(Schedule.id))
         .filter(
-            Tour.assigned_guide_id.in_(guide_ids),
-            Tour.date == tour_date,
-            Tour.status != "cancelled",
+            Schedule.guide_id.in_(guide_ids),
+            Schedule.start_date >= start_dt,
+            Schedule.start_date < end_dt,
         )
-        .group_by(Tour.assigned_guide_id)
+        .group_by(Schedule.guide_id)
         .all()
     )
     return {guide_id: count for guide_id, count in rows}

@@ -1,10 +1,19 @@
-from .guide import Guide, Language, Expertise, guide_language, guide_expertise
+from .guide import Guide, Language, Expertise, guide_language, guide_expertise, guide_tour_type
 from .availability import AvailabilityPattern, AvailabilitySlot, AvailabilityException
 from .tour import Tour
 from .audit_log import TourAssignmentLog
 from .sync_log import SyncLog
 from .booking import Booking
+from .booking_version import BookingVersion
 from .issue import Issue
+from .user import User
+from .customer import Customer
+from .resource import Resource
+from .poll_execution import PollExecution
+from .cost import Cost
+from .tour_resource import TourResource
+from .schedule import Schedule
+from .survey import Survey
 
 __all__ = [
     "Guide",
@@ -12,6 +21,7 @@ __all__ = [
     "Expertise",
     "guide_language",
     "guide_expertise",
+    "guide_tour_type",
     "AvailabilityPattern",
     "AvailabilitySlot",
     "AvailabilityException",
@@ -19,5 +29,14 @@ __all__ = [
     "TourAssignmentLog",
     "SyncLog",
     "Booking",
+    "BookingVersion",
     "Issue",
+    "User",
+    "Customer",
+    "Resource",
+    "PollExecution",
+    "Cost",
+    "TourResource",
+    "Schedule",
+    "Survey",
 ]

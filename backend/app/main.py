@@ -12,13 +12,19 @@ from .jobs.sync_scheduler import init_sync_service, run_sync_job
 from .routers import (
     assignments,
     bookings,
+    costs,
+    customers,
     guides,
     health,
     issues,
     notifications,
+    resources,
+    schedules,
     stats,
+    surveys,
     sync,
     tours,
+    users,
 )
 
 
@@ -69,6 +75,12 @@ def create_app() -> FastAPI:
     app.include_router(tours.router)
     app.include_router(assignments.router)
     app.include_router(bookings.router)
+    app.include_router(costs.router)
+    app.include_router(customers.router)
+    app.include_router(resources.router)
+    app.include_router(schedules.router)
+    app.include_router(surveys.router)
+    app.include_router(users.router)
     app.include_router(issues.router)
     app.include_router(stats.router)
     app.include_router(notifications.router)

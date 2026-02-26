@@ -48,8 +48,11 @@ class AvailabilityPatternOut(BaseModel):
 
 class GuideOut(BaseModel):
     id: int
-    name: str
+    first_name: str
+    last_name: str
     email: str
+    phone: str = ""
+    guide_rating: Optional[float] = 0
     is_active: bool
     languages: List[LanguageOut] = []
     expertises: List[ExpertiseOut] = []
@@ -64,19 +67,27 @@ class ExpertiseIn(BaseModel):
 
 
 class GuideCreate(BaseModel):
-    name: str
+    first_name: str
+    last_name: str
     email: str
+    phone: str = ""
+    guide_rating: Optional[float] = 0
     is_active: bool = True
     languages: List[str] = []
     expertises: List[ExpertiseIn] = []
+    tour_type_ids: List[int] = []
 
 
 class GuideUpdate(BaseModel):
-    name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     email: Optional[str] = None
+    phone: Optional[str] = None
+    guide_rating: Optional[float] = None
     is_active: Optional[bool] = None
     languages: Optional[List[str]] = None
     expertises: Optional[List[ExpertiseIn]] = None
+    tour_type_ids: Optional[List[int]] = None
 
 
 class AvailabilitySlotIn(BaseModel):

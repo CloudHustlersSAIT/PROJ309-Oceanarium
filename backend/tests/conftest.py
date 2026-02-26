@@ -1,5 +1,5 @@
 import os
-from datetime import date, time
+from datetime import date, datetime, time, timezone
 
 import pytest
 from sqlalchemy import create_engine
@@ -14,9 +14,17 @@ from app.models.availability import (
     AvailabilitySlot,
 )
 from app.models.booking import Booking
+from app.models.booking_version import BookingVersion
+from app.models.cost import Cost
+from app.models.customer import Customer
 from app.models.guide import Expertise, Guide, Language
 from app.models.issue import Issue
+from app.models.poll_execution import PollExecution
+from app.models.resource import Resource
+from app.models.schedule import Schedule
+from app.models.survey import Survey
 from app.models.tour import Tour
+from app.models.user import User
 
 TEST_DB_URL = "sqlite:///test_runner.db"
 
@@ -57,12 +65,16 @@ def client(db):
 
 def make_guide(
     db,
-    name="Test Guide",
+    first_name="Test",
+    last_name="Guide",
     email=None,
+    phone="",
+    guide_rating=0,
     is_active=True,
     language_codes=None,
     expertise_names=None,
     expertise_categories=None,
+    tour_type_ids=None,
 ):
     if email is None:
         import uuid
@@ -74,7 +86,14 @@ def make_guide(
     if expertise_categories is None:
         expertise_categories = ["Marine Biology"] * len(expertise_names)
 
-    guide = Guide(name=name, email=email, is_active=is_active)
+    guide = Guide(
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        phone=phone,
+        guide_rating=guide_rating,
+        is_active=is_active,
+    )
     db.add(guide)
     db.flush()
 
@@ -94,6 +113,12 @@ def make_guide(
             db.flush()
         guide.expertises.append(exp)
 
+    if tour_type_ids:
+        for tid in tour_type_ids:
+            tour = db.query(Tour).filter(Tour.id == tid).first()
+            if tour:
+                guide.tour_types.append(tour)
+
     db.flush()
     return guide
 
@@ -101,11 +126,11 @@ def make_guide(
 def make_availability(
     db,
     guide,
-    timezone="UTC",
+    timezone_str="UTC",
     slots=None,
     exceptions=None,
 ):
-    pattern = AvailabilityPattern(guide_id=guide.id, timezone=timezone)
+    pattern = AvailabilityPattern(guide_id=guide.id, timezone=timezone_str)
     db.add(pattern)
     db.flush()
 
@@ -135,36 +160,14 @@ def make_availability(
 
 def make_tour(
     db,
-    clorian_booking_id=None,
-    tour_date=None,
-    start_time=None,
-    end_time=None,
-    required_expertise="Sharks",
-    required_category="Marine Biology",
-    requested_language_code="en",
-    status="pending",
-    assigned_guide_id=None,
+    name="Shark Diving",
+    description="An exciting shark tour",
+    duration=120,
 ):
-    if clorian_booking_id is None:
-        import uuid
-        clorian_booking_id = f"CLR-{uuid.uuid4().hex[:6]}"
-    if tour_date is None:
-        tour_date = date(2026, 3, 2)  # Monday
-    if start_time is None:
-        start_time = time(9, 0)
-    if end_time is None:
-        end_time = time(11, 0)
-
     tour = Tour(
-        clorian_booking_id=clorian_booking_id,
-        date=tour_date,
-        start_time=start_time,
-        end_time=end_time,
-        required_expertise=required_expertise,
-        required_category=required_category,
-        requested_language_code=requested_language_code,
-        status=status,
-        assigned_guide_id=assigned_guide_id,
+        name=name,
+        description=description,
+        duration=duration,
     )
     db.add(tour)
     db.flush()
@@ -174,36 +177,158 @@ def make_tour(
 def make_booking(
     db,
     clorian_booking_id=None,
-    booking_date=None,
-    start_time=None,
-    end_time=None,
-    required_expertise="Sharks",
-    required_category="Marine Biology",
-    requested_language_code="en",
-    status="pending",
+    customer_id=None,
     tour_id=None,
+    booking_date=None,
+    adult_tickets=0,
+    child_tickets=0,
+    status="pending",
 ):
     if clorian_booking_id is None:
         import uuid
         clorian_booking_id = f"CLR-{uuid.uuid4().hex[:6]}"
     if booking_date is None:
         booking_date = date(2026, 3, 2)
-    if start_time is None:
-        start_time = time(9, 0)
-    if end_time is None:
-        end_time = time(11, 0)
 
     booking = Booking(
         clorian_booking_id=clorian_booking_id,
-        date=booking_date,
-        start_time=start_time,
-        end_time=end_time,
-        required_expertise=required_expertise,
-        required_category=required_category,
-        requested_language_code=requested_language_code,
-        status=status,
+        customer_id=customer_id,
         tour_id=tour_id,
     )
     db.add(booking)
     db.flush()
+
+    import hashlib
+    raw = f"{booking.booking_id}|{status}|{adult_tickets}|{child_tickets}|{booking_date}"
+    version_hash = hashlib.md5(raw.encode()).hexdigest()
+
+    version = BookingVersion(
+        booking_id=booking.booking_id,
+        hash=version_hash,
+        status=status,
+        adult_tickets=adult_tickets,
+        child_tickets=child_tickets,
+        start_date=booking_date,
+        valid_from=datetime.now(timezone.utc),
+    )
+    db.add(version)
+    db.flush()
+
     return booking
+
+
+def make_booking_version(
+    db,
+    booking_id,
+    status="pending",
+    adult_tickets=0,
+    child_tickets=0,
+    start_date=None,
+    poll_execution_id=None,
+):
+    if start_date is None:
+        start_date = date(2026, 3, 2)
+
+    import hashlib
+    raw = f"{booking_id}|{status}|{adult_tickets}|{child_tickets}|{start_date}"
+    version_hash = hashlib.md5(raw.encode()).hexdigest()
+
+    version = BookingVersion(
+        booking_id=booking_id,
+        hash=version_hash,
+        status=status,
+        adult_tickets=adult_tickets,
+        child_tickets=child_tickets,
+        start_date=start_date,
+        valid_from=datetime.now(timezone.utc),
+        poll_execution_id=poll_execution_id,
+    )
+    db.add(version)
+    db.flush()
+    return version
+
+
+def make_poll_execution(db, status="success"):
+    pe = PollExecution(
+        window_start=datetime.now(timezone.utc),
+        window_end=datetime.now(timezone.utc),
+        status=status,
+    )
+    db.add(pe)
+    db.flush()
+    return pe
+
+
+def make_customer(db, first_name="John", last_name="Doe", email="john@test.com", phone=None):
+    customer = Customer(
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        phone=phone,
+    )
+    db.add(customer)
+    db.flush()
+    return customer
+
+
+def make_resource(db, name="Boat", type_name="vehicle", quantity_available=5):
+    resource = Resource(
+        name=name,
+        type=type_name,
+        quantity_available=quantity_available,
+    )
+    db.add(resource)
+    db.flush()
+    return resource
+
+
+def make_cost(db, tour_id, ticket_type="adult", price=50.00):
+    cost = Cost(
+        tour_id=tour_id,
+        ticket_type=ticket_type,
+        price=price,
+        valid_from=datetime.now(timezone.utc),
+        valid_to=datetime(2027, 12, 31, tzinfo=timezone.utc),
+    )
+    db.add(cost)
+    db.flush()
+    return cost
+
+
+def make_schedule(db, booking_version_id, guide_id, resource_id=None):
+    schedule = Schedule(
+        booking_version_id=booking_version_id,
+        guide_id=guide_id,
+        resource_id=resource_id,
+        start_date=datetime.now(timezone.utc),
+        end_date=datetime.now(timezone.utc),
+    )
+    db.add(schedule)
+    db.flush()
+    return schedule
+
+
+def make_survey(db, customer_id, guide_id, booking_version_id, rating=5, comment=None):
+    survey = Survey(
+        customer_id=customer_id,
+        guide_id=guide_id,
+        booking_version_id=booking_version_id,
+        rating=rating,
+        comment=comment,
+    )
+    db.add(survey)
+    db.flush()
+    return survey
+
+
+def make_user(db, username="admin", email="admin@test.com", role="admin"):
+    user = User(
+        username=username,
+        email=email,
+        password_hash="hashed_password",
+        full_name="Admin User",
+        role=role,
+    )
+    db.add(user)
+    db.flush()
+    return user

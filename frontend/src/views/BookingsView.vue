@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
-import { getBookings, completeBooking, cancelBooking, rescheduleBooking } from '../services/api'
+import { getBookings, cancelBooking, rescheduleBooking } from '../services/api'
 
 const bookings = ref([])
 const loading = ref(false)
@@ -65,12 +65,7 @@ async function loadBookings() {
 
 async function handleComplete(bookingId) {
   closeMenu()
-  try {
-    await completeBooking(bookingId)
-    await loadBookings()
-  } catch (e) {
-    alert('Failed to complete booking')
-  }
+  alert('Complete action not yet implemented for versioned bookings')
 }
 
 async function handleCancel(bookingId) {

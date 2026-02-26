@@ -1,9 +1,7 @@
-import logging
 from datetime import date as date_type
 from datetime import time
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -13,6 +11,7 @@ from ..models.availability import (
     AvailabilitySlot,
 )
 from ..models.guide import Expertise, Guide, Language
+from ..models.tour import Tour
 from ..schemas.guide import (
     AvailabilitySetIn,
     GuideCreate,
@@ -21,50 +20,31 @@ from ..schemas.guide import (
 )
 from ..services.clorian_sync import assign_unassigned_bookings
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/guides", tags=["Guides"])
 
 
-@router.get("", response_model=list[GuideOut])
+@router.get("", response_model=list)
 def list_guides(db: Session = Depends(get_db)):
     guides = db.query(Guide).all()
     return [_guide_to_dict(g) for g in guides]
 
 
-def _upsert_expertise(db: Session, name: str, category: str) -> Expertise:
-    exp = db.query(Expertise).filter(Expertise.name == name).first()
-    if not exp:
-        exp = Expertise(name=name, category=category)
-        db.add(exp)
-        db.flush()
-    return exp
-
-
 @router.post("", status_code=201)
 def create_guide(payload: GuideCreate, db: Session = Depends(get_db)):
-    guide = Guide(name=payload.name, email=payload.email, is_active=payload.is_active)
+    guide = Guide(
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        email=payload.email,
+        phone=payload.phone,
+        guide_rating=payload.guide_rating,
+        is_active=payload.is_active,
+    )
     db.add(guide)
-    try:
-        db.flush()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail=f"A guide with email '{payload.email}' already exists",
-        )
+    db.flush()
 
-    for code in payload.languages:
-        lang = db.query(Language).filter(Language.code == code).first()
-        if not lang:
-            lang = Language(code=code, name=code)
-            db.add(lang)
-            db.flush()
-        guide.languages.append(lang)
-
-    for exp in payload.expertises:
-        expertise = _upsert_expertise(db, exp.name, exp.category)
-        guide.expertises.append(expertise)
+    _sync_languages(db, guide, payload.languages)
+    _sync_expertises(db, guide, payload.expertises)
+    _sync_tour_types(db, guide, payload.tour_type_ids)
 
     db.commit()
     db.refresh(guide)
@@ -86,28 +66,30 @@ def update_guide(guide_id: int, payload: GuideUpdate, db: Session = Depends(get_
     if not guide:
         raise HTTPException(status_code=404, detail="Guide not found")
 
-    if payload.name is not None:
-        guide.name = payload.name
+    if payload.first_name is not None:
+        guide.first_name = payload.first_name
+    if payload.last_name is not None:
+        guide.last_name = payload.last_name
     if payload.email is not None:
         guide.email = payload.email
+    if payload.phone is not None:
+        guide.phone = payload.phone
+    if payload.guide_rating is not None:
+        guide.guide_rating = payload.guide_rating
     if payload.is_active is not None:
         guide.is_active = payload.is_active
 
     if payload.languages is not None:
         guide.languages.clear()
-        for code in payload.languages:
-            lang = db.query(Language).filter(Language.code == code).first()
-            if not lang:
-                lang = Language(code=code, name=code)
-                db.add(lang)
-                db.flush()
-            guide.languages.append(lang)
+        _sync_languages(db, guide, payload.languages)
 
     if payload.expertises is not None:
         guide.expertises.clear()
-        for exp in payload.expertises:
-            expertise = _upsert_expertise(db, exp.name, exp.category)
-            guide.expertises.append(expertise)
+        _sync_expertises(db, guide, payload.expertises)
+
+    if payload.tour_type_ids is not None:
+        guide.tour_types.clear()
+        _sync_tour_types(db, guide, payload.tour_type_ids)
 
     db.commit()
     db.refresh(guide)
@@ -132,21 +114,13 @@ def set_availability(
     db.flush()
 
     for s in payload.slots:
-        try:
-            parts_start = s.start_time.split(":")
-            parts_end = s.end_time.split(":")
-            start_time_obj = time(int(parts_start[0]), int(parts_start[1]))
-            end_time_obj = time(int(parts_end[0]), int(parts_end[1]))
-        except (ValueError, IndexError):
-            raise HTTPException(
-                status_code=422,
-                detail=f"Invalid time format '{s.start_time}' or '{s.end_time}'; expected 'HH:MM'",
-            )
+        parts_start = s.start_time.split(":")
+        parts_end = s.end_time.split(":")
         slot = AvailabilitySlot(
             pattern_id=pattern.id,
             day_of_week=s.day_of_week,
-            start_time=start_time_obj,
-            end_time=end_time_obj,
+            start_time=time(int(parts_start[0]), int(parts_start[1])),
+            end_time=time(int(parts_end[0]), int(parts_end[1])),
         )
         db.add(slot)
 
@@ -165,16 +139,47 @@ def set_availability(
     return _guide_to_dict(guide)
 
 
+def _sync_languages(db, guide, language_codes):
+    for code in language_codes:
+        lang = db.query(Language).filter(Language.code == code).first()
+        if not lang:
+            lang = Language(code=code, name=code)
+            db.add(lang)
+            db.flush()
+        guide.languages.append(lang)
+
+
+def _sync_expertises(db, guide, expertises):
+    for exp_in in expertises:
+        exp = db.query(Expertise).filter(Expertise.name == exp_in.name).first()
+        if not exp:
+            exp = Expertise(name=exp_in.name, category=exp_in.category)
+            db.add(exp)
+            db.flush()
+        guide.expertises.append(exp)
+
+
+def _sync_tour_types(db, guide, tour_type_ids):
+    for tid in tour_type_ids:
+        tour = db.query(Tour).filter(Tour.id == tid).first()
+        if tour and tour not in guide.tour_types:
+            guide.tour_types.append(tour)
+
+
 def _guide_to_dict(guide: Guide) -> dict:
     result = {
         "id": guide.id,
-        "name": guide.name,
+        "first_name": guide.first_name,
+        "last_name": guide.last_name,
         "email": guide.email,
+        "phone": guide.phone,
+        "guide_rating": float(guide.guide_rating) if guide.guide_rating else 0,
         "is_active": guide.is_active,
         "languages": [{"id": l.id, "code": l.code, "name": l.name} for l in guide.languages],
         "expertises": [
             {"id": e.id, "name": e.name, "category": e.category} for e in guide.expertises
         ],
+        "tour_types": [{"id": t.id, "name": t.name} for t in guide.tour_types],
     }
     if guide.availability_pattern:
         p = guide.availability_pattern

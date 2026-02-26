@@ -8,12 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 def _booking_payload(**overrides):
     defaults = {
         "clorian_booking_id": "CLR-API-001",
-        "date": "2026-03-02",
-        "start_time": "09:00:00",
-        "end_time": "11:00:00",
-        "required_expertise": "Sharks",
-        "required_category": "Marine Biology",
-        "requested_language_code": "en",
+        "start_date": "2026-03-02",
         "adult_tickets": 2,
         "child_tickets": 1,
     }
@@ -33,9 +28,9 @@ def test_create_booking(client, db):
     data = resp.json()
     assert data["clorian_booking_id"] == "CLR-API-001"
     assert data["status"] == "pending"
-    assert data["tour_id"] is None
     assert data["adult_tickets"] == 2
     assert data["child_tickets"] == 1
+    assert data["date"] == "2026-03-02"
 
 
 def test_create_booking_duplicate_rejected(client, db):
@@ -46,7 +41,6 @@ def test_create_booking_duplicate_rejected(client, db):
 
 def test_list_bookings_after_create(client, db):
     client.post("/bookings", json=_booking_payload())
-
     resp = client.get("/bookings")
     assert resp.status_code == 200
     data = resp.json()

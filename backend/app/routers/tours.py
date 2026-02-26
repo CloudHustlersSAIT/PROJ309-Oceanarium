@@ -3,24 +3,14 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models.tour import Tour
+from ..schemas.tour import TourCreate, TourUpdate
 
 router = APIRouter(prefix="/tours", tags=["Tours"])
 
 
 @router.get("")
 def list_tours(db: Session = Depends(get_db)):
-    tours = db.query(Tour).order_by(Tour.date, Tour.start_time).all()
-    return [_tour_to_dict(t) for t in tours]
-
-
-@router.get("/unassigned")
-def list_unassigned_tours(db: Session = Depends(get_db)):
-    tours = (
-        db.query(Tour)
-        .filter(Tour.status == "unassigned")
-        .order_by(Tour.date, Tour.start_time)
-        .all()
-    )
+    tours = db.query(Tour).all()
     return [_tour_to_dict(t) for t in tours]
 
 
@@ -32,17 +22,50 @@ def get_tour(tour_id: int, db: Session = Depends(get_db)):
     return _tour_to_dict(tour)
 
 
+@router.post("", status_code=201)
+def create_tour(payload: TourCreate, db: Session = Depends(get_db)):
+    tour = Tour(
+        name=payload.name,
+        description=payload.description,
+        duration=payload.duration,
+    )
+    db.add(tour)
+    db.commit()
+    db.refresh(tour)
+    return _tour_to_dict(tour)
+
+
+@router.patch("/{tour_id}")
+def update_tour(tour_id: int, payload: TourUpdate, db: Session = Depends(get_db)):
+    tour = db.query(Tour).filter(Tour.id == tour_id).first()
+    if not tour:
+        raise HTTPException(status_code=404, detail="Tour not found")
+
+    if payload.name is not None:
+        tour.name = payload.name
+    if payload.description is not None:
+        tour.description = payload.description
+    if payload.duration is not None:
+        tour.duration = payload.duration
+
+    db.commit()
+    db.refresh(tour)
+    return _tour_to_dict(tour)
+
+
+@router.delete("/{tour_id}", status_code=204)
+def delete_tour(tour_id: int, db: Session = Depends(get_db)):
+    tour = db.query(Tour).filter(Tour.id == tour_id).first()
+    if not tour:
+        raise HTTPException(status_code=404, detail="Tour not found")
+    db.delete(tour)
+    db.commit()
+
+
 def _tour_to_dict(tour: Tour) -> dict:
     return {
         "id": tour.id,
-        "clorian_booking_id": tour.clorian_booking_id,
-        "date": tour.date.isoformat(),
-        "start_time": tour.start_time.strftime("%H:%M"),
-        "end_time": tour.end_time.strftime("%H:%M"),
-        "required_expertise": tour.required_expertise,
-        "required_category": tour.required_category,
-        "requested_language_code": tour.requested_language_code,
-        "status": tour.status,
-        "assigned_guide_id": tour.assigned_guide_id,
-        "assigned_guide_name": tour.assigned_guide.name if tour.assigned_guide else None,
+        "name": tour.name,
+        "description": tour.description,
+        "duration": tour.duration,
     }

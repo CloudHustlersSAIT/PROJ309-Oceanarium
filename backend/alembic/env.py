@@ -13,10 +13,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.db import Base
 from app.models import (  # noqa: F401 — ensure all models are registered
-    Guide, Language, Expertise,
+    Guide, Language, Expertise, guide_language, guide_expertise, guide_tour_type,
     AvailabilityPattern, AvailabilitySlot, AvailabilityException,
     Tour, TourAssignmentLog, SyncLog,
-    Booking, Issue,
+    Booking, BookingVersion, Issue,
+    User, Customer, Resource, PollExecution,
+    Cost, TourResource, Schedule, Survey,
 )
 
 config = context.config
