@@ -19,6 +19,8 @@ const searchText = ref('')
 const showEvents = ref(false)
 const showTask = ref(false)
 const showAppointment = ref(false)
+const showBooking = ref(false)
+const showTour = ref(false)
 const showCreatePopup = ref(false)
 const createType = ref('event')
 const createAllDay = ref(false)
@@ -167,6 +169,8 @@ function syncQuickFilters() {
   if (showEvents.value) types.push('event')
   if (showTask.value) types.push('task')
   if (showAppointment.value) types.push('appointment')
+  if (showBooking.value) types.push('booking')
+  if (showTour.value) types.push('tour')
 
   calendar.setFilters({
     search: searchText.value,
@@ -174,7 +178,7 @@ function syncQuickFilters() {
   })
 }
 
-watch([searchText, showEvents, showTask, showAppointment], syncQuickFilters)
+watch([searchText, showEvents, showTask, showAppointment, showBooking, showTour], syncQuickFilters)
 
 watch(
   () => createForm.value.startTime,
@@ -267,6 +271,14 @@ onMounted(() => {
               <label class="flex items-center gap-2 text-sm text-gray-700">
                 <input v-model="showAppointment" type="checkbox" class="accent-blue-600" />
                 Appointment
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input v-model="showBooking" type="checkbox" class="accent-blue-600" />
+                Booking
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input v-model="showTour" type="checkbox" class="accent-blue-600" />
+                Tour
               </label>
             </div>
           </aside>
