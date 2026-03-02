@@ -49,8 +49,8 @@ const weekDays = computed(() => {
 })
 
 const daySlots = computed(() =>
-  Array.from({ length: 23 }, (_, i) => {
-    const hour = i + 1
+  Array.from({ length: 24 }, (_, i) => {
+    const hour = i
     return {
       key: `${String(hour).padStart(2, '0')}:00`,
       hour,
