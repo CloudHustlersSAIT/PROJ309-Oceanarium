@@ -1,7 +1,7 @@
 export function addMinutesToTime(time, minutesToAdd) {
   const [hour, minute] = time.split(':').map(Number)
   const totalMinutes = hour * 60 + minute + minutesToAdd
-  const clampedMinutes = Math.min(totalMinutes, 23 * 60 + 45)
+  const clampedMinutes = Math.min(totalMinutes, 23 * 60 + 59)
   const hh = String(Math.floor(clampedMinutes / 60)).padStart(2, '0')
   const mm = String(clampedMinutes % 60).padStart(2, '0')
   return `${hh}:${mm}`
