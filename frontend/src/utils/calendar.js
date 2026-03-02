@@ -40,7 +40,10 @@ export function toIsoFromParts(date, time) {
 }
 
 function csvCell(value) {
-  const safe = String(value ?? '')
+  let safe = String(value ?? '')
+  if (/^[=+\-@]/.test(safe)) {
+    safe = "'" + safe
+  }
   return `"${safe.replaceAll('"', '""')}"`
 }
 
