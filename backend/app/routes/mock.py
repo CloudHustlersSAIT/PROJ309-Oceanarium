@@ -1,3 +1,16 @@
+"""Mock poller route -- trigger a test-data generation run.
+
+This endpoint wraps the mock poller service in a database transaction.
+On success, the transaction auto-commits (via ``engine.begin()``).
+On ``SQLAlchemyError``, it attempts to mark the run as FAILED in a
+separate transaction before returning HTTP 500.
+
+Note: This route imports ``engine`` directly (the only route that does)
+because it needs ``engine.begin()`` for transaction management and a
+second connection for the failure-fallback write.  All other routes use
+``Depends(get_db)`` exclusively.
+"""
+
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
@@ -17,6 +30,12 @@ router = APIRouter(prefix="/mock", tags=["Mock Poller"])
 
 @router.post("/run", response_model=MockRunResponse)
 def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
+    """Execute one cycle of the mock poller: generate records, insert into staging.
+
+    On success returns a ``MockRunResponse`` summary.  On validation error
+    returns 400.  On database error returns 500 and attempts to mark the
+    run as FAILED.
+    """
     run_id: Optional[str] = None
 
     try:

@@ -1,3 +1,16 @@
+"""
+Oceanarium backend -- FastAPI application factory.
+
+This module creates the ``app`` instance, configures CORS, and registers
+all route modules.  It is the uvicorn entrypoint::
+
+    uvicorn app.main:app --reload
+
+Architecture: Routes and services are separated into ``routes/`` and
+``services/`` packages (ADR-002, Phase 1).  See ``backend/README.md``
+for the full layer guide and how to add new endpoints.
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
