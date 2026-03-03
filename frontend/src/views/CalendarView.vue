@@ -56,6 +56,10 @@ const endTimeOptions = computed(() => {
     options.push({ value: `${hh}:${mm}`, label: `${formatMinutesCompact(minutes)} ${minutesToDurationLabel(duration)}` })
   }
 
+  if (createForm.value.startTime === '23:45') {
+    options.push({ value: '23:59', label: `${formatMinutesCompact(23 * 60 + 59)} (${minutesToDurationLabel(14)})` })
+  }
+
   return options
 })
 
@@ -95,7 +99,7 @@ function saveCreatedEvent() {
     : toIsoFromParts(createForm.value.date, createForm.value.endTime)
 
   if (!createAllDay.value && new Date(end) <= new Date(start)) {
-    const fixedEndTime = addMinutesToTime(createForm.value.startTime, 15)
+    const fixedEndTime = createForm.value.startTime === '23:45' ? '23:59' : addMinutesToTime(createForm.value.startTime, 15)
     createForm.value.endTime = fixedEndTime
     end = toIsoFromParts(createForm.value.date, fixedEndTime)
   }
@@ -207,13 +211,7 @@ onMounted(() => {
         />
 
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white rounded-xl shadow-md p-3 border-1 border-blue-500">
-          <div class="flex flex-col gap-1">
-            <div class="text-sm text-gray-600">{{ calendar.loading ? 'Loading events...' : `${calendar.eventsInRange.length} events in range` }}</div>
-            <div v-if="calendar.error" class="text-xs text-red-600 font-medium">
-              Failed to load events: {{ calendar.error }}
-              <button class="ml-2 underline" @click="calendar.loadEvents()">Retry</button>
-            </div>
-          </div>
+          <div class="text-sm text-gray-600">{{ calendar.loading ? 'Loading events...' : `${calendar.eventsInRange.length} events in range` }}</div>
           <div class="flex items-center gap-2 flex-wrap">
             <button class="px-3 py-1.5 rounded border border-gray-300 text-sm" :class="bulkMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'" @click="bulkMode = !bulkMode">
               Bulk selection

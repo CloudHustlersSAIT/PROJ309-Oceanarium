@@ -55,7 +55,7 @@ function normalizeTour(tour) {
     resourceId: `guide-${tour.guide_id ?? tour.guide ?? 'unassigned'}`,
     resourceName: tour.guide || tour.guide_name || 'Unassigned Guide',
     status: 'scheduled',
-    type: 'event',
+    type: 'tour',
     priority: 'medium',
     conflictFlag: false,
     notes: '',
@@ -77,7 +77,7 @@ function normalizeBooking(booking) {
     resourceId: `guide-${booking.guide_id ?? booking.guide ?? 'unassigned'}`,
     resourceName: booking.guide || booking.guide_name || 'Unassigned Guide',
     status: booking.status || 'pending',
-    type: booking.type || 'appointment',
+    type: booking.type || 'booking',
     priority: booking.priority || 'medium',
     conflictFlag: false,
     notes: booking.notes || '',
@@ -288,15 +288,15 @@ export const useCalendarStore = defineStore('calendar', {
       Object.values(grouped).forEach((events) => {
         const sorted = [...events].sort((a, b) => new Date(a.start) - new Date(b.start))
         for (let i = 0; i < sorted.length; i += 1) {
-          const a = sorted[i]
-          const aStart = new Date(a.start)
-          const aEnd = new Date(a.end)
           for (let j = i + 1; j < sorted.length; j += 1) {
+            const a = sorted[i]
             const b = sorted[j]
-            const bStart = new Date(b.start)
-            if (bStart >= aEnd) break
-            const bEnd = new Date(b.end)
-            const doOverlap = overlaps(aStart, aEnd, bStart, bEnd)
+            const doOverlap = overlaps(
+              new Date(a.start),
+              new Date(a.end),
+              new Date(b.start),
+              new Date(b.end),
+            )
             if (doOverlap) {
               if (!conflicts[a.id]) conflicts[a.id] = { conflictWith: [] }
               if (!conflicts[b.id]) conflicts[b.id] = { conflictWith: [] }
