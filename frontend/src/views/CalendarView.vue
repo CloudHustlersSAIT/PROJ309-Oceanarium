@@ -166,6 +166,16 @@ function handleNavigatePrev() {
   calendar.navigate(-1)
 }
 
+function handleDeleteSelectedEvent() {
+  const selectedId = calendar.selectedEvent?.id
+  if (!selectedId) return
+
+  const confirmed = window.confirm('Delete selected event?')
+  if (!confirmed) return
+
+  calendar.deleteEvent(selectedId)
+}
+
 function syncQuickFilters() {
   const types = []
   if (showEvents.value) types.push('event')
@@ -215,6 +225,13 @@ onMounted(() => {
           <div class="flex items-center gap-2 flex-wrap">
             <button class="px-3 py-1.5 rounded border border-gray-300 text-sm" :class="bulkMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'" @click="bulkMode = !bulkMode">
               Bulk selection
+            </button>
+            <button
+              v-if="calendar.selectedEvent"
+              class="px-3 py-1.5 rounded bg-red-600 text-white text-sm"
+              @click="handleDeleteSelectedEvent"
+            >
+              Delete selected
             </button>
             <button
               v-if="bulkMode"
