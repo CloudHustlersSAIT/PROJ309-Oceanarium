@@ -22,6 +22,11 @@ engine = create_engine(DATABASE_URL, pool_pre_ping=True) #pool_pre_ping to avoid
 # Create a configured "Session" class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) #Used for CRUD operations
 
+def get_db():
+    with engine.connect() as conn:
+        yield conn
+
+
 #Test the connection
 def test_connection():
     try:
