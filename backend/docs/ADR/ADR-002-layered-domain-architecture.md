@@ -25,7 +25,7 @@ backend/app/
 
 `main.py` is a monolith mixing every concern: route definitions, Pydantic schemas, validation logic, conflict detection, raw SQL queries, and app configuration.
 
-As we build out 8 bounded contexts (Booking, Scheduling, Guide, Availability, Feedback, Notification, Sync, Auth) with 20+ tables (see ERD v3.0), this structure will not scale. Key problems:
+As we build out 8 bounded contexts (Reservation, Scheduling, Guide, Availability, Feedback, Notification, Sync, Auth) with 20+ tables (see ERD v4.0), this structure will not scale. Key problems:
 
 - **No separation of concerns**: routes, business logic, and data access are interleaved
 - **No ORM models**: tables are accessed via raw `text()` SQL with no type safety
@@ -118,7 +118,7 @@ backend/
 │
 ├── tests/                       ← Mirrors domain structure
 │   ├── domain/
-│   │   ├── booking/
+│   │   ├── reservation/
 │   │   ├── scheduling/
 │   │   └── ...
 │   └── adapters/
@@ -184,7 +184,7 @@ app/
 app/domain/reservation/{models, schemas, repository, service, routes}.py
 ```
 
-- **Pros**: High cohesion (everything about bookings in one place), low coupling (clear dependency direction), matches DDD bounded contexts, scales well, easy to test
+- **Pros**: High cohesion (everything about a domain in one place), low coupling (clear dependency direction), matches DDD bounded contexts, scales well, easy to test
 - **Cons**: More folders/files upfront, slightly higher initial complexity
 
 ### Option C: Full hexagonal / ports-and-adapters
@@ -218,7 +218,7 @@ app/domain/reservation/{models, schemas, repository, service, routes}.py
 
 - [ADR-001] Drop Reservation Table
 - [DDD-001] Domain Model Overview — defines the 8 bounded contexts this architecture implements
-- [FDR-001] Booking Ingestion — drives the adapter/clorian structure
+- [FDR-001] Reservation Ingestion — drives the adapter/clorian structure
 - [FDR-002] Guide Assignment — drives the guide/scheduling service split
 - [FDR-003] Notifications — drives the notification domain
 - [FDR-004] Auto Re-scheduling — drives the scheduling service complexity

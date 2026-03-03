@@ -99,7 +99,7 @@ Key fields on `reservations`:
 
 ## Related
 
-- [FDR-001] Booking Ingestion from Clorian — Clorian payload structure
+- [FDR-001] Reservation Ingestion from Clorian — Clorian payload structure
 - [FDR-002] Guide Assignment Rules — uses `reservations.language_code`
 - [FDR-004] Auto Re-scheduling
 - [DDD-001] Domain Model Overview
