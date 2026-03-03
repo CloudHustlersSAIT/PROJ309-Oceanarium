@@ -3,7 +3,7 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-002                |
-| **Version**      | 1.1                    |
+| **Version**      | 2.0                    |
 | **Status**       | Draft                  |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
@@ -13,7 +13,7 @@
 
 ## 1. Purpose
 
-Every schedule (a group of N bookings sharing the same tour, timeslot, and language) must be assigned exactly one guide. The assignment must satisfy three hard constraints: **language**, **availability**, and **expertise**. This document defines the rules, priority, and fallback behavior for guide assignment.
+Every schedule (a group of N reservations sharing the same tour, timeslot, and language) must be assigned exactly one guide. The assignment must satisfy three hard constraints: **language**, **availability**, and **expertise**. This document defines the rules, priority, and fallback behavior for guide assignment.
 
 ## 2. Scope
 
@@ -45,11 +45,11 @@ Every schedule (a group of N bookings sharing the same tour, timeslot, and langu
 ### FR-1: Language Constraint (hard requirement)
 
 - **Description**: The assigned guide must speak the language requested by the customer at the time of ticket purchase through Clorian.
-- **Input**: `purchases.language_code` (accessed via `bookings.purchase_id` → `purchases`) → matched against guide's language capabilities via `guide_languages` → `languages`
+- **Input**: `reservations.language_code` (denormalized from Clorian Purchase) → matched against guide's language capabilities via `guide_languages` → `languages`
 - **Output**: Filtered list of guides who speak the required language
 - **Business Rules**:
-  - `language_code` originates from the Clorian Purchase payload (see [FDR-001] §4.1)
-  - It is stored on `purchases.language_code` and propagated to `schedule.language_code` when a schedule is created
+  - `language_code` originates from the Clorian Purchase payload and is denormalized onto `reservations` (see [FDR-001] §4.1)
+  - It is propagated to `schedule.language_code` when a schedule is created
   - A guide's language capabilities are stored in `guide_languages` (junction of `guides` ↔ `languages`)
   - If no guide speaks the requested language, the schedule is flagged as `UNASSIGNABLE` with reason `NO_LANGUAGE_MATCH`
 - **Acceptance Criteria**:
@@ -125,7 +125,7 @@ Every schedule (a group of N bookings sharing the same tour, timeslot, and langu
   - `assignment_type`: `AUTO` or `MANUAL`
   - `action`: `ASSIGNED`, `REASSIGNED`, `UNASSIGNED`
   - `assigned_by`: service name for auto, admin username for manual
-  - References `schedule_id` (not `tour_id`) for precise tracking
+  - References `schedule_id` for precise tracking
 - **Acceptance Criteria**:
   - Every assignment change produces exactly one log entry
   - Logs are immutable (append-only)
@@ -200,7 +200,7 @@ Manual override by admin.
 
 | Dependency | Type | Notes |
 |------------|------|-------|
-| [FDR-001] Booking Ingestion | Internal | Bookings and purchases must be ingested first |
+| [FDR-001] Reservation Ingestion | Internal | Reservations must be ingested first |
 | [FDR-003] Notifications | Internal | Dispatches notifications on assignment |
 | `schedule` table | Data | Must exist with `tour_id`, `language_code`, `event_start_datetime` |
 | `availability_*` tables | Data | Must be populated with guide schedules |
@@ -212,13 +212,14 @@ Manual override by admin.
 | # | Question | Answer | Status |
 |---|----------|--------|--------|
 | 1 | Should auto-assignment run immediately when a schedule is created, or in batch? | TBD | Open |
-| 2 | How is guide-language association stored? | `guide_languages` junction table (added to ERD v3.0) | Resolved |
+| 2 | How is guide-language association stored? | `guide_languages` junction table | Resolved |
 | 3 | Should constraint violations on manual override be warnings or soft-blocks? | Warnings (proposed) | Open |
-| 4 | What is the maximum number of bookings per schedule? | Controlled by Clorian capacity, not us | Resolved |
+| 4 | What is the maximum number of reservations per schedule? | Controlled by Clorian capacity, not us | Resolved |
 
 ## Changelog
 
 | Version | Date       | Author          | Description |
 |---------|------------|-----------------|-------------|
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial draft — three hard constraints + priority rules |
-| 1.1     | 2026-03-03 | Evandro Maciel | Language now resolved via `purchases.language_code` → `schedule.language_code` → `guide_languages`; references updated to schedule-centric model; linked to FDR-003 and FDR-004; resolved open questions #2 and #4 |
+| 1.1     | 2026-03-03 | Evandro Maciel | Language via `purchases.language_code`; linked to FDR-003/004 |
+| 2.0     | 2026-03-03 | Evandro Maciel | Renamed bookings→reservations; `language_code` now directly on `reservations` (no purchases table) |

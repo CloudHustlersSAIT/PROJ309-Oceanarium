@@ -51,8 +51,8 @@ backend/
 │   │   └── email.py             ← Email client (SMTP/SES)
 │   │
 │   ├── domain/                  ← Vertical slices per bounded context
-│   │   ├── booking/
-│   │   │   ├── models.py        ← SQLAlchemy ORM (Customer, Purchase, Booking, BookingVersion, Ticket)
+│   │   ├── reservation/
+│   │   │   ├── models.py        ← SQLAlchemy ORM (Customer, Reservation, ReservationVersion, Ticket)
 │   │   │   ├── schemas.py       ← Pydantic DTOs (request/response)
 │   │   │   ├── repository.py    ← Data access (queries, upserts)
 │   │   │   ├── service.py       ← Business logic (ingestion, versioning, hash detection)
@@ -67,6 +67,7 @@ backend/
 │   │   │
 │   │   ├── guide/
 │   │   │   ├── models.py        ← Guide, GuideLanguage, GuideTourType
+
 │   │   │   ├── schemas.py
 │   │   │   ├── repository.py
 │   │   │   ├── service.py       ← GuideAssignment (3 constraints + priority)
@@ -167,10 +168,10 @@ No layer may import from a layer above it.
 
 ```
 app/
-├── routes_booking.py
+├── routes_reservation.py
 ├── routes_guide.py
-├── services_booking.py
-├── models_booking.py
+├── services_reservation.py
+├── models_reservation.py
 └── ...
 ```
 
@@ -180,7 +181,7 @@ app/
 ### Option B: Layered domain architecture (chosen)
 
 ```
-app/domain/booking/{models, schemas, repository, service, routes}.py
+app/domain/reservation/{models, schemas, repository, service, routes}.py
 ```
 
 - **Pros**: High cohesion (everything about bookings in one place), low coupling (clear dependency direction), matches DDD bounded contexts, scales well, easy to test
@@ -228,3 +229,4 @@ app/domain/booking/{models, schemas, repository, service, routes}.py
 | Version | Date       | Author          | Description |
 |---------|------------|-----------------|-------------|
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial proposal — layered domain architecture with adapters |
+| 1.1     | 2026-03-03 | Evandro Maciel | Renamed booking domain → reservation domain throughout |

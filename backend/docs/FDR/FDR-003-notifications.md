@@ -3,7 +3,7 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-003                |
-| **Version**      | 1.0                    |
+| **Version**      | 1.1                    |
 | **Status**       | Draft                  |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
@@ -50,7 +50,7 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
   - Schedule date/time
   - Tour name
   - Language
-  - Number of bookings / total tickets
+  - Number of reservations / total tickets
   - Assignment type (auto/manual)
 - **Acceptance Criteria**:
   - Guide receives portal + email notification
@@ -64,7 +64,7 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 - **Recipients**: Previous guide (unassigned) + new guide (assigned) + all active admins
 - **Channels**: Portal + Email
 - **Message Content**:
-  - Reason for change (guide cancelled / manual override / booking change)
+  - Reason for change (guide cancelled / manual override / reservation change)
   - Schedule details
   - For previous guide: "You have been removed from schedule X"
   - For new guide: "You have been assigned to schedule X"
@@ -73,25 +73,25 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
   - Admins notified
   - Two `notifications` rows: one for unassignment, one for assignment
 
-### FR-3: Notify on booking cancellation affecting a schedule
+### FR-3: Notify on reservation cancellation affecting a schedule
 
-- **Description**: When a booking is cancelled and removed from a schedule, notify the assigned guide and admins.
-- **Trigger**: `BookingRemovedFromSchedule` domain event
+- **Description**: When a reservation is cancelled and removed from a schedule, notify the assigned guide and admins.
+- **Trigger**: `ReservationRemovedFromSchedule` domain event
 - **Recipients**: Assigned guide + all active admins
 - **Channels**: Portal + Email
 - **Message Content**:
-  - Which booking was cancelled
-  - Updated schedule (remaining bookings, ticket count)
-  - If schedule is now empty: "Schedule X has no remaining bookings"
+  - Which reservation was cancelled
+  - Updated schedule (remaining reservations, ticket count)
+  - If schedule is now empty: "Schedule X has no remaining reservations"
 - **Acceptance Criteria**:
   - Guide receives notification with updated schedule info
   - Admins notified
-  - `notifications` row created with `event_type = 'BOOKING_CANCELLED'`
+  - `notifications` row created with `event_type = 'RESERVATION_CANCELLED'`
 
-### FR-4: Notify on booking change causing re-scheduling
+### FR-4: Notify on reservation change causing re-scheduling
 
-- **Description**: When a booking changes (date, time, language, tour) and moves to a different schedule, notify the affected guides and admins.
-- **Trigger**: `BookingMovedToSchedule` domain event
+- **Description**: When a reservation changes (date, time, language, tour) and moves to a different schedule, notify the affected guides and admins.
+- **Trigger**: `ReservationMovedToSchedule` domain event
 - **Recipients**: Guide of old schedule + guide of new schedule + all active admins
 - **Channels**: Portal + Email
 - **Message Content**:
@@ -192,3 +192,4 @@ Mark a portal notification as read.
 | Version | Date       | Author          | Description |
 |---------|------------|-----------------|-------------|
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial draft — portal + email for admin and guide |
+| 1.1     | 2026-03-03 | Evandro Maciel | Renamed bookings→reservations throughout; updated event names |

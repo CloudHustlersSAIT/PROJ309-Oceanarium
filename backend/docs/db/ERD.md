@@ -2,45 +2,40 @@
 
 | Field            | Value                  |
 |------------------|------------------------|
-| **Version**      | 3.0                    |
+| **Version**      | 4.0                    |
 | **Status**       | Draft                  |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
 | **Last Updated** | 2026-03-03             |
 
-> Clorian hierarchy: **Purchase → Reservation → Ticket** maps to our **purchases → bookings → tickets**.
+> Clorian hierarchy: **Purchase → Reservation → Ticket** maps to our **customers → reservations → tickets**.
 >
-> Excluded: ~~cost~~, ~~resources~~, ~~tour_resources~~, ~~issues~~, ~~reservation as separate table~~ (see [ADR-001]).
+> `purchases` table dropped — `language_code`, `customer_id`, and `clorian_purchase_id` denormalized onto `reservations`.
+>
+> Excluded: ~~cost~~, ~~resources~~, ~~tour_resources~~, ~~issues~~, ~~purchases~~.
 
 ## Diagram
 
 ```mermaid
 erDiagram
-    %% ========== BOOKING DOMAIN ==========
+    %% ========== RESERVATION DOMAIN ==========
 
     customers {
         int id PK
+        int clorian_client_id UK
         varchar first_name
         varchar last_name
         varchar email
     }
 
-    purchases {
-        int id PK
-        int clorian_purchase_id UK
-        int customer_id FK
-        varchar language_code
-        timestamptz clorian_created_at
-        timestamptz clorian_modified_at
-        timestamptz created_at
-    }
-
-    bookings {
+    reservations {
         int id PK
         int clorian_reservation_id UK
-        int purchase_id FK
+        int clorian_purchase_id
+        int customer_id FK
         int tour_id FK
         int schedule_id FK
+        varchar language_code
         timestamptz event_start_datetime
         varchar status
         int current_ticket_num
@@ -49,12 +44,13 @@ erDiagram
         timestamptz created_at
     }
 
-    booking_versions {
+    reservation_versions {
         int id PK
-        int booking_id FK
+        int reservation_id FK
         varchar hash
         varchar status
         int current_ticket_num
+        varchar language_code
         timestamptz event_start_datetime
         timestamptz received_at
         timestamptz valid_from
@@ -64,7 +60,7 @@ erDiagram
     tickets {
         int id PK
         int clorian_ticket_id UK
-        int booking_id FK
+        int reservation_id FK
         int buyer_type_id
         varchar buyer_type_name
         timestamptz start_datetime
@@ -157,7 +153,7 @@ erDiagram
         int id PK
         int customer_id FK
         int guide_id FK
-        int booking_id FK
+        int reservation_id FK
         text comment
         int rating
     }
@@ -224,14 +220,13 @@ erDiagram
 
     %% ========== RELATIONSHIPS ==========
 
-    customers ||--o{ purchases : "has many"
-    purchases ||--o{ bookings : "has many"
-    bookings ||--o{ tickets : "has many"
-    bookings ||--o{ booking_versions : "has many"
-    tours ||--o{ bookings : "for tour"
-    schedule ||--o{ bookings : "groups"
+    customers ||--o{ reservations : "has many"
+    reservations ||--o{ tickets : "has many"
+    reservations ||--o{ reservation_versions : "has many"
+    tours ||--o{ reservations : "for tour"
+    schedule ||--o{ reservations : "groups"
     schedule ||--o{ notifications : "triggers"
-    poll_execution ||--o{ booking_versions : "produced in"
+    poll_execution ||--o{ reservation_versions : "produced in"
     poll_execution ||--o{ sync_logs : "tracked by"
     guides ||--o{ schedule : "assigned to"
     guides ||--o{ guide_languages : "speaks"
@@ -244,7 +239,7 @@ erDiagram
     availability_patterns ||--o{ availability_exceptions : "has"
     customers ||--o{ surveys : "submits"
     guides ||--o{ surveys : "receives"
-    bookings ||--o{ surveys : "reviewed via"
+    reservations ||--o{ surveys : "reviewed via"
     guides ||--o{ notifications : "notified"
     users ||--o{ notifications : "notified"
     schedule ||--o{ tour_assignment_logs : "logged for"
@@ -257,30 +252,29 @@ erDiagram
 
 | Clorian Entity | Clorian ID Field | Our Table | Our UK Field | Relationship |
 |---|---|---|---|---|
-| **Purchase** | `purchaseId` | `purchases` | `clorian_purchase_id` | 1 purchase → N reservations |
-| **Reservation** | `reservationId` | `bookings` | `clorian_reservation_id` | 1 reservation → N tickets |
-| **Ticket** | `ticketId` | `tickets` | `clorian_ticket_id` | Leaf entity (attendee) |
+| **Purchase** | `purchaseId` | `reservations` | `clorian_purchase_id` (denormalized) | Purchase data folded into reservations |
+| **Reservation** | `reservationId` | `reservations` | `clorian_reservation_id` | The schedulable unit |
+| **Ticket** | `ticketId` | `tickets` | `clorian_ticket_id` | Individual attendees |
 
 ---
 
 ## Domain Breakdown
 
-### 1. Booking Domain
+### 1. Reservation Domain
 
 | Table | Columns | Notes |
 |-------|---------|-------|
-| **customers** | `id` PK, `first_name`, `last_name`, `email` | Upserted from Clorian purchase `clientId` |
-| **purchases** | `id` PK, `clorian_purchase_id` UK, `customer_id` FK→customers, `language_code`, `clorian_created_at`, `clorian_modified_at`, `created_at` | Maps to Clorian Purchase; carries `language_code` for guide matching |
-| **bookings** | `id` PK, `clorian_reservation_id` UK, `purchase_id` FK→purchases, `tour_id` FK→tours, `schedule_id` FK→schedule (nullable), `event_start_datetime`, `status`, `current_ticket_num`, `clorian_created_at`, `clorian_modified_at`, `created_at` | Maps to Clorian Reservation; the **schedulable unit** |
-| **booking_versions** | `id` PK, `booking_id` FK→bookings, `hash`, `status`, `current_ticket_num`, `event_start_datetime`, `received_at`, `valid_from`, `poll_execution_id` FK→poll_execution | Immutable snapshot per ingestion; `hash` for change detection |
-| **tickets** | `id` PK, `clorian_ticket_id` UK, `booking_id` FK→bookings, `buyer_type_id`, `buyer_type_name`, `start_datetime`, `end_datetime`, `ticket_status`, `price`, `venue_id`, `venue_name`, `clorian_created_at`, `clorian_modified_at`, `created_at` | Maps to Clorian Ticket; individual attendees (adult, child, etc.) |
+| **customers** | `id` PK, `clorian_client_id` UK, `first_name`, `last_name`, `email` | Upserted from Clorian purchase `clientId` |
+| **reservations** | `id` PK, `clorian_reservation_id` UK, `clorian_purchase_id`, `customer_id` FK→customers, `tour_id` FK→tours, `schedule_id` FK→schedule (nullable), `language_code`, `event_start_datetime`, `status`, `current_ticket_num`, `clorian_created_at`, `clorian_modified_at`, `created_at` | Maps to Clorian Reservation; `language_code` and `customer_id` denormalized from Purchase |
+| **reservation_versions** | `id` PK, `reservation_id` FK→reservations, `hash`, `status`, `current_ticket_num`, `language_code`, `event_start_datetime`, `received_at`, `valid_from`, `poll_execution_id` FK→poll_execution | Immutable snapshot per ingestion; `hash` for change detection |
+| **tickets** | `id` PK, `clorian_ticket_id` UK, `reservation_id` FK→reservations, `buyer_type_id`, `buyer_type_name`, `start_datetime`, `end_datetime`, `ticket_status`, `price`, `venue_id`, `venue_name`, `clorian_created_at`, `clorian_modified_at`, `created_at` | Individual attendees (adult, child, etc.) |
 
 ### 2. Tour & Scheduling Domain
 
 | Table | Columns | Notes |
 |-------|---------|-------|
 | **tours** | `id` PK, `clorian_product_id` UK, `name`, `description` (TEXT), `duration` (INT) | Mapped from Clorian `productId`/`productName` |
-| **schedule** | `id` PK, `guide_id` FK→guides (nullable), `tour_id` FK→tours, `language_code`, `event_start_datetime`, `event_end_datetime`, `status`, `created_at` | Groups N bookings by tour + language + timeslot; `status`: `UNASSIGNED`, `ASSIGNED`, `COMPLETED`, `CANCELLED` |
+| **schedule** | `id` PK, `guide_id` FK→guides (nullable), `tour_id` FK→tours, `language_code`, `event_start_datetime`, `event_end_datetime`, `status`, `created_at` | Groups N reservations by tour + language + timeslot; `status`: `UNASSIGNED` / `ASSIGNED` / `COMPLETED` / `CANCELLED` |
 
 ### 3. Guide Domain
 
@@ -303,13 +297,13 @@ erDiagram
 
 | Table | Columns | Notes |
 |-------|---------|-------|
-| **surveys** | `id` PK, `customer_id` FK→customers, `guide_id` FK→guides, `booking_id` FK→bookings, `comment` (TEXT), `rating` (INT) | Post-tour feedback |
+| **surveys** | `id` PK, `customer_id` FK→customers, `guide_id` FK→guides, `reservation_id` FK→reservations, `comment` (TEXT), `rating` (INT) | Post-tour feedback |
 
 ### 6. Notification Domain
 
 | Table | Columns | Notes |
 |-------|---------|-------|
-| **notifications** | `id` PK, `event_type`, `schedule_id` FK→schedule, `guide_id` FK→guides (nullable), `user_id` FK→users (nullable), `channel` (`PORTAL`/`EMAIL`), `status` (`PENDING`/`SENT`/`FAILED`), `message` (TEXT), `sent_at`, `created_at` | Tracks every notification sent to admins and guides |
+| **notifications** | `id` PK, `event_type`, `schedule_id` FK→schedule, `guide_id` FK→guides (nullable), `user_id` FK→users (nullable), `channel`, `status`, `message` (TEXT), `sent_at`, `created_at` | Portal + email notifications |
 
 ### 7. Sync / Operational Domain
 
@@ -335,7 +329,7 @@ erDiagram
 | ~~resources~~ | Removed from scope (future phase) | — |
 | ~~tour_resources~~ | Removed from scope (future phase) | — |
 | ~~issues~~ | Removed from scope | — |
-| ~~reservation~~ | Clorian "reservation" maps to `bookings` | [ADR-001] |
+| ~~purchases~~ | Denormalized onto reservations — `language_code`, `customer_id`, `clorian_purchase_id` | [ADR-001] |
 
 ---
 
@@ -343,11 +337,12 @@ erDiagram
 
 | Decision | Reference |
 |----------|-----------|
-| No reservation table — Clorian reservation = our bookings | [ADR-001](../ADR/ADR-001-drop-reservation-table.md) |
-| 3-level Clorian ingestion: Purchase → Reservation → Ticket | [FDR-001](../FDR/FDR-001-booking-ingestion-from-clorian.md) |
+| Clorian Reservation = our `reservations`; `purchases` denormalized; no separate reservation abstraction | [ADR-001](../ADR/ADR-001-drop-reservation-table.md) |
+| Layered domain architecture with adapters | [ADR-002](../ADR/ADR-002-layered-domain-architecture.md) |
+| 3-level Clorian ingestion mapped to reservations + tickets | [FDR-001](../FDR/FDR-001-booking-ingestion-from-clorian.md) |
 | Guide assignment via 3 hard constraints (language, availability, expertise) | [FDR-002](../FDR/FDR-002-guide-assignment-rules.md) |
 | Notifications to Admin + Guide on every scheduling change | [FDR-003](../FDR/FDR-003-notifications.md) |
-| Auto re-scheduling on booking changes and guide cancellations | [FDR-004](../FDR/FDR-004-auto-rescheduling.md) |
+| Auto re-scheduling on reservation changes and guide cancellations | [FDR-004](../FDR/FDR-004-auto-rescheduling.md) |
 | Domain-driven bounded contexts (8 contexts) | [DDD-001](../DDD/DDD-001-domain-model-overview.md) |
 
 ## Changelog
@@ -356,4 +351,5 @@ erDiagram
 |---------|------------|-----------------|-------------|
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial ERD from existing codebase |
 | 2.0     | 2026-03-03 | Evandro Maciel | Target schema: dropped reservation table, added `schedule_id` FK on bookings, added `guide_languages` junction table |
-| 3.0     | 2026-03-03 | Evandro Maciel | Clorian 3-level model: added `purchases`, `tickets`, `notifications` tables; reshaped `bookings` to map to Clorian Reservation; `language_code` moved to purchases; `schedule` enriched with `tour_id`, `language_code`, `status`; `tour_assignment_logs` now references schedule instead of tour |
+| 3.0     | 2026-03-03 | Evandro Maciel | Clorian 3-level model: added `purchases`, `tickets`, `notifications`; reshaped bookings |
+| 4.0     | 2026-03-03 | Evandro Maciel | Renamed `bookings`→`reservations`, `booking_versions`→`reservation_versions`; dropped `purchases` table (denormalized onto reservations); added `clorian_client_id` to customers |

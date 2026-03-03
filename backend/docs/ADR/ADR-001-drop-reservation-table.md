@@ -1,9 +1,9 @@
-# [ADR-001] Drop Reservation Table — Clorian Reservation Maps to Bookings
+# [ADR-001] Naming & Structure — Clorian Reservation = Our Reservations, No Purchases Table
 
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | ADR-001                |
-| **Version**      | 1.1                    |
+| **Version**      | 2.0                    |
 | **Status**       | Accepted               |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
@@ -13,99 +13,102 @@
 
 ## Context
 
-The original schema considered a `reservation` table sitting between `bookings` (external data from Clorian) and `schedule` (internal guide assignments). The proposed data flow was:
+The team had significant naming confusion around "booking", "reservation", and "ticket":
+- In the old system, a "booking" was treated as a single ticket/entry
+- In Clorian's model, a "Reservation" is the group (N tickets), which is the schedulable unit
+- A "Ticket" is an individual attendee within a reservation
 
-```
-Clorian ticket → booking → reservation (1:1) → schedule (N:1)
-```
+After team discussion, we agreed:
+- A **reservation** is the core entity — the thing we schedule
+- A **ticket** is an individual attendee (adult, child, etc.) within a reservation
+- A **schedule** groups N reservations with the same tour + language + timeslot
 
-After analyzing the actual Clorian API payloads (see [FDR-001]), we confirmed that Clorian's data model is:
-
+Clorian's 3-level hierarchy:
 ```
 Purchase (customer transaction)
-  └── Reservation (a tour/product at a specific time)
+  └── Reservation (a tour/product at a specific time)  ← this is what we schedule
         └── Ticket (individual attendee)
 ```
 
-The Clorian **Reservation** is the schedulable unit — it represents a group booking for a specific tour at a specific time. This maps directly to what we need in our `bookings` table. A separate `reservation` table would be a 1:1 duplicate.
-
-We already have:
-- **`purchases`** — maps to Clorian Purchase (carries `language_code`, customer link)
-- **`bookings`** — maps to Clorian Reservation (tour, time, status, schedule link)
-- **`booking_versions`** — immutable version history with `hash`-based change detection
-- **`tickets`** — maps to Clorian Ticket (individual attendees)
+We also questioned whether the `purchases` table adds value. Since `language_code` and `customer_id` can be denormalized onto `reservations`, the `purchases` table becomes unnecessary overhead.
 
 ## Decision
 
-**Clorian's "Reservation" maps directly to our `bookings` table. No separate `reservation` table needed.**
+**1. Clorian Reservation maps to our `reservations` table (not "bookings").**
 
-The relationship is:
+**2. Drop the `purchases` table. Denormalize `language_code`, `customer_id`, and `clorian_purchase_id` onto `reservations`.**
+
+The data model is:
 
 ```
-customers 1──N purchases 1──N bookings 1──N tickets
-                                  │
-                                  N
-                                  │
-                                  1
-                               schedule N──1 guides
+customers  1──N  reservations  1──N  tickets
+                      │
+                      N
+                      │
+                      1
+                   schedule  N──1  guides
 ```
 
-- `bookings.schedule_id` FK → `schedule.id` (N bookings → 1 schedule)
-- `schedule.guide_id` FK → `guides.id` (1 guide per schedule)
+Key fields on `reservations`:
+- `clorian_reservation_id` (UK) — maps to Clorian's `reservationId`
+- `clorian_purchase_id` — denormalized from Purchase for traceability
+- `customer_id` (FK) — denormalized from Purchase
+- `language_code` — denormalized from Purchase; critical for guide assignment
+- `schedule_id` (FK, nullable) — links N reservations → 1 schedule
 
 ## Options Considered
 
-### Option A: Keep reservation table (booking → reservation 1:1 → schedule N:1)
+### Option A: Keep `bookings` name + separate `purchases` table
+
+- **Pros**: Normalized, familiar name from original codebase
+- **Cons**: "Booking" caused naming confusion with the team; `purchases` adds a JOIN with no unique domain value
+
+### Option B: Rename to `reservations` + keep `purchases` table
+
+- **Pros**: Clear naming, normalized
+- **Cons**: `purchases` only carries `language_code` and `customer_id` — pure overhead for an extra JOIN on every scheduling query
+
+### Option C: Rename to `reservations` + denormalize purchases (chosen)
 
 - **Pros**:
-  - Clean separation between external (booking) and internal (reservation) concepts
-  - Future flexibility if reservation gains its own lifecycle
+  - Matches Clorian's terminology and team's mental model
+  - "Reservation" is unambiguous — it's the schedulable unit, not a ticket
+  - No extra table or JOIN for the most common queries
+  - `clorian_purchase_id` kept for traceability without a separate table
 - **Cons**:
-  - 1:1 mapping with no additional attributes — pure indirection
-  - Extra JOIN on every query
-  - More code to maintain
-  - Violates YAGNI
-
-### Option B: Clorian Reservation = our bookings (chosen)
-
-- **Pros**:
-  - Natural mapping to Clorian's actual data model
-  - Simpler: fewer tables, fewer JOINs
-  - `booking_versions` provides the audit trail
-  - `tickets` as a child table captures individual attendees
-  - Easy to introduce a reservation layer later if needed
-- **Cons**:
-  - Tighter coupling between external data identity and internal scheduling
-  - If reservation gains independent business rules, a refactor is needed
+  - If a purchase's `language_code` changes, all linked reservations must be updated (rare, handled during polling)
+  - Slight denormalization trade-off
 
 ## Consequences
 
 ### Positive
 
-- Clean 3-level mapping: Purchase → Booking → Ticket mirrors Clorian's Purchase → Reservation → Ticket
-- `language_code` lives on `purchases` (where Clorian puts it), accessed via JOIN
-- Fewer tables, faster queries
-- `booking_versions` + `hash` enables change detection without a separate entity
+- Clear, unambiguous naming: reservation = schedulable unit, ticket = attendee
+- Simpler model: `customers → reservations → tickets` (3 tables, no intermediate)
+- Fewer JOINs on scheduling queries (language is directly on reservations)
+- Team alignment — everyone agrees on what "reservation" means
 
 ### Negative
 
-- If reservation-specific business logic emerges (e.g., internal approval step), extraction would require a migration
+- Denormalized `language_code` means updating N reservation rows if a purchase's language changes (edge case)
+- Renaming from `bookings` requires updating all existing code, tests, and docs
 
 ### Risks
 
-- Low risk: extracting a reservation layer later is a straightforward add-table + backfill migration
+- Low risk: if `purchases` is ever needed as a first-class entity, it can be extracted via a straightforward migration
 
 ## Related
 
-- [FDR-001] Booking Ingestion from Clorian — Clorian payload structure and field mapping
-- [FDR-002] Guide Assignment Rules
+- [FDR-001] Booking Ingestion from Clorian — Clorian payload structure
+- [FDR-002] Guide Assignment Rules — uses `reservations.language_code`
 - [FDR-004] Auto Re-scheduling
 - [DDD-001] Domain Model Overview
-- [DB] ERD (`backend/docs/db/ERD.md`)
+- [DB] ERD v4.0
 
 ## Changelog
 
 | Version | Date       | Author          | Description |
 |---------|------------|-----------------|-------------|
-| 1.0     | 2026-03-03 | Evandro Maciel | Initial proposal — drop reservation table |
-| 1.1     | 2026-03-03 | Evandro Maciel | Confirmed with Clorian payload analysis: Reservation = bookings; status changed to Accepted |
+| 1.0     | 2026-03-03 | Evandro Maciel | Initial proposal — drop reservation as separate table |
+| 1.1     | 2026-03-03 | Evandro Maciel | Confirmed with Clorian payload: Reservation = bookings |
+| 2.0     | 2026-03-03 | Evandro Maciel | Renamed `bookings`→`reservations`; dropped `purchases` table (denormalized onto reservations); updated title and scope |

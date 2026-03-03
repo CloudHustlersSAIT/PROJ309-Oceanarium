@@ -3,7 +3,7 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-004                |
-| **Version**      | 1.0                    |
+| **Version**      | 1.1                    |
 | **Status**       | Draft                  |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
@@ -13,20 +13,20 @@
 
 ## 1. Purpose
 
-When a booking changes (date, time, language, or tour) or a guide becomes unavailable, the system must automatically re-evaluate and adjust schedules and guide assignments without manual intervention. This is the core automation that replaces the current fully manual scheduling process.
+When a reservation changes (date, time, language, or tour) or a guide becomes unavailable, the system must automatically re-evaluate and adjust schedules and guide assignments without manual intervention. This is the core automation that replaces the current fully manual scheduling process.
 
 ## 2. Scope
 
 ### In Scope
 
-- Automatic re-scheduling when booking details change
+- Automatic re-scheduling when reservation details change
 - Automatic guide replacement when a guide cancels
-- Removing cancelled bookings from schedules
+- Removing cancelled reservations from schedules
 - Schedule lifecycle management (creation, updates, emptying)
 
 ### Out of Scope
 
-- Initial schedule creation from new bookings (covered in guide assignment flow — [FDR-002])
+- Initial schedule creation from new reservations (covered in guide assignment flow — [FDR-002])
 - Capacity management (Clorian's responsibility)
 - Manual overrides (covered in [FDR-002] FR-5)
 
@@ -40,64 +40,63 @@ When a booking changes (date, time, language, or tour) or a guide becomes unavai
 
 ## 4. Functional Requirements
 
-### FR-1: Re-schedule on booking date/time change
+### FR-1: Re-schedule on reservation date/time change
 
-- **Description**: When a booking's `event_start_datetime` changes (detected during Clorian ingestion), remove the booking from its current schedule and place it in a matching schedule.
-- **Trigger**: `BookingTimeChanged` domain event (from [FDR-001] FR-3)
-- **Input**: Booking with new `event_start_datetime`
+- **Description**: When a reservation's `event_start_datetime` changes (detected during Clorian ingestion), remove the reservation from its current schedule and place it in a matching schedule.
+- **Trigger**: `ReservationTimeChanged` domain event (from [FDR-001] FR-3)
+- **Input**: Reservation with new `event_start_datetime`
 - **Process**:
-  1. Remove booking from current schedule (`bookings.schedule_id = NULL`)
-  2. Search for an existing schedule matching: same `tour_id` + same `language_code` (via purchase) + same new timeslot
-  3. If matching schedule found → add booking to it
+  1. Remove reservation from current schedule (`reservations.schedule_id = NULL`)
+  2. Search for an existing schedule matching: same `tour_id` + same `language_code` + same new timeslot
+  3. If matching schedule found → add reservation to it
   4. If no matching schedule → create a new schedule and trigger guide assignment ([FDR-002])
-  5. If old schedule has no remaining bookings → set old schedule `status = 'CANCELLED'`
+  5. If old schedule has no remaining reservations → set old schedule `status = 'CANCELLED'`
 - **Acceptance Criteria**:
-  - Booking is moved to the correct schedule
+  - Reservation is moved to the correct schedule
   - Old schedule is cleaned up if empty
   - Notifications sent to affected guides and admins ([FDR-003] FR-4)
 
-### FR-2: Re-schedule on booking language change
+### FR-2: Re-schedule on reservation language change
 
-- **Description**: When a purchase's `language_code` changes, all bookings under that purchase must be re-evaluated for schedule compatibility.
-- **Trigger**: `PurchaseLanguageChanged` domain event (from [FDR-001] FR-2)
-- **Input**: Purchase with new `language_code`, all linked bookings
+- **Description**: When a reservation's `language_code` changes (propagated from a Clorian purchase update), the reservation must be re-evaluated for schedule compatibility.
+- **Trigger**: `ReservationLanguageChanged` domain event (from [FDR-001] FR-2)
+- **Input**: Reservation with new `language_code`
 - **Process**:
-  1. For each booking under the purchase:
-     - Remove from current schedule
-     - Search for a schedule matching: same `tour_id` + new `language_code` + same timeslot
-     - If found → add booking; if not → create new schedule + assign guide
-  2. Clean up old schedules if empty
+  1. Remove reservation from current schedule
+  2. Search for a schedule matching: same `tour_id` + new `language_code` + same timeslot
+  3. If found → add reservation; if not → create new schedule + assign guide
+  4. Clean up old schedule if empty
 - **Acceptance Criteria**:
-  - All affected bookings are moved to language-compatible schedules
-  - New guides assigned speak the new language
+  - Reservation moved to a language-compatible schedule
+  - New guide speaks the new language
   - Notifications sent
 
-### FR-3: Re-schedule on booking tour change
+### FR-3: Re-schedule on reservation tour change
 
-- **Description**: When a booking's tour changes (different `productId` from Clorian), move it to a schedule for the new tour.
-- **Trigger**: `BookingTourChanged` domain event (from [FDR-001] FR-3)
-- **Input**: Booking with new `tour_id`
+- **Description**: When a reservation's tour changes (different `productId` from Clorian), move it to a schedule for the new tour.
+- **Trigger**: `ReservationTourChanged` domain event (from [FDR-001] FR-3)
+- **Input**: Reservation with new `tour_id`
 - **Process**:
   1. Remove from current schedule
   2. Search for schedule matching: new `tour_id` + same `language_code` + same timeslot
   3. If found → add; if not → create new schedule + assign guide qualified for the new tour
   4. Clean up old schedule if empty
 - **Acceptance Criteria**:
-  - Booking placed in a schedule for the correct tour
+  - Reservation placed in a schedule for the correct tour
   - Assigned guide is qualified for the new tour
   - Notifications sent
 
-### FR-4: Remove cancelled bookings from schedule
+### FR-4: Remove cancelled reservations from schedule
 
-- **Description**: When a booking is cancelled, remove it from its schedule.
-- **Trigger**: `BookingCancelled` domain event (from [FDR-001] FR-5)
-- **Input**: Cancelled booking
+- **Description**: When a reservation is cancelled, remove it from its schedule.
+- **Trigger**: `ReservationCancelled` domain event (from [FDR-001] FR-5)
+- **Input**: Cancelled reservation
 - **Process**:
-  1. Set `bookings.schedule_id = NULL`
-  2. If the schedule has no remaining active bookings → set schedule `status = 'CANCELLED'`, unassign guide
+  1. Set `reservations.schedule_id = NULL`
+  2. If the schedule has no remaining active reservations → set schedule `status = 'CANCELLED'`, unassign guide
   3. Notify affected guide and admins
 - **Acceptance Criteria**:
-  - Cancelled booking no longer belongs to any schedule
+  - Cancelled reservation no longer belongs to any schedule
   - Empty schedules are cancelled
   - Guide notified of reduced/cancelled schedule
 
@@ -120,21 +119,21 @@ When a booking changes (date, time, language, or tour) or a guide becomes unavai
 
 ### FR-6: Schedule matching criteria
 
-- **Description**: Defines how the system determines if a booking can be placed in an existing schedule.
-- **Matching Criteria** — a booking matches a schedule when ALL of the following are true:
-  1. **Same tour**: `bookings.tour_id = schedule.tour_id`
-  2. **Same language**: `purchases.language_code = schedule.language_code`
-  3. **Same timeslot**: `bookings.event_start_datetime = schedule.event_start_datetime`
+- **Description**: Defines how the system determines if a reservation can be placed in an existing schedule.
+- **Matching Criteria** — a reservation matches a schedule when ALL of the following are true:
+  1. **Same tour**: `reservations.tour_id = schedule.tour_id`
+  2. **Same language**: `reservations.language_code = schedule.language_code`
+  3. **Same timeslot**: `reservations.event_start_datetime = schedule.event_start_datetime`
   4. **Schedule is active**: `schedule.status` IN (`UNASSIGNED`, `ASSIGNED`)
 - **Acceptance Criteria**:
-  - Bookings are only grouped with compatible schedules
-  - No booking is placed in a schedule with mismatched tour, language, or time
+  - Reservations are only grouped with compatible schedules
+  - No reservation is placed in a schedule with mismatched tour, language, or time
 
 ## 5. Data Model Impact
 
 | Table | Impact |
 |-------|--------|
-| `bookings` | `schedule_id` updated (set or cleared) |
+| `reservations` | `schedule_id` updated (set or cleared) |
 | `schedule` | New rows created; `status` updated; `guide_id` updated |
 | `tour_assignment_logs` | Audit entries for every guide change |
 | `notifications` | Notifications dispatched for every change |
@@ -144,10 +143,10 @@ When a booking changes (date, time, language, or tour) or a guide becomes unavai
 ```
 Clorian Poll
     │
-    ├── BookingTimeChanged ──────────► Re-scheduling Service
-    ├── BookingTourChanged ──────────► Re-scheduling Service
-    ├── PurchaseLanguageChanged ─────► Re-scheduling Service
-    ├── BookingCancelled ────────────► Re-scheduling Service
+    ├── ReservationTimeChanged ──────► Re-scheduling Service
+    ├── ReservationTourChanged ──────► Re-scheduling Service
+    ├── ReservationLanguageChanged ──► Re-scheduling Service
+    ├── ReservationCancelled ────────► Re-scheduling Service
     │                                       │
     │                                       ├── Remove from old schedule
     │                                       ├── Find/create matching schedule
@@ -168,15 +167,15 @@ Admin/Guide Action
 | Scenario | Expected Behavior | HTTP Status |
 |----------|-------------------|-------------|
 | No matching schedule and guide assignment fails | Create schedule with `status = 'UNASSIGNABLE'`, notify admins | N/A |
-| Booking references a schedule that no longer exists | Log warning, treat as new booking needing scheduling | N/A |
-| Multiple bookings change simultaneously | Process sequentially within the same poll batch | N/A |
+| Reservation references a schedule that no longer exists | Log warning, treat as new reservation needing scheduling | N/A |
+| Multiple reservations change simultaneously | Process sequentially within the same poll batch | N/A |
 | Re-scheduling service unavailable | Events queued for retry | N/A |
 
 ## 8. Dependencies
 
 | Dependency | Type | Notes |
 |------------|------|-------|
-| [FDR-001] Booking Ingestion | Internal | Produces domain events that trigger re-scheduling |
+| [FDR-001] Reservation Ingestion | Internal | Produces domain events that trigger re-scheduling |
 | [FDR-002] Guide Assignment | Internal | Called to assign/reassign guides |
 | [FDR-003] Notifications | Internal | Called to notify on every change |
 
@@ -185,7 +184,7 @@ Admin/Guide Action
 | # | Question | Answer | Status |
 |---|----------|--------|--------|
 | 1 | Should re-scheduling be synchronous (within the poll) or async (event queue)? | TBD | Open |
-| 2 | What happens if a booking changes multiple attributes at once (e.g., time + tour)? | Process as a single re-schedule using new values | Resolved |
+| 2 | What happens if a reservation changes multiple attributes at once (e.g., time + tour)? | Process as a single re-schedule using new values | Resolved |
 | 3 | Should there be a cool-down period to batch rapid changes? | TBD | Open |
 | 4 | When a schedule becomes empty, should it be hard-deleted or soft-deleted? | Soft-delete (`status = 'CANCELLED'`) | Resolved |
 
@@ -194,3 +193,4 @@ Admin/Guide Action
 | Version | Date       | Author          | Description |
 |---------|------------|-----------------|-------------|
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial draft — re-scheduling on booking changes + guide cancellation |
+| 1.1     | 2026-03-03 | Evandro Maciel | Renamed bookings→reservations; updated all event names to Reservation*; language change now from reservation directly |
