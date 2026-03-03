@@ -5,20 +5,16 @@ const props = defineProps({
   conflict: { type: Boolean, default: false },
   bulkMode: { type: Boolean, default: false },
   checked: { type: Boolean, default: false },
-  timeZone: { type: String, default: 'America/Toronto' },
 })
 
 const emit = defineEmits(['select', 'toggle-bulk'])
 
 function formatTime(dateLike) {
-  const options = {
+  return new Date(dateLike).toLocaleTimeString('en-CA', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
-    timeZone: props.timeZone,
-  }
-
-  return new Date(dateLike).toLocaleTimeString('en-CA', options)
+  })
 }
 </script>
 
