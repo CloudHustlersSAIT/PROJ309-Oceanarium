@@ -3,7 +3,7 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | ADR-002                |
-| **Version**      | 1.0                    |
+| **Version**      | 2.0                    |
 | **Status**       | Proposed               |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
@@ -35,7 +35,7 @@ As we build out 8 bounded contexts (Reservation, Scheduling, Guide, Availability
 
 ## Decision
 
-**Adopt a layered domain architecture organized by bounded context, with clear separation into routes, services, repositories, models, schemas, adapters, and infrastructure.**
+**Adopt a layer-first architecture where each folder represents a layer, and each file within a layer corresponds to a domain/bounded context.**
 
 ### Target Structure
 
@@ -43,88 +43,98 @@ As we build out 8 bounded contexts (Reservation, Scheduling, Guide, Availability
 backend/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                  ← App factory (create_app, CORS, include routers)
-│   ├── config.py                ← Pydantic Settings (DATABASE_URL, CORS, intervals)
+│   ├── main.py                          ← App factory (create_app, CORS, include routers)
+│   ├── config.py                        ← Pydantic Settings (DATABASE_URL, CORS, intervals)
 │   │
-│   ├── infrastructure/          ← Cross-cutting technical concerns
-│   │   ├── database.py          ← Engine, session factory, declarative Base
-│   │   └── email.py             ← Email client (SMTP/SES)
+│   ├── routes/                          ← HTTP layer — thin, delegates to services
+│   │   ├── __init__.py
+│   │   ├── reservation.py               ← /reservations, /reservations/{id}
+│   │   ├── scheduling.py                ← /schedules, /schedules/{id}/assign
+│   │   ├── guide.py                     ← /guides
+│   │   ├── availability.py              ← /guides/{id}/availability
+│   │   ├── notification.py              ← /notifications
+│   │   ├── feedback.py                  ← /surveys
+│   │   ├── sync.py                      ← /admin/poll/trigger
+│   │   └── auth.py                      ← /auth/login, /users
 │   │
-│   ├── domain/                  ← Vertical slices per bounded context
-│   │   ├── reservation/
-│   │   │   ├── models.py        ← SQLAlchemy ORM (Customer, Reservation, ReservationVersion, Ticket)
-│   │   │   ├── schemas.py       ← Pydantic DTOs (request/response)
-│   │   │   ├── repository.py    ← Data access (queries, upserts)
-│   │   │   ├── service.py       ← Business logic (ingestion, versioning, hash detection)
-│   │   │   └── routes.py        ← FastAPI router (thin — delegates to service)
-│   │   │
-│   │   ├── scheduling/
-│   │   │   ├── models.py        ← Schedule, TourAssignmentLog
-│   │   │   ├── schemas.py
-│   │   │   ├── repository.py
-│   │   │   ├── service.py       ← ScheduleBuilder, ReScheduling
-│   │   │   └── routes.py
-│   │   │
-│   │   ├── guide/
-│   │   │   ├── models.py        ← Guide, GuideLanguage, GuideTourType
-
-│   │   │   ├── schemas.py
-│   │   │   ├── repository.py
-│   │   │   ├── service.py       ← GuideAssignment (3 constraints + priority)
-│   │   │   └── routes.py
-│   │   │
-│   │   ├── availability/
-│   │   │   ├── models.py
-│   │   │   ├── repository.py
-│   │   │   ├── service.py       ← AvailabilityQuery
-│   │   │   └── routes.py
-│   │   │
-│   │   ├── notification/
-│   │   │   ├── models.py
-│   │   │   ├── schemas.py
-│   │   │   ├── repository.py
-│   │   │   ├── service.py       ← Portal + email dispatch
-│   │   │   └── routes.py
-│   │   │
-│   │   ├── feedback/
-│   │   │   ├── models.py
-│   │   │   ├── schemas.py
-│   │   │   ├── repository.py
-│   │   │   └── routes.py
-│   │   │
-│   │   ├── sync/
-│   │   │   ├── models.py        ← PollExecution, SyncLog
-│   │   │   ├── repository.py
-│   │   │   ├── service.py       ← ClorianPoller
-│   │   │   └── routes.py        ← POST /admin/poll/trigger
-│   │   │
-│   │   └── auth/
-│   │       ├── models.py
-│   │       ├── schemas.py
-│   │       ├── repository.py
-│   │       ├── service.py
-│   │       └── routes.py
+│   ├── schemas/                         ← Pydantic DTOs (request/response)
+│   │   ├── __init__.py
+│   │   ├── reservation.py
+│   │   ├── scheduling.py
+│   │   ├── guide.py
+│   │   ├── availability.py
+│   │   ├── notification.py
+│   │   ├── feedback.py
+│   │   ├── sync.py
+│   │   └── auth.py
 │   │
-│   └── adapters/                ← External system integrations
+│   ├── services/                        ← Business logic, validation, orchestration
+│   │   ├── __init__.py
+│   │   ├── reservation.py               ← Ingestion, versioning, hash detection
+│   │   ├── scheduling.py                ← ScheduleBuilder, ReScheduling
+│   │   ├── guide_assignment.py          ← 3 constraints + priority
+│   │   ├── availability.py              ← AvailabilityQuery
+│   │   ├── notification.py              ← Portal + email dispatch
+│   │   ├── feedback.py
+│   │   └── sync.py                      ← ClorianPoller orchestration
+│   │
+│   ├── repositories/                    ← Data access — all SQL/ORM queries
+│   │   ├── __init__.py
+│   │   ├── customer.py
+│   │   ├── reservation.py
+│   │   ├── ticket.py
+│   │   ├── schedule.py
+│   │   ├── guide.py
+│   │   ├── availability.py
+│   │   ├── notification.py
+│   │   ├── survey.py
+│   │   ├── poll_execution.py
+│   │   ├── sync_log.py
+│   │   ├── tour_assignment_log.py
+│   │   └── user.py
+│   │
+│   ├── models/                          ← SQLAlchemy ORM models
+│   │   ├── __init__.py
+│   │   ├── customer.py                  ← Customer
+│   │   ├── reservation.py               ← Reservation, ReservationVersion
+│   │   ├── ticket.py                    ← Ticket
+│   │   ├── tour.py                      ← Tour
+│   │   ├── schedule.py                  ← Schedule
+│   │   ├── guide.py                     ← Guide, GuideLanguage, GuideTourType
+│   │   ├── language.py                  ← Language
+│   │   ├── availability.py              ← AvailabilityPattern, AvailabilitySlot, AvailabilityException
+│   │   ├── notification.py              ← Notification
+│   │   ├── survey.py                    ← Survey
+│   │   ├── poll_execution.py            ← PollExecution
+│   │   ├── sync_log.py                  ← SyncLog
+│   │   ├── tour_assignment_log.py       ← TourAssignmentLog
+│   │   └── user.py                      ← User
+│   │
+│   ├── infrastructure/                  ← Cross-cutting technical concerns
+│   │   ├── __init__.py
+│   │   ├── database.py                  ← Engine, session factory, declarative Base
+│   │   └── email.py                     ← Email client (SMTP/SES)
+│   │
+│   └── adapters/                        ← External system integrations
 │       └── clorian/
-│           ├── client.py        ← HTTP client for Clorian API
-│           ├── mapper.py        ← Clorian JSON → domain models (Anti-Corruption Layer)
-│           └── schemas.py       ← Pydantic models for raw Clorian payloads
+│           ├── __init__.py
+│           ├── client.py                ← HTTP client for Clorian API
+│           ├── mapper.py                ← Clorian JSON → domain models (ACL)
+│           └── schemas.py               ← Pydantic models for raw Clorian payloads
 │
-├── migrations/                  ← Alembic version-controlled migrations
+├── migrations/                          ← Alembic version-controlled migrations
 │   ├── alembic.ini
 │   ├── env.py
 │   └── versions/
 │
-├── tests/                       ← Mirrors domain structure
-│   ├── domain/
-│   │   ├── reservation/
-│   │   ├── scheduling/
-│   │   └── ...
+├── tests/                               ← Mirrors layer structure
+│   ├── routes/
+│   ├── services/
+│   ├── repositories/
 │   └── adapters/
 │       └── clorian/
 │
-├── docs/                        ← Already organized
+├── docs/                                ← Already organized
 ├── Dockerfile
 ├── requirements.txt
 └── .env
@@ -132,23 +142,23 @@ backend/
 
 ### Layer Responsibilities
 
-| Layer | Responsibility | Depends On |
-|-------|---------------|------------|
-| **routes.py** | Parse HTTP request, call service, return response. No business logic, no SQL. | schemas, service |
-| **schemas.py** | Pydantic models for API request/response DTOs. Decoupled from DB models. | — |
-| **service.py** | Business logic, validation, orchestration, domain event emission. | repository, other services |
-| **repository.py** | Data access — all SQL/ORM queries live here. Single source of truth for DB operations. | models, database |
-| **models.py** | SQLAlchemy ORM models with relationships, constraints, and column definitions. | infrastructure/database |
-| **infrastructure/** | Cross-cutting: DB engine, session management, email client, shared middleware. | config |
-| **adapters/** | External system integration. Translates external data formats into domain models. | domain schemas/models |
-| **config.py** | Centralized settings via Pydantic Settings (env vars, defaults). | — |
+| Layer | Folder | Responsibility | Depends On |
+|-------|--------|---------------|------------|
+| **Routes** | `routes/` | Parse HTTP request, call service, return response. No business logic, no SQL. | schemas, services |
+| **Schemas** | `schemas/` | Pydantic models for API request/response DTOs. Decoupled from DB models. | — |
+| **Services** | `services/` | Business logic, validation, orchestration, domain event emission. | repositories, other services |
+| **Repositories** | `repositories/` | Data access — all SQL/ORM queries live here. Single source of truth for DB operations. | models, infrastructure |
+| **Models** | `models/` | SQLAlchemy ORM models with relationships, constraints, and column definitions. | infrastructure |
+| **Infrastructure** | `infrastructure/` | Cross-cutting: DB engine, session management, email client, shared middleware. | config |
+| **Adapters** | `adapters/` | External system integration. Translates external data formats into our models. | schemas, models |
+| **Config** | `config.py` | Centralized settings via Pydantic Settings (env vars, defaults). | — |
 
 ### Dependency Direction (strict)
 
 ```
 routes → services → repositories → models
                   → adapters
-          infrastructure ← (injected via FastAPI Depends)
+         infrastructure ← (injected via FastAPI Depends)
 ```
 
 No layer may import from a layer above it.
@@ -164,7 +174,7 @@ No layer may import from a layer above it.
 
 ## Options Considered
 
-### Option A: Flat file structure (one file per resource)
+### Option A: Flat file structure (one file per resource, prefixed by layer)
 
 ```
 app/
@@ -175,19 +185,39 @@ app/
 └── ...
 ```
 
-- **Pros**: Simple, fewer directories
-- **Cons**: Files grow large, related code scattered across the folder, poor cohesion, hard to navigate as domains grow
+- **Pros**: Simple, no nesting
+- **Cons**: Files grow large, naming convention is the only grouping, no visual separation between layers
 
-### Option B: Layered domain architecture (chosen)
+### Option B: Domain-first (vertical slices per bounded context)
 
 ```
 app/domain/reservation/{models, schemas, repository, service, routes}.py
 ```
 
-- **Pros**: High cohesion (everything about a domain in one place), low coupling (clear dependency direction), matches DDD bounded contexts, scales well, easy to test
-- **Cons**: More folders/files upfront, slightly higher initial complexity
+- **Pros**: High cohesion within a domain, everything about reservations in one place
+- **Cons**: When working on a layer across domains (e.g., all routes or all models), you have to jump between many folders; harder to enforce consistent patterns across a layer
 
-### Option C: Full hexagonal / ports-and-adapters
+### Option C: Layer-first architecture (chosen)
+
+```
+app/routes/reservation.py
+app/services/reservation.py
+app/repositories/reservation.py
+app/models/reservation.py
+```
+
+- **Pros**:
+  - Easy to find all files of the same type — "open `routes/` and you see every endpoint"
+  - Natural for code reviews: reviewing a route change means opening `routes/` and `schemas/`
+  - Enforces consistent patterns within a layer (all repositories follow the same shape)
+  - Familiar to most Python/FastAPI developers
+  - Each layer folder acts as a guardrail — new contributors know exactly where to put code
+  - Domain is expressed by filename, layer is expressed by folder
+- **Cons**:
+  - Related files for one domain are spread across folders (e.g., reservation logic in 5 different folders)
+  - Mitigated by consistent naming: `reservation.py` in every layer folder makes cross-referencing easy
+
+### Option D: Full hexagonal / ports-and-adapters
 
 - **Pros**: Maximum decoupling, framework-agnostic domain core
 - **Cons**: Over-engineered for a team and project of this size, adds abstract interfaces and indirection that slow development
@@ -197,36 +227,39 @@ app/domain/reservation/{models, schemas, repository, service, routes}.py
 ### Positive
 
 - Each file is small, focused, and has a single responsibility
-- Adding a new domain (e.g., a future "Resources" context) is a `mkdir` + 5 small files
-- Business logic is testable without HTTP or database
+- Layer folders act as **guardrails** — new contributors know exactly where routes, services, and models go
+- Consistent naming (`reservation.py` in `routes/`, `services/`, `repositories/`, `models/`) makes navigation intuitive
+- Business logic is testable without HTTP or database (mock the repository layer)
 - Raw SQL is eliminated in favor of ORM — schema changes tracked by Alembic
 - Clorian integration is isolated — API changes only affect `adapters/clorian/`
-- Clear onboarding path: "find the domain folder, read routes → service → repository"
+- Adding a new domain means adding one file per layer, not creating a new folder tree
 
 ### Negative
 
-- More files and directories to manage compared to current 4-file structure
+- More files to manage compared to current 4-file structure
 - Requires learning SQLAlchemy ORM and Alembic if team is unfamiliar
 - Initial migration effort to move existing code from `main.py` into the new structure
+- Related domain code is spread across multiple folders (mitigated by consistent file naming)
 
 ### Risks
 
-- Over-splitting too early: some domains may be thin (e.g., `feedback/` might just be a model + route). Mitigated by allowing thin domains — a folder with fewer files is fine.
-- Cross-domain queries: some use cases (e.g., stats dashboard) span multiple domains. Mitigated by a dedicated read-model/query service or allowing controlled cross-repository reads.
+- Thin domains (e.g., feedback) may only need a model + route — empty service/repository files are fine to omit until needed
+- Cross-domain queries (e.g., stats dashboard) may need to import multiple repositories — this is acceptable for read-only query services
 
 ## Related
 
-- [ADR-001] Drop Reservation Table
-- [DDD-001] Domain Model Overview — defines the 8 bounded contexts this architecture implements
+- [ADR-001] Naming & Structure — Reservation naming, no purchases table
+- [DDD-001] Domain Model Overview — defines the 8 bounded contexts
 - [FDR-001] Reservation Ingestion — drives the adapter/clorian structure
 - [FDR-002] Guide Assignment — drives the guide/scheduling service split
-- [FDR-003] Notifications — drives the notification domain
+- [FDR-003] Notifications — drives the notification layer files
 - [FDR-004] Auto Re-scheduling — drives the scheduling service complexity
-- [DB] ERD v3.0 — defines the 20+ tables that map to ORM models
+- [DB] ERD v4.0 — defines the 20+ tables that map to ORM models
 
 ## Changelog
 
 | Version | Date       | Author          | Description |
 |---------|------------|-----------------|-------------|
-| 1.0     | 2026-03-03 | Evandro Maciel | Initial proposal — layered domain architecture with adapters |
-| 1.1     | 2026-03-03 | Evandro Maciel | Renamed booking domain → reservation domain throughout |
+| 1.0     | 2026-03-03 | Evandro Maciel | Initial proposal — domain-first vertical slices |
+| 1.1     | 2026-03-03 | Evandro Maciel | Renamed booking domain → reservation domain |
+| 2.0     | 2026-03-03 | Evandro Maciel | Switched to layer-first architecture (folders by layer, files by domain); reorganized options considered; updated consequences |
