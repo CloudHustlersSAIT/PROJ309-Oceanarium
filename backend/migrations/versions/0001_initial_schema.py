@@ -1,4 +1,4 @@
-"""Initial schema — 20 tables from ERD v4.0
+"""Initial schema — 19 tables from ERD v4.0
 
 Revision ID: 0001
 Revises:
