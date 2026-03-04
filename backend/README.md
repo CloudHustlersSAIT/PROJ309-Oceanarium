@@ -302,25 +302,27 @@ Runs on every **pull request** that touches `backend/**`.
 
 A failing migration blocks the PR from merging.
 
-### CD — Build, Migrate & Deploy (`.github/workflows/cd.yml`)
+### CD — Migrate & Deploy (`.github/workflows/cd.yml`)
 
 Runs on every **push to `main`** that touches `backend/**`.
 
-1. Builds the Docker image from `backend/Dockerfile` and pushes it to Amazon ECR, tagged with the git SHA and `latest`.
-2. Runs `alembic upgrade head` against the production RDS database **before** the new app version is deployed.
-3. Triggers a new deployment on Amazon ECS via `aws ecs update-service --force-new-deployment`.
+1. Opens SSH access to the EC2 security group.
+2. SSHs into the EC2 instance, pulls the latest code, installs dependencies, runs `alembic upgrade head` against the production RDS database, and restarts the service. Migrations run **before** the service restarts so the schema is always ahead of the code.
+3. Closes SSH access in the security group (runs even if deploy fails).
+
+The EC2 instance connects to RDS over the private VPC network — no public database access is needed.
 
 ### Required GitHub Secrets
 
 | Secret | Description |
 |--------|-------------|
-| `AWS_ACCESS_KEY_ID` | IAM access key for ECR push and ECS deploy |
+| `AWS_ACCESS_KEY_ID` | IAM access key for EC2 security group management |
 | `AWS_SECRET_ACCESS_KEY` | IAM secret key |
 | `AWS_REGION` | AWS region (e.g. `us-east-2`) |
-| `DATABASE_URL` | Production RDS connection string (`postgresql+psycopg2://...`) |
-| `ECR_REPOSITORY` | Full ECR repository URI (e.g. `123456789.dkr.ecr.us-east-2.amazonaws.com/oceanarium-backend`) |
-| `ECS_CLUSTER` | ECS cluster name |
-| `ECS_SERVICE` | ECS service name |
+| `AWS_SG_ID` | EC2 security group ID (for temporary SSH access) |
+| `EC2_HOST` | EC2 instance public IP or hostname |
+| `EC2_USERNAME` | SSH username on the EC2 instance |
+| `EC2_SSH_KEY` | Private SSH key for the EC2 instance |
 
 ## Key Documentation
 

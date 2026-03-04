@@ -1,4 +1,4 @@
-name: Backend CD – Build, Migrate & Deploy
+name: Backend CD – Migrate & Deploy
 
 on:
   push:
@@ -20,37 +20,35 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Log in to Amazon ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Get GitHub Runner IP
+        id: ip
+        run: echo "ipv4=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
 
-      - name: Build and push Docker image
-        working-directory: backend
+      - name: Open SSH in Security Group
         run: |
-          docker build \
-            -t ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} \
-            -t ${{ secrets.ECR_REPOSITORY }}:latest \
-            .
-          docker push ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
-          docker push ${{ secrets.ECR_REPOSITORY }}:latest
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.AWS_SG_ID }} \
+            --protocol tcp --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          python-version: "3.11"
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/backend
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
+            alembic upgrade head
+            sudo systemctl restart backend
 
-      - name: Install dependencies
-        run: pip install -r backend/requirements.txt
-
-      - name: Run production migrations
-        working-directory: backend
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: alembic upgrade head
-
-      - name: Deploy to ECS
+      - name: Close SSH in Security Group
+        if: always()
         run: |
-          aws ecs update-service \
-            --cluster ${{ secrets.ECS_CLUSTER }} \
-            --service ${{ secrets.ECS_SERVICE }} \
-            --force-new-deployment
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.AWS_SG_ID }} \
+            --protocol tcp --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
