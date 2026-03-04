@@ -29,6 +29,56 @@ uvicorn app.main:app --reload
 - Interactive docs (Swagger): http://127.0.0.1:8000/docs
 - Alternative docs (ReDoc): http://127.0.0.1:8000/redoc
 
+## Database Setup
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+
+### Start PostgreSQL
+
+```bash
+docker compose up db -d
+```
+
+This starts a PostgreSQL 16 container on port 5432 with credentials `oceanarium:oceanarium`.
+
+### Run Migrations
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+### Rollback
+
+```bash
+alembic downgrade -1     # rollback one migration
+alembic downgrade base   # rollback everything
+```
+
+### Create a New Migration
+
+```bash
+alembic revision -m "description of change"
+```
+
+Then edit the generated file in `migrations/versions/` adding `op.execute()` calls with raw SQL.
+
+### Verify Tables
+
+```bash
+docker compose exec db psql -U oceanarium -c "\dt"
+```
+
+### Destroy and Rebuild
+
+```bash
+docker compose down -v   # removes containers and pgdata volume
+docker compose up db -d
+cd backend && alembic upgrade head
+```
+
 ## Architecture Overview
 
 The backend follows a **layered domain architecture** (see [ADR-002](docs/ADR/ADR-002-layered-domain-architecture.md)). We are currently on **Phase 1** of 6 — routes and services are extracted, but raw SQL still lives in services temporarily.
@@ -79,7 +129,14 @@ backend/
 │       ├── stats.py         # Dashboard aggregation
 │       └── mock_poller.py   # Mock Clorian data generation + staging
 │
+├── migrations/              # Alembic raw SQL migrations
+│   ├── env.py               # Loads DATABASE_URL from environment
+│   ├── script.py.mako       # Template for new revisions
+│   └── versions/
+│       └── 0001_initial_schema.py  # 20-table initial schema
+│
 ├── docs/                    # Architecture decisions, domain docs, ERD
+├── alembic.ini              # Alembic configuration (URL loaded from env)
 ├── Dockerfile
 ├── requirements.txt
 └── .env                     # Not committed — see .gitignore
@@ -213,6 +270,17 @@ The route layer catches these and converts them to `HTTPException` with the corr
 
 ## Docker
 
+The project uses Docker Compose (defined at the repo root) to run PostgreSQL and the backend together:
+
+```bash
+docker compose up -d          # start both db and backend
+docker compose up db -d       # start only PostgreSQL
+docker compose down           # stop all services
+docker compose down -v        # stop and destroy volumes (full reset)
+```
+
+To build and run the backend image standalone:
+
 ```bash
 docker build -t oceanarium-backend .
 docker run -p 8000:8000 --env-file .env oceanarium-backend
@@ -241,5 +309,5 @@ The Dockerfile uses `app.main:app` as the uvicorn entrypoint — this must remai
 | 2 | Planned | SQLAlchemy ORM `models/` + `repositories/` (ADR-003) |
 | 3 | Planned | Pydantic `schemas/` extraction from routes |
 | 4 | Planned | `infrastructure/` + `config.py` centralization |
-| 5 | Planned | Alembic `migrations/` (ADR-004) |
+| 5 | **Done** | Alembic `migrations/` — raw SQL, 20 tables |
 | 6 | Planned | Clorian `adapters/` integration (ADR-005) |
