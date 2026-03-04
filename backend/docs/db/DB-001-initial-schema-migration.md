@@ -13,7 +13,7 @@
 
 ## Overview
 
-Greenfield migration that creates all 20 tables defined in the [ERD v4.0](ERD.md). Uses raw SQL via Alembic `op.execute()` — no ORM models. Tables are created in foreign-key dependency order so that every `REFERENCES` clause points to an already-existing table.
+Greenfield migration that creates all 19 user-defined tables defined in the [ERD v4.0](ERD.md). Uses raw SQL via Alembic `op.execute()` — no ORM models. Tables are created in foreign-key dependency order so that every `REFERENCES` clause points to an already-existing table.
 
 ## Schema
 
