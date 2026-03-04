@@ -261,7 +261,7 @@ CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id)
 | notifications | Portal and email notifications |
 | tour_assignment_logs | Audit trail for guide assignments |
 
-**Total: 19 tables + `alembic_version` (auto-managed) = 20 user tables.**
+**Total: 19 user tables + `alembic_version` (auto-managed).**
 
 > Note: `guide_languages` and `guide_tour_types` are junction tables with composite primary keys and no surrogate `id` column.
 
@@ -350,4 +350,4 @@ CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id)
 
 | Version | Date       | Author          | Description |
 |---------|------------|-----------------|-------------|
-| 1.0     | 2026-03-04 | Evandro Maciel  | Initial 20-table schema from ERD v4.0 |
+| 1.0     | 2026-03-04 | Evandro Maciel  | Initial 19-table schema from ERD v4.0 |
