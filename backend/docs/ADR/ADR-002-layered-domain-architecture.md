@@ -3,7 +3,7 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | ADR-002                |
-| **Version**      | 2.0                    |
+| **Version**      | 2.1                    |
 | **Status**       | Proposed               |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
@@ -172,6 +172,21 @@ No layer may import from a layer above it.
 5. **Alembic** for database migrations — version-controlled schema changes
 6. **Adapter pattern** for Clorian — Anti-Corruption Layer isolates external data formats
 
+### Implementation Phases
+
+This architecture will be adopted incrementally to minimize risk and keep the application deployable at every step. Each phase produces a working backend — no phase leaves the codebase in a broken state.
+
+| Phase | Scope | Layers touched | New decision? |
+|-------|-------|---------------|---------------|
+| 1 | Route/service extraction — split `main.py` monolith into thin routes and service functions. Raw SQL stays in services temporarily. | `routes/`, `services/` | No (this ADR) |
+| 2 | ORM models + repository pattern — replace raw `text()` SQL with SQLAlchemy models and repository functions. | `models/`, `repositories/` | Yes → ADR-003 |
+| 3 | Pydantic schemas (DTOs) — extract request/response models from route files into a dedicated schemas layer. | `schemas/` | No (this ADR) |
+| 4 | Infrastructure + config — centralize DB engine, session factory, and settings into `infrastructure/` and `config.py`. | `infrastructure/`, `config.py` | No (this ADR) |
+| 5 | Alembic migrations — version-controlled schema changes. | `migrations/` | Yes → ADR-004 |
+| 6 | Clorian adapter — HTTP client, mapper (ACL), and external payload schemas. | `adapters/clorian/` | Yes → ADR-005 |
+
+Phases 2, 5, and 6 introduce genuinely new technical decisions (ORM choice, migration tooling, external integration pattern) that warrant their own ADRs with alternatives considered.
+
 ## Options Considered
 
 ### Option A: Flat file structure (one file per resource, prefixed by layer)
@@ -249,6 +264,9 @@ app/models/reservation.py
 ## Related
 
 - [ADR-001] Naming & Structure — Reservation naming, no purchases table
+- [ADR-003] Adopt SQLAlchemy ORM (future — Phase 2)
+- [ADR-004] Adopt Alembic for Migrations (future — Phase 5)
+- [ADR-005] Clorian Adapter Pattern (future — Phase 6)
 - [DDD-001] Domain Model Overview — defines the 8 bounded contexts
 - [FDR-001] Reservation Ingestion — drives the adapter/clorian structure
 - [FDR-002] Guide Assignment — drives the guide/scheduling service split
@@ -263,3 +281,4 @@ app/models/reservation.py
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial proposal — domain-first vertical slices |
 | 1.1     | 2026-03-03 | Evandro Maciel | Renamed booking domain → reservation domain |
 | 2.0     | 2026-03-03 | Evandro Maciel | Switched to layer-first architecture (folders by layer, files by domain); reorganized options considered; updated consequences |
+| 2.1     | 2026-03-03 | Evandro Maciel | Added implementation phases table; linked future ADRs (003–005) for ORM, migrations, and Clorian adapter |
