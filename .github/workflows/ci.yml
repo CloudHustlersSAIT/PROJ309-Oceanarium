@@ -1,0 +1,51 @@
+name: Backend CI – Validate Migrations
+
+on:
+  pull_request:
+    paths: ["backend/**"]
+
+jobs:
+  validate-migrations:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: oceanarium
+          POSTGRES_PASSWORD: oceanarium
+          POSTGRES_DB: oceanarium
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oceanarium"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg2://oceanarium:oceanarium@localhost:5432/oceanarium
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Upgrade to head
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Downgrade to base
+        working-directory: backend
+        run: alembic downgrade base
+
+      - name: Re-upgrade to head (idempotent re-apply)
+        working-directory: backend
+        run: alembic upgrade head

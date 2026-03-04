@@ -288,6 +288,40 @@ docker run -p 8000:8000 --env-file .env oceanarium-backend
 
 The Dockerfile uses `app.main:app` as the uvicorn entrypoint — this must remain a module-level `FastAPI()` instance in `main.py`.
 
+## CI/CD
+
+Two GitHub Actions workflows automate migration validation and production deployment.
+
+### CI — Validate Migrations (`.github/workflows/ci.yml`)
+
+Runs on every **pull request** that touches `backend/**`.
+
+1. Spins up a disposable PostgreSQL 16 service container.
+2. Installs Python 3.11 and project dependencies.
+3. Executes `alembic upgrade head` → `alembic downgrade base` → `alembic upgrade head` to prove migrations are reversible and idempotent.
+
+A failing migration blocks the PR from merging.
+
+### CD — Build, Migrate & Deploy (`.github/workflows/cd.yml`)
+
+Runs on every **push to `main`** that touches `backend/**`.
+
+1. Builds the Docker image from `backend/Dockerfile` and pushes it to Amazon ECR, tagged with the git SHA and `latest`.
+2. Runs `alembic upgrade head` against the production RDS database **before** the new app version is deployed.
+3. Triggers a new deployment on Amazon ECS via `aws ecs update-service --force-new-deployment`.
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `AWS_ACCESS_KEY_ID` | IAM access key for ECR push and ECS deploy |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key |
+| `AWS_REGION` | AWS region (e.g. `us-east-2`) |
+| `DATABASE_URL` | Production RDS connection string (`postgresql+psycopg2://...`) |
+| `ECR_REPOSITORY` | Full ECR repository URI (e.g. `123456789.dkr.ecr.us-east-2.amazonaws.com/oceanarium-backend`) |
+| `ECS_CLUSTER` | ECS cluster name |
+| `ECS_SERVICE` | ECS service name |
+
 ## Key Documentation
 
 | Document | Path | Description |
