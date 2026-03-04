@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: oceanarium
+      POSTGRES_PASSWORD: oceanarium
+      POSTGRES_DB: oceanarium
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oceanarium"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://oceanarium:oceanarium@db:5432/oceanarium
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
