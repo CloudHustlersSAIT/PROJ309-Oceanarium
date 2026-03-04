@@ -26,6 +26,7 @@ origins = [
     "http://127.0.0.1:5173",
     "https://cpsy301-small-prototype.vercel.app",
     "https://oceanarium.duckdns.org",
+    "https://main.d29u7miusl8fw9.amplifyapp.com",
 ]
 
 app.add_middleware(
