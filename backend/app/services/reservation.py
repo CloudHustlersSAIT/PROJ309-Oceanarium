@@ -1,28 +1,9 @@
-"""Reservation service -- booking CRUD with conflict detection.
-
-Handles listing, creating, rescheduling, and cancelling bookings.
-Each function validates business rules and raises domain exceptions
-on failure so the route layer can map them to HTTP status codes.
-
-Note: File is named ``reservation.py`` to align with ADR-001 domain naming,
-but the underlying table and API paths still use ``bookings`` for backward
-compatibility.
-"""
-
 from sqlalchemy import text
 
 from .exceptions import ConflictError, NotFoundError, ValidationError
 
 
 def list_reservations(conn):
-    """Return all bookings ordered by creation date (newest first).
-
-    Args:
-        conn: SQLAlchemy connection provided by the route via ``Depends(get_db)``.
-
-    Returns:
-        list[dict]: Each dict maps column name to value for one booking row.
-    """
     result = conn.execute(
         text("SELECT * FROM bookings ORDER BY created_at DESC")
     )
@@ -32,29 +13,6 @@ def list_reservations(conn):
 
 
 def create_reservation(conn, data):
-    """Create a new booking after validating tickets and checking for conflicts.
-
-    Validation steps:
-        1. Ticket counts must be non-negative.
-        2. At least one ticket (adult or child) must be booked.
-        3. The referenced tour must exist.
-        4. The guide assigned to that tour must not have an overlapping active
-           booking on the same date/time.
-
-    Args:
-        conn: SQLAlchemy connection.
-        data: Pydantic ``BookingCreate`` model with fields ``customer_id``,
-              ``tour_id``, ``date``, ``start_time``, ``end_time``,
-              ``adult_tickets``, ``child_tickets``.
-
-    Returns:
-        dict: The newly created booking row.
-
-    Raises:
-        ValidationError: Ticket counts are invalid.
-        NotFoundError: Tour does not exist.
-        ConflictError: Guide already has an overlapping booking.
-    """
     if data.adult_tickets < 0 or data.child_tickets < 0:
         raise ValidationError("Ticket count cannot be negative")
 
@@ -73,9 +31,6 @@ def create_reservation(conn, data):
     if not tour:
         raise NotFoundError("Tour not found")
 
-    # Overlap check: any active booking for the same guide whose time window
-    # intersects the requested window. Uses the standard interval overlap test:
-    # existing.start < new.end AND existing.end > new.start
     conflict = conn.execute(
         text("""
             SELECT 1
@@ -127,28 +82,6 @@ def create_reservation(conn, data):
 
 
 def reschedule_reservation(conn, booking_id, data):
-    """Move an existing booking to a new date/time after conflict checks.
-
-    Validation steps:
-        1. Booking must exist.
-        2. Booking must not already be cancelled.
-        3. The guide must not have an overlapping active booking at the new time
-           (excluding the current booking itself).
-
-    Args:
-        conn: SQLAlchemy connection.
-        booking_id (int): Primary key of the booking to reschedule.
-        data: Pydantic ``BookingReschedule`` model with ``new_date``,
-              ``start_time``, ``end_time``.
-
-    Returns:
-        dict: The updated booking row.
-
-    Raises:
-        NotFoundError: Booking does not exist.
-        ValidationError: Booking is cancelled.
-        ConflictError: Guide already has an overlapping booking at the new time.
-    """
     existing = conn.execute(
         text("""
             SELECT booking_id, tour_id, date, status
@@ -215,23 +148,10 @@ def reschedule_reservation(conn, booking_id, data):
 
 
 def cancel_reservation(conn, booking_id):
-    """Mark a booking as cancelled. Idempotent guard prevents double-cancel.
-
-    Args:
-        conn: SQLAlchemy connection.
-        booking_id (int): Primary key of the booking to cancel.
-
-    Returns:
-        dict: The updated booking row with ``status='cancelled'``.
-
-    Raises:
-        NotFoundError: Booking does not exist.
-        ValidationError: Booking is already cancelled.
-    """
     existing = conn.execute(
         text("""
-            SELECT status 
-            FROM bookings 
+            SELECT status
+            FROM bookings
             WHERE booking_id = :booking_id
         """),
         {"booking_id": booking_id},
@@ -245,9 +165,9 @@ def cancel_reservation(conn, booking_id):
 
     result = conn.execute(
         text("""
-            UPDATE bookings 
-            SET status = 'cancelled' 
-            WHERE booking_id = :booking_id 
+            UPDATE bookings
+            SET status = 'cancelled'
+            WHERE booking_id = :booking_id
             RETURNING *
         """),
         {"booking_id": booking_id},

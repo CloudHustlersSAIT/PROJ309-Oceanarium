@@ -1,33 +1,15 @@
-"""Stats service -- dashboard aggregation queries.
-
-Computes today's key metrics: active tours, total customers,
-cancellations, and average guide rating.
-"""
-
 from datetime import date
 
 from sqlalchemy import text
 
 
 def get_stats(conn):
-    """Aggregate dashboard statistics for today's date.
-
-    Runs three separate SQL queries against the bookings table to count
-    active tours, sum ticket holders, and count cancellations.
-
-    Args:
-        conn: SQLAlchemy connection provided by the route via ``Depends(get_db)``.
-
-    Returns:
-        dict: Keys are ``toursToday``, ``customersToday``, ``cancellations``,
-        and ``avgRating`` (placeholder, always ``"5.0"`` until ratings are implemented).
-    """
     today = date.today()
 
     tours_result = conn.execute(
         text("""
-            SELECT COUNT(*) as count 
-            FROM bookings 
+            SELECT COUNT(*) as count
+            FROM bookings
             WHERE date = :today AND status != 'cancelled'
         """),
         {"today": today},
@@ -37,7 +19,7 @@ def get_stats(conn):
     customers_result = conn.execute(
         text("""
             SELECT COALESCE(SUM(adult_tickets + child_tickets), 0) as total
-            FROM bookings 
+            FROM bookings
             WHERE date = :today AND status != 'cancelled'
         """),
         {"today": today},
@@ -47,7 +29,7 @@ def get_stats(conn):
     cancellations_result = conn.execute(
         text("""
             SELECT COUNT(*) as count
-            FROM bookings 
+            FROM bookings
             WHERE date = :today AND status = 'cancelled'
         """),
         {"today": today},

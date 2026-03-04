@@ -1,19 +1,3 @@
-"""
-Mock poller service -- deterministic Clorian-style test data generator.
-
-Simulates what the real Clorian integration will do: produces batches of
-reservation/ticket records with configurable CREATE/UPDATE/UNCHANGED
-ratios, inserts them into staging tables, and tracks each run.
-
-This module is used exclusively for testing and local development.
-In production, the real Clorian adapter (Phase 6, ADR-005) will replace
-the data generation logic, but the staging table schema stays the same.
-
-Tables used (in the ``santiago_tests`` schema):
-    - ``mock_poller_runs``: One row per execution; tracks status and counts.
-    - ``mock_clorian_staging``: Individual staged records with JSONB payloads.
-"""
-
 import json
 import random
 from datetime import datetime, timedelta, timezone
@@ -37,8 +21,6 @@ SCHEMA = "santiago_tests"
 
 
 class MockRunRequest(BaseModel):
-    """Parameters for a single mock-poller execution."""
-
     seed: int = Field(
         default=42, description="Deterministic seed for repeatable generation."
     )
@@ -67,8 +49,6 @@ class MockRunRequest(BaseModel):
 
 
 class MockRunResponse(BaseModel):
-    """Result summary returned after a successful mock-poller run."""
-
     run_id: str
     status: str
     generated_total: int
@@ -86,11 +66,6 @@ EntityType = Literal["reservation", "ticket", "purchase"]
 
 
 def _deterministic_external_id(rng: random.Random, entity_type: str) -> str:
-    """Generate a prefixed external ID like ``RSV-000123`` or ``TKT-000456``.
-
-    The RNG state determines the numeric suffix, so the same seed always
-    produces the same sequence of IDs.
-    """
     prefix = {"reservation": "RSV", "ticket": "TKT", "purchase": "PUR"}.get(
         entity_type, "UNK"
     )
@@ -99,10 +74,6 @@ def _deterministic_external_id(rng: random.Random, entity_type: str) -> str:
 
 
 def _generate_event_window(rng: random.Random) -> Tuple[str, str]:
-    """Return a (start, end) ISO-8601 datetime pair for a 1-hour event.
-
-    The event is placed 1-30 days in the future, between 09:00 and 18:00 UTC.
-    """
     days_ahead = rng.randint(1, 30)
     base_date = datetime.now(timezone.utc).date() + timedelta(days=days_ahead)
 
@@ -129,12 +100,6 @@ def _generate_event_window(rng: random.Random) -> Tuple[str, str]:
 def _base_payload(
     entity_type: str, external_id: str, rng: random.Random
 ) -> Dict[str, Any]:
-    """Build a realistic Clorian-style JSON payload for a single record.
-
-    Includes customer info, tour program, quantity, notes, and scheduling
-    fields whose key names differ by entity type (``eventStartDatetime``
-    for reservations vs ``startDatetime`` for tickets).
-    """
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     event_start, event_end = _generate_event_window(rng)
@@ -175,11 +140,6 @@ def _base_payload(
 
 
 def _apply_update(payload: Dict[str, Any], rng: random.Random) -> Dict[str, Any]:
-    """Mutate a copy of *payload* to simulate an UPDATE scenario.
-
-    Changes the quantity, notes, and timestamp so downstream diffing logic
-    can detect the record as modified.
-    """
     updated = dict(payload)
     updated["qty"] = max(1, min(10, payload.get("qty", 1) + rng.choice([-1, 1, 2])))
     updated["notes"] = rng.choice(
@@ -201,26 +161,6 @@ def generate_records(
     unchanged_ratio: float,
     entity_types: List[str],
 ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
-    """Generate a deterministic batch of staged records.
-
-    Splits *batch_size* into CREATE, UPDATE, and UNCHANGED buckets based on
-    the provided ratios.  UPDATE and UNCHANGED records reuse external IDs
-    from a shared pool so that downstream processing can detect them as
-    repeat occurrences.
-
-    Args:
-        seed: RNG seed for reproducible output.
-        batch_size: Total number of records to generate.
-        update_ratio: Fraction of records that are UPDATEs (0.0 -- 1.0).
-        unchanged_ratio: Fraction that are UNCHANGED (0.0 -- 1.0).
-        entity_types: Which entity types to pick from (e.g., ``["reservation", "ticket"]``).
-
-    Returns:
-        Tuple of (staged_records_list, counts_dict).
-
-    Raises:
-        ValidationError: If ``update_ratio + unchanged_ratio > 1.0``.
-    """
     if update_ratio + unchanged_ratio > 1.0:
         raise ValidationError("update_ratio + unchanged_ratio must be <= 1.0")
 
@@ -230,7 +170,6 @@ def generate_records(
     n_unchanged = int(batch_size * unchanged_ratio)
     n_create = batch_size - n_update - n_unchanged
 
-    # Shared ID pool for UPDATE and UNCHANGED records
     base_ids: List[Tuple[str, str]] = []
     for _ in range(max(n_update + n_unchanged, 1)):
         et = rng.choice(entity_types)
@@ -294,11 +233,6 @@ def generate_records(
 
 
 def create_run(conn, seed: int):
-    """Insert a new row into ``mock_poller_runs`` with status RUNNING.
-
-    Returns:
-        int: The auto-generated run ID.
-    """
     sql = text(f"""
         INSERT INTO {SCHEMA}.mock_poller_runs (
             started_at, status, seed,
@@ -311,10 +245,6 @@ def create_run(conn, seed: int):
 
 
 def insert_staging_rows(conn, run_id: str, staged: List[Dict[str, Any]]) -> None:
-    """Bulk-insert all generated records into ``mock_clorian_staging``.
-
-    Each record's payload dict is serialized to JSON and cast to JSONB.
-    """
     sql = text(f"""
         INSERT INTO {SCHEMA}.mock_clorian_staging (
             run_id, entity_type, external_id, scenario, payload_json, created_at
@@ -341,7 +271,6 @@ def insert_staging_rows(conn, run_id: str, staged: List[Dict[str, Any]]) -> None
 
 
 def finalize_run_success(conn, run_id: str, counts: Dict[str, int]) -> None:
-    """Mark a run as SUCCESS and record the final generation counts."""
     sql = text(f"""
         UPDATE {SCHEMA}.mock_poller_runs
         SET
@@ -357,7 +286,6 @@ def finalize_run_success(conn, run_id: str, counts: Dict[str, int]) -> None:
 
 
 def finalize_run_failure(conn, run_id: str, error_message: str) -> None:
-    """Mark a run as FAILED and store the error message (truncated to 5 000 chars)."""
     sql = text(f"""
         UPDATE {SCHEMA}.mock_poller_runs
         SET
@@ -377,28 +305,6 @@ def finalize_run_failure(conn, run_id: str, error_message: str) -> None:
 def run_mock_poller_service(
     conn, req: MockRunRequest
 ) -> MockRunResponse:
-    """Execute one full mock-poller cycle within a caller-provided transaction.
-
-    Steps:
-        1. Generate the deterministic batch of staged records.
-        2. Insert a new run row (status = RUNNING).
-        3. Bulk-insert all staged records.
-        4. Finalize the run as SUCCESS with counts.
-
-    The caller (the route) is responsible for committing the transaction
-    and for calling ``finalize_run_failure`` if a DB error occurs after
-    the run row was created.
-
-    Args:
-        conn: SQLAlchemy connection (inside an active transaction).
-        req: ``MockRunRequest`` with seed, batch_size, ratios, entity_types.
-
-    Returns:
-        MockRunResponse: Summary of the completed run.
-
-    Raises:
-        ValidationError: If ratio constraints are violated.
-    """
     staged, counts = generate_records(
         seed=req.seed,
         batch_size=req.batch_size,
