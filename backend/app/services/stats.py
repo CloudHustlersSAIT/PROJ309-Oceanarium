@@ -9,8 +9,9 @@ def get_stats(conn):
     tours_result = conn.execute(
         text("""
             SELECT COUNT(*) as count
-            FROM bookings
-            WHERE date = :today AND status != 'cancelled'
+            FROM reservations
+            WHERE event_start_datetime::date = :today
+              AND status != 'cancelled'
         """),
         {"today": today},
     )
@@ -18,9 +19,10 @@ def get_stats(conn):
 
     customers_result = conn.execute(
         text("""
-            SELECT COALESCE(SUM(adult_tickets + child_tickets), 0) as total
-            FROM bookings
-            WHERE date = :today AND status != 'cancelled'
+            SELECT COALESCE(SUM(current_ticket_num), 0) as total
+            FROM reservations
+            WHERE event_start_datetime::date = :today
+              AND status != 'cancelled'
         """),
         {"today": today},
     )
@@ -29,8 +31,9 @@ def get_stats(conn):
     cancellations_result = conn.execute(
         text("""
             SELECT COUNT(*) as count
-            FROM bookings
-            WHERE date = :today AND status = 'cancelled'
+            FROM reservations
+            WHERE event_start_datetime::date = :today
+              AND status = 'cancelled'
         """),
         {"today": today},
     )
