@@ -1,6 +1,6 @@
 # Python
 .venv/
-.venv/*
+venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -12,6 +12,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.sqlite3
+*.db
 
 # Environment
 .env
