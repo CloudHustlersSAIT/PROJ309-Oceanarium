@@ -44,28 +44,37 @@ export async function getStats() {
 
 // Get all bookings
 export async function getBookings() {
-  return fetchAPI('/bookings')
+  return fetchAPI('/reservations')
 }
 
 // Create a new booking
 export async function createBooking(bookingData) {
   return fetchAPI('/bookings', {
     method: 'POST',
-    body: JSON.stringify(bookingData),
+    body: JSON.stringify(payload),
   })
 }
 
 // Reschedule a booking
-export async function rescheduleBooking(bookingId, newDate) {
-  return fetchAPI(`/bookings/${bookingId}/reschedule`, {
+export async function rescheduleBooking(
+  bookingId,
+  newDate,
+  startTime = '09:00:00',
+  endTime = '10:00:00',
+) {
+  return fetchAPI(`/reservations/${bookingId}/reschedule`, {
     method: 'PATCH',
-    body: JSON.stringify({ new_date: newDate }),
+    body: JSON.stringify({
+      new_date: newDate,
+      start_time: startTime,
+      end_time: endTime,
+    }),
   })
 }
 
 // Cancel a booking
 export async function cancelBooking(bookingId) {
-  return fetchAPI(`/bookings/${bookingId}/cancel`, {
+  return fetchAPI(`/reservations/${bookingId}/cancel`, {
     method: 'PATCH',
   })
 }

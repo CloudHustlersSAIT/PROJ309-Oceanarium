@@ -29,13 +29,16 @@ const filteredBookings = computed(() => {
 
   return bookings.value.filter((booking) => {
     const searchable = [
+      getBookingDisplayId(booking),
+      getReservationId(booking),
       booking.booking_id,
       booking.id,
+      booking.clorian_reservation_id,
       booking.customer_id,
       booking.customerId,
       booking.tour_id,
       booking.tourId,
-      booking.date,
+      getBookingDate(booking),
     ]
       .filter(Boolean)
       .join(' ')
@@ -59,8 +62,12 @@ function normalizeDate(value) {
   return d.toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
 }
 
-function getBookingId(booking) {
-  return booking.booking_id || booking.id || '-'
+function getReservationId(booking) {
+  return booking.id ?? booking.booking_id ?? booking.bookingId ?? null
+}
+
+function getBookingDisplayId(booking) {
+  return booking.clorian_reservation_id || booking.booking_id || booking.bookingId || booking.id || '-'
 }
 
 function getCustomerId(booking) {
@@ -75,17 +82,21 @@ function getStatus(booking) {
   return booking.status || '-'
 }
 
+function getBookingDate(booking) {
+  return booking.date || booking.event_start_datetime || booking.eventStartDatetime || ''
+}
+
 function isCancelledStatus(booking) {
   return String(getStatus(booking)).trim().toLowerCase() === 'cancelled'
 }
 
 function getRowKey(booking, index) {
-  const id = booking.booking_id || booking.id
+  const id = getReservationId(booking)
   if (id) return String(id)
 
   const customerId = booking.customer_id || booking.customerId || 'unknown-customer'
   const tourId = booking.tour_id || booking.tourId || 'unknown-tour'
-  const date = booking.date || 'unknown-date'
+  const date = getBookingDate(booking) || 'unknown-date'
   return `${customerId}-${tourId}-${date}-${index}`
 }
 
@@ -167,15 +178,16 @@ async function handleCreateBooking() {
 }
 
 async function handleCancelBooking(booking) {
-  const bookingId = getBookingId(booking)
-  if (!bookingId || bookingId === '-') return
+  const reservationId = getReservationId(booking)
+  if (!reservationId) return
+  const bookingIdLabel = getBookingDisplayId(booking)
 
-  const confirmed = window.confirm(`Cancel booking ${bookingId}?`)
+  const confirmed = window.confirm(`Cancel booking ${bookingIdLabel}?`)
   if (!confirmed) return
 
-  actionState.value = { id: bookingId, type: 'cancel' }
+  actionState.value = { id: reservationId, type: 'cancel' }
   try {
-    await cancelBooking(bookingId)
+    await cancelBooking(reservationId)
     await loadBookings()
   } catch (err) {
     error.value = err?.message || 'Failed to cancel booking'
@@ -185,10 +197,10 @@ async function handleCancelBooking(booking) {
 }
 
 async function handleRescheduleBooking(booking) {
-  const bookingId = getBookingId(booking)
-  if (!bookingId || bookingId === '-') return
+  const reservationId = getReservationId(booking)
+  if (!reservationId) return
 
-  const userInput = window.prompt('New date (YYYY-MM-DD):', formatApiDate(booking.date))
+  const userInput = window.prompt('New date (YYYY-MM-DD):', formatApiDate(getBookingDate(booking)))
   if (!userInput) return
 
   const newDate = userInput.trim()
@@ -197,9 +209,9 @@ async function handleRescheduleBooking(booking) {
     return
   }
 
-  actionState.value = { id: bookingId, type: 'reschedule' }
+  actionState.value = { id: reservationId, type: 'reschedule' }
   try {
-    await rescheduleBooking(bookingId, newDate)
+    await rescheduleBooking(reservationId, newDate)
     await loadBookings()
   } catch (err) {
     error.value = err?.message || 'Failed to reschedule booking'
@@ -256,8 +268,8 @@ onMounted(loadBookings)
                   :key="getRowKey(booking, index)"
                   class="border-b border-gray-200 hover:bg-gray-50"
                 >
-                  <td class="px-5 py-4 text-gray-700">{{ getBookingId(booking) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ normalizeDate(booking.date) }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ getBookingDisplayId(booking) }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ normalizeDate(getBookingDate(booking)) }}</td>
                   <td class="px-5 py-4 text-gray-700">{{ getCustomerId(booking) }}</td>
                   <td class="px-5 py-4 text-gray-700">{{ getTourId(booking) }}</td>
                   <td class="px-5 py-4 text-gray-700 capitalize">{{ getStatus(booking) }}</td>
@@ -266,18 +278,18 @@ onMounted(loadBookings)
                       <button
                         type="button"
                         class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700"
-                        :disabled="actionState.id === getBookingId(booking)"
+                        :disabled="actionState.id === getReservationId(booking)"
                         @click="handleRescheduleBooking(booking)"
                       >
-                        {{ actionState.id === getBookingId(booking) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
+                        {{ actionState.id === getReservationId(booking) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
                       </button>
                       <button
                         type="button"
                         class="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
-                        :disabled="actionState.id === getBookingId(booking) || isCancelledStatus(booking)"
+                        :disabled="actionState.id === getReservationId(booking) || isCancelledStatus(booking)"
                         @click="handleCancelBooking(booking)"
                       >
-                        {{ actionState.id === getBookingId(booking) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
+                        {{ actionState.id === getReservationId(booking) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
                       </button>
                     </div>
                   </td>
