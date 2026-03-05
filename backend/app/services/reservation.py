@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import text
 
 from .exceptions import ConflictError, NotFoundError, ValidationError
@@ -5,7 +7,7 @@ from .exceptions import ConflictError, NotFoundError, ValidationError
 
 def list_reservations(conn):
     result = conn.execute(
-        text("SELECT * FROM bookings ORDER BY created_at DESC")
+        text("SELECT * FROM reservations ORDER BY created_at DESC")
     )
     columns = result.keys()
     rows = [dict(zip(columns, row)) for row in result.fetchall()]
@@ -21,9 +23,9 @@ def create_reservation(conn, data):
 
     tour = conn.execute(
         text("""
-            SELECT guide_id
+            SELECT id
             FROM tours
-            WHERE tour_id = :tour_id
+            WHERE id = :tour_id
         """),
         {"tour_id": data.tour_id},
     ).fetchone()
@@ -31,46 +33,50 @@ def create_reservation(conn, data):
     if not tour:
         raise NotFoundError("Tour not found")
 
+    # Basic duplicate guard with current schema: same tour, same datetime, active status.
+    event_start = datetime.combine(data.date, data.start_time)
     conflict = conn.execute(
         text("""
             SELECT 1
-            FROM bookings b
-            JOIN tours t ON b.tour_id = t.tour_id
-            WHERE t.guide_id = :guide_id
-            AND b.date = :date
-            AND :start_time < b.end_time
-            AND :end_time > b.start_time
-            AND (b.status IS NULL OR b.status != 'cancelled')
+            FROM reservations
+            WHERE tour_id = :tour_id
+            AND event_start_datetime = :event_start_datetime
+            AND (status IS NULL OR status != 'cancelled')
         """),
         {
-            "guide_id": tour.guide_id,
-            "date": data.date,
-            "start_time": data.start_time,
-            "end_time": data.end_time,
+            "tour_id": data.tour_id,
+            "event_start_datetime": event_start,
         },
     ).fetchone()
 
     if conflict:
-        raise ConflictError("Guide already has overlapping booking")
+        raise ConflictError("A reservation already exists for this tour and start time")
+
+    next_clorian_reservation_id = conn.execute(
+        text(
+            """
+            SELECT COALESCE(MAX(clorian_reservation_id), 0) + 1
+            FROM reservations
+            """
+        )
+    ).scalar_one()
 
     result = conn.execute(
         text("""
-            INSERT INTO bookings
-            (customer_id, tour_id, date, start_time, end_time,
-             adult_tickets, child_tickets, status)
+            INSERT INTO reservations
+            (clorian_reservation_id, customer_id, tour_id,
+             event_start_datetime, status, current_ticket_num)
             VALUES
-            (:customer_id, :tour_id, :date, :start_time, :end_time,
-             :adult_tickets, :child_tickets, 'confirmed')
+            (:clorian_reservation_id, :customer_id, :tour_id,
+             :event_start_datetime, 'confirmed', :current_ticket_num)
             RETURNING *
         """),
         {
+            "clorian_reservation_id": next_clorian_reservation_id,
             "customer_id": data.customer_id,
             "tour_id": data.tour_id,
-            "date": data.date,
-            "start_time": data.start_time,
-            "end_time": data.end_time,
-            "adult_tickets": data.adult_tickets,
-            "child_tickets": data.child_tickets,
+            "event_start_datetime": event_start,
+            "current_ticket_num": data.adult_tickets + data.child_tickets,
         },
     )
 
@@ -81,62 +87,34 @@ def create_reservation(conn, data):
     return dict(zip(columns, row))
 
 
-def reschedule_reservation(conn, booking_id, data):
+def reschedule_reservation(conn, reservation_id, data):
+    new_event_start = datetime.combine(data.new_date, data.start_time)
+
     existing = conn.execute(
         text("""
-            SELECT booking_id, tour_id, date, status
-            FROM bookings
-            WHERE booking_id = :booking_id
+            SELECT id, status
+            FROM reservations
+            WHERE id = :reservation_id
         """),
-        {"booking_id": booking_id},
+        {"reservation_id": reservation_id},
     ).fetchone()
 
     if not existing:
-        raise NotFoundError("Booking not found")
+        raise NotFoundError("Reservation not found")
 
     if existing.status == "cancelled":
-        raise ValidationError("Cannot reschedule cancelled booking")
-
-    conflict = conn.execute(
-        text("""
-            SELECT 1
-            FROM bookings b
-            JOIN tours t ON b.tour_id = t.tour_id
-            WHERE t.guide_id = (
-                SELECT guide_id FROM tours WHERE tour_id = :tour_id
-            )
-            AND b.date = :new_date
-            AND :start_time < b.end_time
-            AND :end_time > b.start_time
-            AND b.booking_id != :booking_id
-            AND (b.status IS NULL OR b.status != 'cancelled')
-        """),
-        {
-            "tour_id": existing.tour_id,
-            "new_date": data.new_date,
-            "start_time": data.start_time,
-            "end_time": data.end_time,
-            "booking_id": booking_id,
-        },
-    ).fetchone()
-
-    if conflict:
-        raise ConflictError("Guide already has overlapping booking")
+        raise ValidationError("Cannot reschedule cancelled reservation")
 
     result = conn.execute(
         text("""
-            UPDATE bookings
-            SET date = :new_date,
-                start_time = :start_time,
-                end_time = :end_time
-            WHERE booking_id = :booking_id
+            UPDATE reservations
+            SET event_start_datetime = :event_start_datetime
+            WHERE id = :reservation_id
             RETURNING *
         """),
         {
-            "new_date": data.new_date,
-            "start_time": data.start_time,
-            "end_time": data.end_time,
-            "booking_id": booking_id,
+            "event_start_datetime": new_event_start,
+            "reservation_id": reservation_id,
         },
     )
 
@@ -151,26 +129,26 @@ def cancel_reservation(conn, booking_id):
     existing = conn.execute(
         text("""
             SELECT status
-            FROM bookings
-            WHERE booking_id = :booking_id
+            FROM reservations
+            WHERE id = :reservation_id
         """),
-        {"booking_id": booking_id},
+        {"reservation_id": booking_id},
     ).fetchone()
 
     if not existing:
-        raise NotFoundError("Booking not found")
+        raise NotFoundError("Reservation not found")
 
     if existing.status == "cancelled":
-        raise ValidationError("Booking is already cancelled")
+        raise ValidationError("Reservation is already cancelled")
 
     result = conn.execute(
         text("""
-            UPDATE bookings
+            UPDATE reservations
             SET status = 'cancelled'
-            WHERE booking_id = :booking_id
+            WHERE id = :reservation_id
             RETURNING *
         """),
-        {"booking_id": booking_id},
+        {"reservation_id": booking_id},
     )
     columns = result.keys()
     row = result.fetchone()
