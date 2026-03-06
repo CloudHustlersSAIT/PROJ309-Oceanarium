@@ -176,10 +176,14 @@ No layer may import from a layer above it. Services never import from routes.
 | PATCH | `/bookings/{id}/cancel` | `routes/reservation.py` | Cancel a booking |
 | GET | `/guides` | `routes/guide.py` | List all guides |
 | GET | `/tours` | `routes/tour.py` | List all tours |
+| GET | `/schedules` | `routes/schedule.py` | List calendar events from schedule table (optional: `start_date`, `end_date`, `status`) |
 | GET | `/notifications` | `routes/notification.py` | List recent notifications (last 10) |
 | POST | `/issues` | `routes/issue.py` | Report a new issue |
 | GET | `/stats` | `routes/stats.py` | Dashboard stats for today |
 | POST | `/mock/run` | `routes/mock.py` | Generate mock Clorian test data |
+
+Frontend integration note:
+- Schedule endpoint quick guide: `docs/SCHEDULE_ENDPOINT_FRONTEND_GUIDE.md`
 
 ## How to Add a New Endpoint
 
