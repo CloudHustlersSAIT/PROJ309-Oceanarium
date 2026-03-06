@@ -297,7 +297,7 @@ def upgrade() -> None:
     op.execute("CREATE INDEX ix_poll_staging_poll_execution_id ON poll_staging (poll_execution_id);")
     op.execute("CREATE INDEX ix_poll_staging_external_id ON poll_staging (external_id);")
     op.execute("CREATE INDEX ix_poll_staging_processed_at ON poll_staging (processed_at);")
-    op.execute("CREATE INDEX ix_poll_staging_entity_type_external_id ON poll_staging (entity_type, external_id);") 
+    op.execute("CREATE INDEX ix_poll_staging_entity_type_external_id ON poll_staging (entity_type, external_id);")
 
 
 def downgrade() -> None:
