@@ -1,391 +1,352 @@
 ﻿<script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
-import { cancelBooking, createBooking, getBookings, rescheduleBooking } from '../services/api'
 
-const loading = ref(false)
-const saving = ref(false)
-const error = ref('')
-const createError = ref('')
-const createSuccess = ref('')
-const searchText = ref('')
-const bookings = ref([])
-const actionState = ref({ id: null, type: '' })
+const activeTab = ref('customers')
+const searchQuery = ref('')
+const resourceTypeFilter = ref('all')
+const feedbackMessage = ref('')
 
-const createDefaultForm = () => ({
-  bookingId: '',
-  customerId: '',
-  tourId: '',
-  date: '',
-  adultTickets: 0,
-  childTickets: 0,
+const customers = ref([
+  { id: 1, name: 'Marie Schrader', email: 'Marie@DEA.com', phone: 'Not Provided', visits: 11, dateAdded: '12/22/2020' },
+  { id: 2, name: 'Marla Singer', email: 'Marla@1strule.com', phone: '+1 (587) 822-9090', visits: 3, dateAdded: '08/18/2025' },
+  { id: 3, name: 'Obi Wan Kenobi', email: 'BenKenobi@general.com', phone: 'Not Provided', visits: 5, dateAdded: '05/09/2023' },
+  { id: 4, name: 'Mike Ehrmantraut', email: 'Mike@polloshermanos.com', phone: '+1 (598) 766-5544', visits: 12, dateAdded: '03/17/2021' },
+  { id: 5, name: 'Vicenta Benito', email: 'Vicenta@show.com.es', phone: '+34 (91)123-4567', visits: 2, dateAdded: '07/30/2024' },
+])
+
+const guides = ref([
+  { id: 101, name: 'Edward Elric', email: 'Edward@amestris.com', phone: 'Not Provided', startDate: '12/22/2020', endDate: 'Still Active' },
+  { id: 102, name: 'Jonathan Wick', email: 'John@hightable.com', phone: '+1 (587) 822-9090', startDate: '12/01/2018', endDate: '08/18/2025' },
+  { id: 103, name: 'Ignacio Varga', email: 'Nacho@salamanca.com', phone: '+1 (598) 766-5544', startDate: '07/30/2002', endDate: '03/17/2004' },
+  { id: 104, name: 'Lucas Lucas', email: 'Lucas@oceanarium.com', phone: '+49 69 1234 5678', startDate: '10/20/2025', endDate: 'Still Active' },
+  { id: 105, name: 'Lauren Ipsum', email: 'Lauren@oceanarium.com', phone: 'Not Provided', startDate: '06/09/2025', endDate: 'Still Active' },
+])
+
+const resources = ref([
+  { id: 201, name: 'Room Anchovy', type: 'Room', availableQuantity: '-', totalQuantity: 1, status: 'Available', notes: 'Check AC unit' },
+  { id: 202, name: 'Headphones', type: 'Audio Guides', availableQuantity: 30, totalQuantity: 50, status: 'Low Stock', notes: 'Order more' },
+  { id: 203, name: 'Maps', type: 'Material', availableQuantity: 100, totalQuantity: 150, status: 'Available', notes: 'None' },
+  { id: 204, name: 'Black Boards', type: 'Material', availableQuantity: 15, totalQuantity: 20, status: 'Available', notes: 'None' },
+  { id: 205, name: 'Televisions', type: 'Digital Equipment', availableQuantity: 10, totalQuantity: 12, status: 'Available', notes: 'Fix unit #3' },
+])
+
+const editDialogOpen = ref(false)
+const editingDraft = ref({})
+const editDialogRef = ref(null)
+
+const pageTitle = computed(() => {
+  if (activeTab.value === 'guides') return 'Guides'
+  if (activeTab.value === 'resources') return 'Resources'
+  return 'Customers'
 })
 
-const form = ref(createDefaultForm())
+const listTitle = computed(() => {
+  if (activeTab.value === 'guides') return 'Guides list'
+  if (activeTab.value === 'resources') return 'Resources list'
+  return 'Customer list'
+})
 
-const filteredBookings = computed(() => {
-  const text = searchText.value.trim().toLowerCase()
-  if (!text) return bookings.value
+const searchPlaceholder = computed(() => {
+  if (activeTab.value === 'guides') return 'Search guides'
+  if (activeTab.value === 'resources') return 'Search resources'
+  return 'Search customers'
+})
 
-  return bookings.value.filter((booking) => {
-    const searchable = [
-      getBookingDisplayId(booking),
-      getReservationId(booking),
-      booking.booking_id,
-      booking.id,
-      booking.clorian_reservation_id,
-      booking.customer_id,
-      booking.customerId,
-      booking.tour_id,
-      booking.tourId,
-      getBookingDate(booking),
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
+const resourceTypes = computed(() => {
+  const typeMap = new Map()
 
-    return searchable.includes(text)
+  for (const item of resources.value) {
+    if (!item.type) continue
+    const value = item.type.toLowerCase()
+    if (!typeMap.has(value)) {
+      typeMap.set(value, item.type)
+    }
+  }
+
+  return Array.from(typeMap.entries()).map(([value, label]) => ({ value, label }))
+})
+
+const filteredRows = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+
+  if (activeTab.value === 'customers') {
+    return customers.value.filter((item) => {
+      const target = `${item.name} ${item.email} ${item.phone}`.toLowerCase()
+      return target.includes(query)
+    })
+  }
+
+  if (activeTab.value === 'guides') {
+    return guides.value.filter((item) => {
+      const target = `${item.name} ${item.email} ${item.phone}`.toLowerCase()
+      return target.includes(query)
+    })
+  }
+
+  return resources.value.filter((item) => {
+    const target = `${item.name} ${item.type} ${item.notes} ${item.status}`.toLowerCase()
+    const matchesSearch = target.includes(query)
+    const matchesType = resourceTypeFilter.value === 'all' || item.type.toLowerCase() === resourceTypeFilter.value
+    return matchesSearch && matchesType
   })
 })
 
-function normalizeDate(value) {
-  if (!value) return '-'
-  const raw = String(value).trim()
-  const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+const totalCount = computed(() => {
+  if (activeTab.value === 'guides') return guides.value.length
+  if (activeTab.value === 'resources') return resources.value.length
+  return customers.value.length
+})
 
-  // Build date-only values in local time to avoid UTC day shift issues.
-  const d = dateOnlyMatch
-    ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
-    : new Date(raw)
-
-  if (Number.isNaN(d.getTime())) return 'Invalid date'
-  return d.toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
+function switchTab(tab) {
+  activeTab.value = tab
+  searchQuery.value = ''
+  resourceTypeFilter.value = 'all'
+  feedbackMessage.value = ''
 }
 
-function getReservationId(booking) {
-  return booking.id ?? booking.booking_id ?? booking.bookingId ?? null
+function openEdit(row) {
+  editingDraft.value = { ...row }
+  editDialogOpen.value = true
+  nextTick(() => {
+    editDialogRef.value?.focus()
+  })
 }
 
-function getBookingDisplayId(booking) {
-  return booking.clorian_reservation_id || booking.booking_id || booking.bookingId || booking.id || '-'
+function closeEdit() {
+  editDialogOpen.value = false
+  editingDraft.value = {}
 }
 
-function getCustomerId(booking) {
-  return booking.customer_id || booking.customerId || '-'
+function saveEdit() {
+  const targetList =
+    activeTab.value === 'customers'
+      ? customers.value
+      : activeTab.value === 'guides'
+        ? guides.value
+        : resources.value
+
+  const idx = targetList.findIndex((item) => item.id === editingDraft.value.id)
+  if (idx !== -1) {
+    targetList[idx] = { ...editingDraft.value }
+    feedbackMessage.value = `${pageTitle.value.slice(0, -1)} record updated in prototype state.`
+  }
+  closeEdit()
 }
 
-function getTourId(booking) {
-  return booking.tour_id || booking.tourId || '-'
-}
+function removeRow(id) {
+  if (activeTab.value === 'customers') {
+    customers.value = customers.value.filter((item) => item.id !== id)
+    feedbackMessage.value = 'Customer removed in prototype state.'
+  }
 
-function getStatus(booking) {
-  return booking.status || '-'
-}
-
-function getBookingDate(booking) {
-  return booking.date || booking.event_start_datetime || booking.eventStartDatetime || ''
-}
-
-function isCancelledStatus(booking) {
-  return String(getStatus(booking)).trim().toLowerCase() === 'cancelled'
-}
-
-function getRowKey(booking, index) {
-  const id = getReservationId(booking)
-  if (id) return String(id)
-
-  const customerId = booking.customer_id || booking.customerId || 'unknown-customer'
-  const tourId = booking.tour_id || booking.tourId || 'unknown-tour'
-  const date = getBookingDate(booking) || 'unknown-date'
-  return `${customerId}-${tourId}-${date}-${index}`
-}
-
-function formatApiDate(dateValue) {
-  if (!dateValue) return ''
-  const raw = String(dateValue).trim()
-  const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (dateOnlyMatch) return raw
-
-  const d = new Date(raw)
-  if (Number.isNaN(d.getTime())) return String(dateValue).slice(0, 10)
-  return d.toISOString().slice(0, 10)
-}
-
-function isIsoDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
-  const [year, month, day] = value.split('-').map(Number)
-  const d = new Date(year, month - 1, day)
-  return d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day
-}
-
-async function loadBookings() {
-  loading.value = true
-  error.value = ''
-  try {
-    const data = await getBookings()
-    bookings.value = Array.isArray(data) ? data : []
-  } catch (err) {
-    bookings.value = []
-    error.value = err?.message || 'Failed to load bookings'
-  } finally {
-    loading.value = false
+  if (activeTab.value === 'guides') {
+    guides.value = guides.value.filter((item) => item.id !== id)
+    feedbackMessage.value = 'Guide removed in prototype state.'
   }
 }
 
-function resetForm() {
-  form.value = createDefaultForm()
+function statusClasses(status) {
+  if (status === 'Low Stock') return 'bg-amber-100 text-amber-800 border-amber-200'
+  if (status === 'In Use') return 'bg-blue-100 text-blue-800 border-blue-200'
+  return 'bg-emerald-100 text-emerald-800 border-emerald-200'
 }
-
-async function handleCreateBooking() {
-  createError.value = ''
-  createSuccess.value = ''
-
-  if (!form.value.customerId.trim() || !form.value.tourId || !form.value.date) {
-    createError.value = 'Customer ID, Tour ID, and date are required.'
-    return
-  }
-
-  const parsedTourId = Number(form.value.tourId)
-  if (!Number.isInteger(parsedTourId) || parsedTourId <= 0) {
-    createError.value = 'Tour ID must be a valid positive number.'
-    return
-  }
-
-  const totalTickets = Number(form.value.adultTickets) + Number(form.value.childTickets)
-  if (totalTickets <= 0) {
-    createError.value = 'At least one ticket is required.'
-    return
-  }
-
-  saving.value = true
-  try {
-    await createBooking({
-      customer_id: form.value.customerId.trim(),
-      tour_id: parsedTourId,
-      date: form.value.date,
-      adult_tickets: Number(form.value.adultTickets) || 0,
-      child_tickets: Number(form.value.childTickets) || 0,
-    })
-
-    createSuccess.value = 'Booking created successfully.'
-    resetForm()
-    await loadBookings()
-  } catch (err) {
-    createError.value = err?.message || 'Failed to create booking.'
-  } finally {
-    saving.value = false
-  }
-}
-
-async function handleCancelBooking(booking) {
-  const reservationId = getReservationId(booking)
-  if (!reservationId) return
-  const bookingIdLabel = getBookingDisplayId(booking)
-
-  const confirmed = window.confirm(`Cancel booking ${bookingIdLabel}?`)
-  if (!confirmed) return
-
-  actionState.value = { id: reservationId, type: 'cancel' }
-  try {
-    await cancelBooking(reservationId)
-    await loadBookings()
-  } catch (err) {
-    error.value = err?.message || 'Failed to cancel booking'
-  } finally {
-    actionState.value = { id: null, type: '' }
-  }
-}
-
-async function handleRescheduleBooking(booking) {
-  const reservationId = getReservationId(booking)
-  if (!reservationId) return
-
-  const userInput = window.prompt('New date (YYYY-MM-DD):', formatApiDate(getBookingDate(booking)))
-  if (!userInput) return
-
-  const newDate = userInput.trim()
-  if (!isIsoDate(newDate)) {
-    error.value = 'Date must use YYYY-MM-DD format.'
-    return
-  }
-
-  actionState.value = { id: reservationId, type: 'reschedule' }
-  try {
-    await rescheduleBooking(reservationId, newDate)
-    await loadBookings()
-  } catch (err) {
-    error.value = err?.message || 'Failed to reschedule booking'
-  } finally {
-    actionState.value = { id: null, type: '' }
-  }
-}
-
-onMounted(loadBookings)
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-gray-100 overflow-x-hidden">
+  <div class="flex min-h-screen bg-[#F4F7FA] overflow-x-hidden">
     <Sidebar />
 
-    <main class="flex-1 min-w-0 p-4 md:p-6">
-      <div class="flex items-center justify-between gap-4 mb-5">
-        <h1 class="text-4xl font-medium text-gray-800">Bookings</h1>
-        <div class="w-full max-w-[430px] relative">
-          <input
-            v-model="searchText"
-            type="text"
-            placeholder="Search bookings"
-            class="w-full rounded-xl border border-gray-400 bg-white py-2.5 px-4 text-sm"
-          />
+    <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
+      <section class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 class="text-3xl font-semibold text-gray-900">{{ pageTitle }}</h1>
+          <p class="text-sm text-gray-500">Frontend prototype only. No backend persistence.</p>
         </div>
-      </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-[minmax(700px,1fr)_320px] gap-6">
-        <section class="bg-white border border-gray-300 rounded-lg overflow-hidden">
-          <div v-if="loading" class="p-4 text-sm text-gray-500">Loading bookings...</div>
-          <div v-else-if="error" class="p-4 text-sm text-red-600">
-            <div>{{ error }}</div>
-            <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs" @click="loadBookings">
-              Retry
-            </button>
-          </div>
-          <div v-else-if="filteredBookings.length === 0" class="p-4 text-sm text-gray-500">No bookings found.</div>
-          <div v-else class="overflow-x-auto">
-            <table class="w-full min-w-[860px] text-sm">
-              <thead class="bg-gray-50 text-gray-800 border-b border-gray-200">
-                <tr>
-                  <th class="text-left font-semibold px-5 py-3">Booking ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Date</th>
-                  <th class="text-left font-semibold px-5 py-3">Customer ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Tour ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Status</th>
-                  <th class="text-left font-semibold px-5 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(booking, index) in filteredBookings"
-                  :key="getRowKey(booking, index)"
-                  class="border-b border-gray-200 hover:bg-gray-50"
-                >
-                  <td class="px-5 py-4 text-gray-700">{{ getBookingDisplayId(booking) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ normalizeDate(getBookingDate(booking)) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ getCustomerId(booking) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ getTourId(booking) }}</td>
-                  <td class="px-5 py-4 text-gray-700 capitalize">{{ getStatus(booking) }}</td>
-                  <td class="px-5 py-4">
-                    <div class="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700"
-                        :disabled="actionState.id === getReservationId(booking)"
-                        @click="handleRescheduleBooking(booking)"
-                      >
-                        {{ actionState.id === getReservationId(booking) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
-                      </button>
-                      <button
-                        type="button"
-                        class="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
-                        :disabled="actionState.id === getReservationId(booking) || isCancelledStatus(booking)"
-                        @click="handleCancelBooking(booking)"
-                      >
-                        {{ actionState.id === getReservationId(booking) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
-                      </button>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="px-3 py-2 rounded-lg text-sm font-medium border transition"
+            :class="activeTab === 'customers' ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'"
+            @click="switchTab('customers')"
+          >
+            Customers
+          </button>
+          <button
+            type="button"
+            class="px-3 py-2 rounded-lg text-sm font-medium border transition"
+            :class="activeTab === 'guides' ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'"
+            @click="switchTab('guides')"
+          >
+            Guides
+          </button>
+          <button
+            type="button"
+            class="px-3 py-2 rounded-lg text-sm font-medium border transition"
+            :class="activeTab === 'resources' ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'"
+            @click="switchTab('resources')"
+          >
+            Resources
+          </button>
+        </div>
+      </section>
+
+      <section class="mb-4 flex flex-col md:flex-row gap-3 md:items-center">
+        <div class="relative flex-1 max-w-xl">
+          <input
+            v-model="searchQuery"
+            type="search"
+            :placeholder="searchPlaceholder"
+            class="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-sky-200"
+          />
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
+        </div>
+
+        <select
+          v-if="activeTab === 'resources'"
+          v-model="resourceTypeFilter"
+          class="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700"
+        >
+          <option value="all">All resources</option>
+          <option v-for="rt in resourceTypes" :key="rt.value" :value="rt.value">
+            {{ rt.label }}
+          </option>
+        </select>
+      </section>
+
+      <section class="rounded-xl border border-gray-200 bg-[#E9EEF2] shadow-sm overflow-hidden">
+        <header class="px-4 md:px-5 py-4 border-b border-gray-300">
+          <h2 class="text-3xl font-semibold text-gray-900 leading-tight">{{ listTitle }}</h2>
+          <p class="text-sm text-gray-600">Total <span class="font-semibold text-gray-900">{{ totalCount }}</span></p>
+        </header>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-[#DCE4EA] text-gray-700">
+              <tr>
+                <th class="px-4 py-3 text-left font-medium">Name</th>
+                <th class="px-4 py-3 text-left font-medium">Email / Type</th>
+                <th class="px-4 py-3 text-left font-medium">Phone / Available</th>
+                <th class="px-4 py-3 text-left font-medium">Visits / Total</th>
+                <th class="px-4 py-3 text-left font-medium">Date / Status</th>
+                <th class="px-4 py-3 text-left font-medium">Notes</th>
+                <th class="px-4 py-3 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-gray-300/70 text-gray-800">
+              <tr v-if="filteredRows.length === 0">
+                <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                  No records found with the current filters.
+                </td>
+              </tr>
+
+              <tr v-for="row in filteredRows" :key="row.id" class="hover:bg-[#DEE7EE] transition-colors">
+                <template v-if="activeTab === 'customers'">
+                  <td class="px-4 py-3">{{ row.name }}</td>
+                  <td class="px-4 py-3">{{ row.email }}</td>
+                  <td class="px-4 py-3">{{ row.phone }}</td>
+                  <td class="px-4 py-3">{{ row.visits }}</td>
+                  <td class="px-4 py-3">{{ row.dateAdded }}</td>
+                  <td class="px-4 py-3 text-gray-500">-</td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-end gap-2">
+                      <button type="button" class="px-2.5 py-1.5 rounded border border-gray-300 text-xs" @click="openEdit(row)">Edit</button>
+                      <button type="button" class="px-2.5 py-1.5 rounded border border-red-300 text-red-700 text-xs" @click="removeRow(row.id)">Delete</button>
                     </div>
                   </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+                </template>
 
-        <section class="bg-gray-100 border border-gray-400 rounded-lg p-4 h-fit">
-          <h2 class="text-2xl font-medium text-gray-700 mb-4">Add New Booking</h2>
+                <template v-else-if="activeTab === 'guides'">
+                  <td class="px-4 py-3">{{ row.name }}</td>
+                  <td class="px-4 py-3">{{ row.email }}</td>
+                  <td class="px-4 py-3">{{ row.phone }}</td>
+                  <td class="px-4 py-3">{{ row.startDate }}</td>
+                  <td class="px-4 py-3">{{ row.endDate }}</td>
+                  <td class="px-4 py-3 text-gray-500">-</td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-end gap-2">
+                      <button type="button" class="px-2.5 py-1.5 rounded border border-gray-300 text-xs" @click="openEdit(row)">Edit</button>
+                      <button type="button" class="px-2.5 py-1.5 rounded border border-red-300 text-red-700 text-xs" @click="removeRow(row.id)">Delete</button>
+                    </div>
+                  </td>
+                </template>
 
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Booking ID</label>
+                <template v-else>
+                  <td class="px-4 py-3">{{ row.name }}</td>
+                  <td class="px-4 py-3">{{ row.type }}</td>
+                  <td class="px-4 py-3">{{ row.availableQuantity }}</td>
+                  <td class="px-4 py-3">{{ row.totalQuantity }}</td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium" :class="statusClasses(row.status)">
+                      {{ row.status }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">{{ row.notes }}</td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-end gap-2">
+                      <button type="button" class="px-2.5 py-1.5 rounded border border-gray-300 text-xs" @click="openEdit(row)">Edit</button>
+                    </div>
+                  </td>
+                </template>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <p v-if="feedbackMessage" class="mt-3 text-sm text-emerald-700">
+        {{ feedbackMessage }}
+      </p>
+
+      <div
+        v-if="editDialogOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      >
+        <div
+          ref="editDialogRef"
+          class="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-xl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-dialog-title"
+          tabindex="-1"
+          @keydown.esc.prevent="closeEdit"
+        >
+          <h3 id="edit-dialog-title" class="text-lg font-semibold text-gray-900 mb-1">Edit Record</h3>
+          <p class="text-sm text-gray-500 mb-4">Prototype dialog. Changes are local to this page state.</p>
+
+          <div class="grid grid-cols-1 gap-3">
+            <label class="text-sm text-gray-700">
+              Name
               <input
-                v-model="form.bookingId"
+                v-model="editingDraft.name"
                 type="text"
-                placeholder="BKG-513321"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
               />
-            </div>
+            </label>
 
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Customer ID</label>
-              <input
-                v-model="form.customerId"
-                type="text"
-                placeholder="Enter ID"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-              />
-            </div>
+            <label v-if="activeTab !== 'resources'" class="text-sm text-gray-700">
+              Email
+              <input v-model="editingDraft.email" type="email" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+            </label>
 
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Tour ID</label>
-              <input
-                v-model="form.tourId"
-                type="number"
-                min="1"
-                placeholder="Enter ID"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-              />
-            </div>
+            <label v-if="activeTab !== 'resources'" class="text-sm text-gray-700">
+              Phone
+              <input v-model="editingDraft.phone" type="text" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+            </label>
 
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Date</label>
-              <input
-                v-model="form.date"
-                type="date"
-                lang="en-US"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Adult Tickets</label>
-              <input
-                v-model.number="form.adultTickets"
-                type="number"
-                min="0"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Child Tickets</label>
-              <input
-                v-model.number="form.childTickets"
-                type="number"
-                min="0"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-              />
-            </div>
-
-            <p v-if="createError" class="text-xs text-red-600">{{ createError }}</p>
-            <p v-if="createSuccess" class="text-xs text-green-700">{{ createSuccess }}</p>
-
-            <div class="pt-2 flex gap-3">
-              <button
-                type="button"
-                class="flex-1 rounded bg-cyan-500 hover:bg-cyan-600 text-gray-900 py-2 text-sm font-medium disabled:opacity-60"
-                :disabled="saving"
-                @click="handleCreateBooking"
-              >
-                {{ saving ? 'Creating...' : 'Create' }}
-              </button>
-              <button
-                type="button"
-                class="flex-1 rounded border border-gray-500 bg-white py-2 text-sm font-medium text-gray-700"
-                @click="resetForm"
-              >
-                Cancel
-              </button>
-            </div>
+            <label v-if="activeTab === 'resources'" class="text-sm text-gray-700">
+              Notes
+              <input v-model="editingDraft.notes" type="text" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+            </label>
           </div>
-        </section>
+
+          <div class="mt-5 flex justify-end gap-2">
+            <button type="button" class="px-3 py-2 rounded-lg border border-gray-300 text-sm" @click="closeEdit">Cancel</button>
+            <button type="button" class="px-3 py-2 rounded-lg bg-[#0EA5E9] text-white text-sm" @click="saveEdit">Save</button>
+          </div>
+        </div>
       </div>
     </main>
   </div>

@@ -1,6 +1,5 @@
 ﻿<script setup>
-// Import necessary modules
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import { cancelBooking, createBooking, getBookings, rescheduleBooking } from '../services/api'
 
@@ -241,41 +240,153 @@ onMounted(loadBookings)
         </div>
       </div>
 
-        <!-- Title -->
-        <h1 class="text-2xl md:text-3xl font-semibold text-gray-800 mb-2">
-          {{ pageTitle }}
-        </h1>
+      <div class="grid grid-cols-1 xl:grid-cols-[minmax(700px,1fr)_320px] gap-6">
+        <section class="bg-white border border-gray-300 rounded-lg overflow-hidden">
+          <div v-if="loading" class="p-4 text-sm text-gray-500">Loading bookings...</div>
+          <div v-else-if="error" class="p-4 text-sm text-red-600">
+            <div>{{ error }}</div>
+            <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs" @click="loadBookings">
+              Retry
+            </button>
+          </div>
+          <div v-else-if="filteredBookings.length === 0" class="p-4 text-sm text-gray-500">No bookings found.</div>
+          <div v-else class="overflow-x-auto">
+            <table class="w-full min-w-[860px] text-sm">
+              <thead class="bg-gray-50 text-gray-800 border-b border-gray-200">
+                <tr>
+                  <th class="text-left font-semibold px-5 py-3">Booking ID</th>
+                  <th class="text-left font-semibold px-5 py-3">Date</th>
+                  <th class="text-left font-semibold px-5 py-3">Customer ID</th>
+                  <th class="text-left font-semibold px-5 py-3">Tour ID</th>
+                  <th class="text-left font-semibold px-5 py-3">Status</th>
+                  <th class="text-left font-semibold px-5 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(booking, index) in filteredBookings"
+                  :key="getRowKey(booking, index)"
+                  class="border-b border-gray-200 hover:bg-gray-50"
+                >
+                  <td class="px-5 py-4 text-gray-700">{{ getBookingDisplayId(booking) }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ normalizeDate(getBookingDate(booking)) }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ getCustomerId(booking) }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ getTourId(booking) }}</td>
+                  <td class="px-5 py-4 text-gray-700 capitalize">{{ getStatus(booking) }}</td>
+                  <td class="px-5 py-4">
+                    <div class="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700"
+                        :disabled="actionState.id === getReservationId(booking)"
+                        @click="handleRescheduleBooking(booking)"
+                      >
+                        {{ actionState.id === getReservationId(booking) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
+                        :disabled="actionState.id === getReservationId(booking) || isCancelledStatus(booking)"
+                        @click="handleCancelBooking(booking)"
+                      >
+                        {{ actionState.id === getReservationId(booking) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-        <!-- Subtitle -->
-        <p class="text-sm md:text-base text-gray-500 mb-6">
-          {{ pageDescription }}
-        </p>
+        <section class="bg-gray-100 border border-gray-400 rounded-lg p-4 h-fit">
+          <h2 class="text-2xl font-medium text-gray-700 mb-4">Add New Booking</h2>
 
-        <!-- Fun little ocean-themed line -->
-        <p class="text-xs md:text-sm text-[#0077B6] font-medium mb-6">
-          Our team is swimming as fast as they can to bring this experience to life. ðŸ¬
-        </p>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm text-gray-700 mb-1">Booking ID</label>
+              <input
+                v-model="form.bookingId"
+                type="text"
+                placeholder="BKG-513321"
+                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+              />
+            </div>
 
-        <!-- Actions -->
-        <div class="flex flex-wrap items-center justify-center gap-3">
-          <button
-            type="button"
-            class="px-5 py-2.5 rounded-full bg-[#0077B6] text-white text-sm font-medium hover:bg-[#0097e7] transition"
-            @click="router.push('/home')"
-          >
-            Back to home
-          </button>
+            <div>
+              <label class="block text-sm text-gray-700 mb-1">Customer ID</label>
+              <input
+                v-model="form.customerId"
+                type="text"
+                placeholder="Enter ID"
+                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+              />
+            </div>
 
-          <button
-            type="button"
-            class="px-5 py-2.5 rounded-full border border-[#00B4D8] text-[#0077B6] text-sm font-medium bg-[#E0F7FF] hover:bg-[#CAF0F8] transition"
-            @click="router.back()"
-          >
-            Go back
-          </button>
-        </div>
+            <div>
+              <label class="block text-sm text-gray-700 mb-1">Tour ID</label>
+              <input
+                v-model="form.tourId"
+                type="number"
+                min="1"
+                placeholder="Enter ID"
+                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-700 mb-1">Date</label>
+              <input
+                v-model="form.date"
+                type="date"
+                lang="en-US"
+                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-700 mb-1">Adult Tickets</label>
+              <input
+                v-model.number="form.adultTickets"
+                type="number"
+                min="0"
+                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-700 mb-1">Child Tickets</label>
+              <input
+                v-model.number="form.childTickets"
+                type="number"
+                min="0"
+                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+              />
+            </div>
+
+            <p v-if="createError" class="text-xs text-red-600">{{ createError }}</p>
+            <p v-if="createSuccess" class="text-xs text-green-700">{{ createSuccess }}</p>
+
+            <div class="pt-2 flex gap-3">
+              <button
+                type="button"
+                class="flex-1 rounded bg-cyan-500 hover:bg-cyan-600 text-gray-900 py-2 text-sm font-medium disabled:opacity-60"
+                :disabled="saving"
+                @click="handleCreateBooking"
+              >
+                {{ saving ? 'Creating...' : 'Create' }}
+              </button>
+              <button
+                type="button"
+                class="flex-1 rounded border border-gray-500 bg-white py-2 text-sm font-medium text-gray-700"
+                @click="resetForm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   </div>
 </template>
-
