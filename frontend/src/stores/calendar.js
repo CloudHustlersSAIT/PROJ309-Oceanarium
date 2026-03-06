@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+﻿import { defineStore } from 'pinia'
 import { getTours, getBookings, rescheduleBooking } from '../services/api'
 
 function toIso(date) {
@@ -342,3 +342,4 @@ export const useCalendarStore = defineStore('calendar', {
     },
   },
 })
+
