@@ -216,7 +216,8 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
     - Creates a `poll_execution` run row
     - Generates deterministic reservation payloads with nested tickets
     - Writes JSON payloads to `public.poll_staging`
-    - Finalizes run as `SUCCESS` or `FAILED`
+    - On successful completion, finalizes run as `SUCCESS`
+    - In some error scenarios, the run may not be persisted with a `FAILED` status (e.g., failures inside the transaction can roll back the initial `poll_execution` insert)
 - Returns summary counts:
     - `generated_total`, `generated_created`, `generated_updated`, `generated_unchanged`
 
