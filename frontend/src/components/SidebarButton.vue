@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { useRouter, useRoute } from "vue-router";
 import { computed } from "vue";
 
@@ -49,3 +49,4 @@ function go() {
     </span>
   </button>
 </template>
+

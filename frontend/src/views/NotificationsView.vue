@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 // Import necessary modules
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
@@ -42,7 +42,7 @@ const pageDescription =
 
         <!-- Fun little ocean-themed line -->
         <p class="text-xs md:text-sm text-[#0077B6] font-medium mb-6">
-          Our team is swimming as fast as they can to bring this experience to life. 🐬
+          Our team is swimming as fast as they can to bring this experience to life. ðŸ¬
         </p>
 
         <!-- Actions -->
@@ -67,3 +67,4 @@ const pageDescription =
     </main>
   </div>
 </template>
+
