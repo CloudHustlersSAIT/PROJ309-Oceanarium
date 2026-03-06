@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 
 const activeTab = ref('customers')
@@ -28,12 +28,12 @@ const resources = ref([
   { id: 202, name: 'Headphones', type: 'Audio Guides', availableQuantity: 30, totalQuantity: 50, status: 'Low Stock', notes: 'Order more' },
   { id: 203, name: 'Maps', type: 'Material', availableQuantity: 100, totalQuantity: 150, status: 'Available', notes: 'None' },
   { id: 204, name: 'Black Boards', type: 'Material', availableQuantity: 15, totalQuantity: 20, status: 'Available', notes: 'None' },
-  { id: 205, name: 'Televisors', type: 'Digital Equipment', availableQuantity: 10, totalQuantity: 12, status: 'Available', notes: 'Fix unit #3' },
+  { id: 205, name: 'Televisions', type: 'Digital Equipment', availableQuantity: 10, totalQuantity: 12, status: 'Available', notes: 'Fix unit #3' },
 ])
 
 const editDialogOpen = ref(false)
-const editingRow = ref(null)
 const editingDraft = ref({})
+const editDialogRef = ref(null)
 
 const pageTitle = computed(() => {
   if (activeTab.value === 'guides') return 'Guides'
@@ -54,7 +54,17 @@ const searchPlaceholder = computed(() => {
 })
 
 const resourceTypes = computed(() => {
-  return ['all', ...new Set(resources.value.map((item) => item.type.toLowerCase()))]
+  const typeMap = new Map()
+
+  for (const item of resources.value) {
+    if (!item.type) continue
+    const value = item.type.toLowerCase()
+    if (!typeMap.has(value)) {
+      typeMap.set(value, item.type)
+    }
+  }
+
+  return Array.from(typeMap.entries()).map(([value, label]) => ({ value, label }))
 })
 
 const filteredRows = computed(() => {
@@ -96,14 +106,15 @@ function switchTab(tab) {
 }
 
 function openEdit(row) {
-  editingRow.value = row
   editingDraft.value = { ...row }
   editDialogOpen.value = true
+  nextTick(() => {
+    editDialogRef.value?.focus()
+  })
 }
 
 function closeEdit() {
   editDialogOpen.value = false
-  editingRow.value = null
   editingDraft.value = {}
 }
 
@@ -198,8 +209,8 @@ function statusClasses(status) {
           class="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700"
         >
           <option value="all">All resources</option>
-          <option v-for="type in resourceTypes" :key="type" :value="type">
-            {{ type === 'all' ? 'All resources' : type }}
+          <option v-for="rt in resourceTypes" :key="rt.value" :value="rt.value">
+            {{ rt.label }}
           </option>
         </select>
       </section>
@@ -289,15 +300,30 @@ function statusClasses(status) {
         {{ feedbackMessage }}
       </p>
 
-      <div v-if="editDialogOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div class="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-xl">
-          <h3 class="text-lg font-semibold text-gray-900 mb-1">Edit Record</h3>
+      <div
+        v-if="editDialogOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      >
+        <div
+          ref="editDialogRef"
+          class="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-xl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-dialog-title"
+          tabindex="-1"
+          @keydown.esc.prevent="closeEdit"
+        >
+          <h3 id="edit-dialog-title" class="text-lg font-semibold text-gray-900 mb-1">Edit Record</h3>
           <p class="text-sm text-gray-500 mb-4">Prototype dialog. Changes are local to this page state.</p>
 
           <div class="grid grid-cols-1 gap-3">
             <label class="text-sm text-gray-700">
               Name
-              <input v-model="editingDraft.name" type="text" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+              <input
+                v-model="editingDraft.name"
+                type="text"
+                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
             </label>
 
             <label v-if="activeTab !== 'resources'" class="text-sm text-gray-700">
