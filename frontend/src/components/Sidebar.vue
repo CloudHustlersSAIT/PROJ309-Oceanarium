@@ -68,8 +68,6 @@ async function handleLogout() {
 </script>
 
 <template>
-  <!-- Multiple roots (Vue 3): mobile button, backdrop, sidebar -->
-  <!-- Mobile menu button: visible only on small/tablet when drawer is closed; leaves room for content -->
     <button
       type="button"
       aria-label="Open menu"
@@ -105,9 +103,6 @@ async function handleLogout() {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
-
-      <!-- Logo -->
-      <!-- Top: logo -->
       <div class="mb-10">
       <div
         class="items-center bg-white rounded-xl px-10 py-4 drop-shadow-xl/25 flex justify-center"
