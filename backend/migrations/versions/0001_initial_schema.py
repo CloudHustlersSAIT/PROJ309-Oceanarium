@@ -1,14 +1,17 @@
 """Initial schema — 19 tables from ERD v4.0
 
-Revision ID: 0001
-Revises:
+Revision ID: 0002
+Revises: 0001
 Create Date: 2026-03-04
+Created By: Evandro Maciel
+Last Updated: 2026-03-05
+Last Updated By: Joao Santiago
 """
 
 from alembic import op
 
-revision = "0001"
-down_revision = None
+revision = "0002"
+down_revision = "0001"
 branch_labels = None
 depends_on = None
 
@@ -19,7 +22,7 @@ def upgrade() -> None:
     op.execute("""
         CREATE TABLE customers (
             id              SERIAL PRIMARY KEY,
-            clorian_client_id INTEGER NOT NULL UNIQUE,
+            clorian_client_id varchar(100) NOT NULL UNIQUE,
             first_name      VARCHAR(255) NOT NULL,
             last_name       VARCHAR(255) NOT NULL,
             email           VARCHAR(255)
@@ -81,11 +84,33 @@ def upgrade() -> None:
 
     op.execute("""
         CREATE TABLE poll_execution (
-            id           SERIAL PRIMARY KEY,
-            window_start TIMESTAMPTZ NOT NULL,
-            window_end   TIMESTAMPTZ NOT NULL,
-            executed_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            status       VARCHAR(50) NOT NULL
+            id                  SERIAL PRIMARY KEY,
+            window_start        TIMESTAMPTZ NOT NULL,
+            window_end          TIMESTAMPTZ NOT NULL,
+            executed_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            finished_at         TIMESTAMPTZ,
+            status              VARCHAR(50) NOT NULL,
+            seed                INTEGER,
+            generated_total     INTEGER NOT NULL DEFAULT 0,
+            generated_created   INTEGER NOT NULL DEFAULT 0,
+            generated_updated   INTEGER NOT NULL DEFAULT 0,
+            generated_unchanged INTEGER NOT NULL DEFAULT 0,
+            error_message       TEXT
+        );
+    """)
+
+    op.execute("""
+        CREATE TABLE poll_staging (
+            id                SERIAL PRIMARY KEY,
+            poll_execution_id INTEGER NOT NULL REFERENCES poll_execution(id) ON DELETE CASCADE,
+            entity_type       VARCHAR(50) NOT NULL,
+            external_id       VARCHAR(100) NOT NULL,
+            scenario          VARCHAR(20) NOT NULL,
+            payload_json      JSONB NOT NULL,
+            created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            processed_at      TIMESTAMPTZ,
+            processed_status  VARCHAR(50),
+            processed_error   TEXT
         );
     """)
 
@@ -159,7 +184,7 @@ def upgrade() -> None:
     op.execute("""
         CREATE TABLE reservations (
             id                      SERIAL PRIMARY KEY,
-            clorian_reservation_id  INTEGER NOT NULL UNIQUE,
+            clorian_reservation_id  VARCHAR(100) NOT NULL UNIQUE,
             clorian_purchase_id     INTEGER,
             customer_id             INTEGER NOT NULL REFERENCES customers(id),
             tour_id                 INTEGER NOT NULL REFERENCES tours(id),
@@ -192,7 +217,7 @@ def upgrade() -> None:
     op.execute("""
         CREATE TABLE tickets (
             id                  SERIAL PRIMARY KEY,
-            clorian_ticket_id   INTEGER NOT NULL UNIQUE,
+            clorian_ticket_id   VARCHAR(100) NOT NULL UNIQUE,
             reservation_id      INTEGER NOT NULL REFERENCES reservations(id),
             buyer_type_id       INTEGER,
             buyer_type_name     VARCHAR(255),
@@ -269,6 +294,10 @@ def upgrade() -> None:
     op.execute("CREATE INDEX ix_surveys_reservation_id ON surveys (reservation_id);")
     op.execute("CREATE INDEX ix_tour_assignment_logs_schedule_id ON tour_assignment_logs (schedule_id);")
     op.execute("CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id);")
+    op.execute("CREATE INDEX ix_poll_staging_poll_execution_id ON poll_staging (poll_execution_id);")
+    op.execute("CREATE INDEX ix_poll_staging_external_id ON poll_staging (external_id);")
+    op.execute("CREATE INDEX ix_poll_staging_processed_at ON poll_staging (processed_at);")
+    op.execute("CREATE INDEX ix_poll_staging_entity_type_external_id ON poll_staging (entity_type, external_id);") 
 
 
 def downgrade() -> None:
@@ -284,6 +313,7 @@ def downgrade() -> None:
     op.execute("DROP TABLE IF EXISTS guide_languages CASCADE;")
     op.execute("DROP TABLE IF EXISTS availability_exceptions CASCADE;")
     op.execute("DROP TABLE IF EXISTS availability_slots CASCADE;")
+    op.execute("DROP TABLE IF EXISTS poll_staging CASCADE;")
     op.execute("DROP TABLE IF EXISTS poll_execution CASCADE;")
     op.execute("DROP TABLE IF EXISTS availability_patterns CASCADE;")
     op.execute("DROP TABLE IF EXISTS guides CASCADE;")

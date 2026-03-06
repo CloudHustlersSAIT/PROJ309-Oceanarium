@@ -17,7 +17,7 @@ router = APIRouter(prefix="/mock", tags=["Mock Poller"])
 
 @router.post("/run", response_model=MockRunResponse)
 def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
-    run_id: Optional[str] = None
+    run_id: Optional[int] = None
 
     try:
         with engine.begin() as conn:
