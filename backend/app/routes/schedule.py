@@ -9,7 +9,7 @@ from ..services.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/schedules", tags=["Schedule"])
+router = APIRouter(prefix="/schedules", tags=["Schedules"])
 
 
 @router.get("")
