@@ -36,8 +36,8 @@ def list_schedules(conn, start_date: date | None = None, end_date: date | None =
             LEFT JOIN guides g ON g.id = s.guide_id
             LEFT JOIN reservations r ON r.schedule_id = s.id
             WHERE
-                (:start_date IS NULL OR s.event_end_datetime >= :start_date::date)
-                AND (:end_date IS NULL OR s.event_start_datetime < (:end_date::date + INTERVAL '1 day'))
+                (:start_date IS NULL OR s.event_end_datetime >= CAST(:start_date AS date))
+                AND (:end_date IS NULL OR s.event_start_datetime < (CAST(:end_date AS date) + INTERVAL '1 day'))
                 AND (:status IS NULL OR LOWER(s.status) = LOWER(:status))
             GROUP BY
                 s.id,
