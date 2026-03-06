@@ -1,7 +1,7 @@
 """Initial schema — 19 tables from ERD v4.0
 
-Revision ID: 0002
-Revises: 0001
+Revision ID: 0001
+Revises:
 Create Date: 2026-03-04
 Created By: Evandro Maciel
 Last Updated: 2026-03-05
@@ -10,8 +10,8 @@ Last Updated By: Joao Santiago
 
 from alembic import op
 
-revision = "0002"
-down_revision = "0001"
+revision = "0001"
+down_revision = None
 branch_labels = None
 depends_on = None
 
