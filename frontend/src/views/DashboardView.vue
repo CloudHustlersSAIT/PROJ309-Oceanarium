@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 

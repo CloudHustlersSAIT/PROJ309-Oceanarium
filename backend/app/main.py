@@ -7,6 +7,7 @@ from .routes.issue import router as issue_router
 from .routes.mock import router as mock_router
 from .routes.notification import router as notification_router
 from .routes.reservation import router as reservation_router
+from .routes.schedule import router as schedule_router
 from .routes.stats import router as stats_router
 from .routes.tour import router as tour_router
 
@@ -16,6 +17,7 @@ app.include_router(health_router)
 app.include_router(reservation_router)
 app.include_router(guide_router)
 app.include_router(tour_router)
+app.include_router(schedule_router)
 app.include_router(notification_router)
 app.include_router(issue_router)
 app.include_router(stats_router)

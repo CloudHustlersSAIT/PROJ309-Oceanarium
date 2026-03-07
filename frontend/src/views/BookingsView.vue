@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onMounted, ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import { cancelBooking, createBooking, getBookings, rescheduleBooking } from '../services/api'
