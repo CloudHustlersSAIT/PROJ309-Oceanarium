@@ -5,40 +5,40 @@ on:
     branches:
       - main
     paths:
-      - 'frontend/**'
+      - "frontend/**"
   workflow_dispatch:
 
 jobs:
-  deploy:
+  frontend-deploy:
     runs-on: ubuntu-latest
+
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-    
+
     defaults:
       run:
-        working-directory: ./frontend
+        working-directory: frontend
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.19.0'
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@37.4.1
+          node-version: "20.19.0"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build frontend (pre-deploy validation)
+      - name: Build frontend
         run: npm run build
 
       - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel@37.4.1 pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy to Vercel
-        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --debug
+        run: npx vercel@37.4.1 deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }} --debug
