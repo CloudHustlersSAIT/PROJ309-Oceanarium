@@ -12,7 +12,19 @@ async function fetchAPI(endpoint, options = {}) {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`)
+      let message = `API Error: ${response.status} ${response.statusText}`
+      try {
+        const errorBody = await response.clone().json()
+        if (errorBody?.detail) message = errorBody.detail
+      } catch {
+        try {
+          const errorText = await response.text()
+          if (errorText) message = errorText
+        } catch {
+          // Keep fallback message when response body cannot be parsed.
+        }
+      }
+      throw new Error(message)
     }
 
     return await response.json()
@@ -49,9 +61,9 @@ export async function getBookings() {
 
 // Create a new booking
 export async function createBooking(bookingData) {
-  return fetchAPI('/bookings', {
+  return fetchAPI('/reservations', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(bookingData),
   })
 }
 
