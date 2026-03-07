@@ -9,36 +9,43 @@ const error = ref('')
 const createError = ref('')
 const createSuccess = ref('')
 const searchText = ref('')
-const bookings = ref([])
+const reservations = ref([])
 const actionState = ref({ id: null, type: '' })
 
+const ID_MAX_LENGTH = 6
+const SHORT_NUMERIC_MAX_LENGTH = 2
+
 const createDefaultForm = () => ({
-  bookingId: '',
+  reservationId: '',
   customerId: '',
   tourId: '',
   date: '',
-  adultTickets: 0,
-  childTickets: 0,
+  adultTickets: '',
+  childTickets: '',
 })
 
 const form = ref(createDefaultForm())
 
-const filteredBookings = computed(() => {
-  const text = searchText.value.trim().toLowerCase()
-  if (!text) return bookings.value
+const totalTicketCount = computed(() => {
+  return (Number(form.value.adultTickets) || 0) + (Number(form.value.childTickets) || 0)
+})
 
-  return bookings.value.filter((booking) => {
+const filteredReservations = computed(() => {
+  const text = searchText.value.trim().toLowerCase()
+  if (!text) return reservations.value
+
+  return reservations.value.filter((reservation) => {
     const searchable = [
-      getBookingDisplayId(booking),
-      getReservationId(booking),
-      booking.booking_id,
-      booking.id,
-      booking.clorian_reservation_id,
-      booking.customer_id,
-      booking.customerId,
-      booking.tour_id,
-      booking.tourId,
-      getBookingDate(booking),
+      getReservationDisplayId(reservation),
+      getReservationId(reservation),
+      reservation.booking_id,
+      reservation.id,
+      reservation.clorian_reservation_id,
+      reservation.customer_id,
+      reservation.customerId,
+      reservation.tour_id,
+      reservation.tourId,
+      getReservationDate(reservation),
     ]
       .filter(Boolean)
       .join(' ')
@@ -62,41 +69,41 @@ function normalizeDate(value) {
   return d.toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
 }
 
-function getReservationId(booking) {
-  return booking.id ?? booking.booking_id ?? booking.bookingId ?? null
+function getReservationId(reservation) {
+  return reservation.id ?? reservation.booking_id ?? reservation.bookingId ?? null
 }
 
-function getBookingDisplayId(booking) {
-  return booking.clorian_reservation_id || booking.booking_id || booking.bookingId || booking.id || '-'
+function getReservationDisplayId(reservation) {
+  return reservation.clorian_reservation_id || reservation.booking_id || reservation.bookingId || reservation.id || '-'
 }
 
-function getCustomerId(booking) {
-  return booking.customer_id || booking.customerId || '-'
+function getCustomerId(reservation) {
+  return reservation.customer_id || reservation.customerId || '-'
 }
 
-function getTourId(booking) {
-  return booking.tour_id || booking.tourId || '-'
+function getTourId(reservation) {
+  return reservation.tour_id || reservation.tourId || '-'
 }
 
-function getStatus(booking) {
-  return booking.status || '-'
+function getStatus(reservation) {
+  return reservation.status || '-'
 }
 
-function getBookingDate(booking) {
-  return booking.date || booking.event_start_datetime || booking.eventStartDatetime || ''
+function getReservationDate(reservation) {
+  return reservation.date || reservation.event_start_datetime || reservation.eventStartDatetime || ''
 }
 
-function isCancelledStatus(booking) {
-  return String(getStatus(booking)).trim().toLowerCase() === 'cancelled'
+function isCancelledStatus(reservation) {
+  return String(getStatus(reservation)).trim().toLowerCase() === 'cancelled'
 }
 
-function getRowKey(booking, index) {
-  const id = getReservationId(booking)
+function getRowKey(reservation, index) {
+  const id = getReservationId(reservation)
   if (id) return String(id)
 
-  const customerId = booking.customer_id || booking.customerId || 'unknown-customer'
-  const tourId = booking.tour_id || booking.tourId || 'unknown-tour'
-  const date = getBookingDate(booking) || 'unknown-date'
+  const customerId = reservation.customer_id || reservation.customerId || 'unknown-customer'
+  const tourId = reservation.tour_id || reservation.tourId || 'unknown-tour'
+  const date = getReservationDate(reservation) || 'unknown-date'
   return `${customerId}-${tourId}-${date}-${index}`
 }
 
@@ -118,15 +125,15 @@ function isIsoDate(value) {
   return d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day
 }
 
-async function loadBookings() {
+async function loadReservations() {
   loading.value = true
   error.value = ''
   try {
     const data = await getBookings()
-    bookings.value = Array.isArray(data) ? data : []
+    reservations.value = Array.isArray(data) ? data : []
   } catch (err) {
-    bookings.value = []
-    error.value = err?.message || 'Failed to load bookings'
+    reservations.value = []
+    error.value = err?.message || 'Failed to load reservations'
   } finally {
     loading.value = false
   }
@@ -136,12 +143,80 @@ function resetForm() {
   form.value = createDefaultForm()
 }
 
-async function handleCreateBooking() {
+function sanitizeNumericId(value, maxLength = ID_MAX_LENGTH) {
+  return String(value ?? '')
+    .replace(/\D/g, '')
+    .slice(0, maxLength)
+}
+
+function handleNumericBeforeInput(event) {
+  // Block non-digits before they reach the field.
+  if (event?.data && /\D/.test(event.data)) {
+    event.preventDefault()
+  }
+}
+
+function handleNumericPaste(event, setter, maxLength = ID_MAX_LENGTH) {
+  const pastedText = event?.clipboardData?.getData('text') ?? ''
+  const sanitized = sanitizeNumericId(pastedText, maxLength)
+  event.preventDefault()
+  setter(sanitized)
+}
+
+function setNumericField(event, field, maxLength = ID_MAX_LENGTH) {
+  const digitsOnly = sanitizeNumericId(event?.target?.value, maxLength)
+  if (event?.target) event.target.value = digitsOnly
+  form.value[field] = digitsOnly
+}
+
+function handleReservationIdInput(event) {
+  setNumericField(event, 'reservationId', ID_MAX_LENGTH)
+}
+
+function handleCustomerIdInput(event) {
+  setNumericField(event, 'customerId', ID_MAX_LENGTH)
+}
+
+function handleTourIdInput(event) {
+  setNumericField(event, 'tourId', SHORT_NUMERIC_MAX_LENGTH)
+}
+
+function handleAdultTicketsInput(event) {
+  setNumericField(event, 'adultTickets', SHORT_NUMERIC_MAX_LENGTH)
+}
+
+function handleChildTicketsInput(event) {
+  setNumericField(event, 'childTickets', SHORT_NUMERIC_MAX_LENGTH)
+}
+
+async function handleCreateReservation() {
   createError.value = ''
   createSuccess.value = ''
 
+  // Defensive validation before submit.
+  form.value.reservationId = sanitizeNumericId(form.value.reservationId, ID_MAX_LENGTH)
+  form.value.customerId = sanitizeNumericId(form.value.customerId, ID_MAX_LENGTH)
+  form.value.tourId = sanitizeNumericId(form.value.tourId, SHORT_NUMERIC_MAX_LENGTH)
+  form.value.adultTickets = sanitizeNumericId(form.value.adultTickets, SHORT_NUMERIC_MAX_LENGTH)
+  form.value.childTickets = sanitizeNumericId(form.value.childTickets, SHORT_NUMERIC_MAX_LENGTH)
+
   if (!form.value.customerId.trim() || !form.value.tourId || !form.value.date) {
     createError.value = 'Customer ID, Tour ID, and date are required.'
+    return
+  }
+
+  if (!/^\d{1,6}$/.test(form.value.customerId)) {
+    createError.value = 'Customer ID must contain only numbers (up to 6 digits).'
+    return
+  }
+
+  if (!/^\d{1,2}$/.test(form.value.tourId)) {
+    createError.value = 'Tour ID must contain only numbers (up to 2 digits).'
+    return
+  }
+
+  if (!/^\d{0,2}$/.test(form.value.adultTickets) || !/^\d{0,2}$/.test(form.value.childTickets)) {
+    createError.value = 'Adult and Child Tickets must contain only numbers (up to 2 digits).'
     return
   }
 
@@ -151,8 +226,7 @@ async function handleCreateBooking() {
     return
   }
 
-  const totalTickets = Number(form.value.adultTickets) + Number(form.value.childTickets)
-  if (totalTickets <= 0) {
+  if (totalTicketCount.value <= 0) {
     createError.value = 'At least one ticket is required.'
     return
   }
@@ -167,40 +241,40 @@ async function handleCreateBooking() {
       child_tickets: Number(form.value.childTickets) || 0,
     })
 
-    createSuccess.value = 'Booking created successfully.'
+    createSuccess.value = 'Reservation created successfully.'
     resetForm()
-    await loadBookings()
+    await loadReservations()
   } catch (err) {
-    createError.value = err?.message || 'Failed to create booking.'
+    createError.value = err?.message || 'Failed to create reservation.'
   } finally {
     saving.value = false
   }
 }
 
-async function handleCancelBooking(booking) {
-  const reservationId = getReservationId(booking)
+async function handleCancelReservation(reservation) {
+  const reservationId = getReservationId(reservation)
   if (!reservationId) return
-  const bookingIdLabel = getBookingDisplayId(booking)
+  const reservationIdLabel = getReservationDisplayId(reservation)
 
-  const confirmed = window.confirm(`Cancel booking ${bookingIdLabel}?`)
+  const confirmed = window.confirm(`Cancel reservation ${reservationIdLabel}?`)
   if (!confirmed) return
 
   actionState.value = { id: reservationId, type: 'cancel' }
   try {
     await cancelBooking(reservationId)
-    await loadBookings()
+    await loadReservations()
   } catch (err) {
-    error.value = err?.message || 'Failed to cancel booking'
+    error.value = err?.message || 'Failed to cancel reservation'
   } finally {
     actionState.value = { id: null, type: '' }
   }
 }
 
-async function handleRescheduleBooking(booking) {
-  const reservationId = getReservationId(booking)
+async function handleRescheduleReservation(reservation) {
+  const reservationId = getReservationId(reservation)
   if (!reservationId) return
 
-  const userInput = window.prompt('New date (YYYY-MM-DD):', formatApiDate(getBookingDate(booking)))
+  const userInput = window.prompt('New date (YYYY-MM-DD):', formatApiDate(getReservationDate(reservation)))
   if (!userInput) return
 
   const newDate = userInput.trim()
@@ -212,15 +286,15 @@ async function handleRescheduleBooking(booking) {
   actionState.value = { id: reservationId, type: 'reschedule' }
   try {
     await rescheduleBooking(reservationId, newDate)
-    await loadBookings()
+    await loadReservations()
   } catch (err) {
-    error.value = err?.message || 'Failed to reschedule booking'
+    error.value = err?.message || 'Failed to reschedule reservation'
   } finally {
     actionState.value = { id: null, type: '' }
   }
 }
 
-onMounted(loadBookings)
+onMounted(loadReservations)
 </script>
 
 <template>
@@ -229,12 +303,12 @@ onMounted(loadBookings)
 
     <main class="flex-1 min-w-0 p-4 md:p-6">
       <div class="flex items-center justify-between gap-4 mb-5">
-        <h1 class="text-4xl font-medium text-gray-800">Bookings</h1>
+        <h1 class="text-4xl font-medium text-gray-800">Reservation</h1>
         <div class="w-full max-w-[430px] relative">
           <input
             v-model="searchText"
             type="text"
-            placeholder="Search bookings"
+            placeholder="Search reservations"
             class="w-full rounded-xl border border-gray-400 bg-white py-2.5 px-4 text-sm"
           />
         </div>
@@ -242,19 +316,19 @@ onMounted(loadBookings)
 
       <div class="grid grid-cols-1 xl:grid-cols-[minmax(700px,1fr)_320px] gap-6">
         <section class="bg-white border border-gray-300 rounded-lg overflow-hidden">
-          <div v-if="loading" class="p-4 text-sm text-gray-500">Loading bookings...</div>
+          <div v-if="loading" class="p-4 text-sm text-gray-500">Loading reservations...</div>
           <div v-else-if="error" class="p-4 text-sm text-red-600">
             <div>{{ error }}</div>
-            <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs" @click="loadBookings">
+            <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs" @click="loadReservations">
               Retry
             </button>
           </div>
-          <div v-else-if="filteredBookings.length === 0" class="p-4 text-sm text-gray-500">No bookings found.</div>
+          <div v-else-if="filteredReservations.length === 0" class="p-4 text-sm text-gray-500">No reservations found.</div>
           <div v-else class="overflow-x-auto">
             <table class="w-full min-w-[860px] text-sm">
               <thead class="bg-gray-50 text-gray-800 border-b border-gray-200">
                 <tr>
-                  <th class="text-left font-semibold px-5 py-3">Booking ID</th>
+                  <th class="text-left font-semibold px-5 py-3">Reservation ID</th>
                   <th class="text-left font-semibold px-5 py-3">Date</th>
                   <th class="text-left font-semibold px-5 py-3">Customer ID</th>
                   <th class="text-left font-semibold px-5 py-3">Tour ID</th>
@@ -264,32 +338,32 @@ onMounted(loadBookings)
               </thead>
               <tbody>
                 <tr
-                  v-for="(booking, index) in filteredBookings"
-                  :key="getRowKey(booking, index)"
+                  v-for="(reservation, index) in filteredReservations"
+                  :key="getRowKey(reservation, index)"
                   class="border-b border-gray-200 hover:bg-gray-50"
                 >
-                  <td class="px-5 py-4 text-gray-700">{{ getBookingDisplayId(booking) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ normalizeDate(getBookingDate(booking)) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ getCustomerId(booking) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ getTourId(booking) }}</td>
-                  <td class="px-5 py-4 text-gray-700 capitalize">{{ getStatus(booking) }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ getReservationDisplayId(reservation) }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ normalizeDate(getReservationDate(reservation)) }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ getCustomerId(reservation) }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ getTourId(reservation) }}</td>
+                  <td class="px-5 py-4 text-gray-700 capitalize">{{ getStatus(reservation) }}</td>
                   <td class="px-5 py-4">
                     <div class="flex flex-wrap gap-2">
                       <button
                         type="button"
                         class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700"
-                        :disabled="actionState.id === getReservationId(booking)"
-                        @click="handleRescheduleBooking(booking)"
+                        :disabled="actionState.id === getReservationId(reservation)"
+                        @click="handleRescheduleReservation(reservation)"
                       >
-                        {{ actionState.id === getReservationId(booking) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
+                        {{ actionState.id === getReservationId(reservation) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
                       </button>
                       <button
                         type="button"
                         class="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
-                        :disabled="actionState.id === getReservationId(booking) || isCancelledStatus(booking)"
-                        @click="handleCancelBooking(booking)"
+                        :disabled="actionState.id === getReservationId(reservation) || isCancelledStatus(reservation)"
+                        @click="handleCancelReservation(reservation)"
                       >
-                        {{ actionState.id === getReservationId(booking) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
+                        {{ actionState.id === getReservationId(reservation) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
                       </button>
                     </div>
                   </td>
@@ -299,38 +373,64 @@ onMounted(loadBookings)
           </div>
         </section>
 
-        <section class="bg-gray-100 border border-gray-400 rounded-lg p-4 h-fit">
-          <h2 class="text-2xl font-medium text-gray-700 mb-4">Add New Booking</h2>
+        <section class="bg-gray-100 border border-gray-400 rounded-none p-4 h-fit">
+          <h2 class="text-2xl font-medium text-gray-700 mb-4">Add New Reservation</h2>
 
           <div class="space-y-3">
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Booking ID</label>
-              <input
-                v-model="form.bookingId"
-                type="text"
-                placeholder="BKG-513321"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-              />
+              <label class="block text-sm text-gray-700 mb-1">Reservation ID</label>
+              <div class="flex items-stretch rounded border border-gray-400 bg-white overflow-hidden">
+                <span class="inline-flex items-center border-r border-gray-300 bg-gray-100 px-3 text-sm text-gray-700">RSV-</span>
+                <input
+                  :value="form.reservationId"
+                  type="text"
+                  inputmode="numeric"
+                  :maxlength="ID_MAX_LENGTH"
+                  pattern="[0-9]*"
+                  autocomplete="off"
+                  placeholder="000000"
+                  class="w-full px-3 py-2 text-sm outline-none"
+                  @beforeinput="handleNumericBeforeInput"
+                  @paste="(event) => handleNumericPaste(event, (value) => (form.reservationId = value))"
+                  @input="handleReservationIdInput"
+                />
+              </div>
             </div>
 
             <div>
               <label class="block text-sm text-gray-700 mb-1">Customer ID</label>
-              <input
-                v-model="form.customerId"
-                type="text"
-                placeholder="Enter ID"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-              />
+              <div class="flex items-stretch rounded border border-gray-400 bg-white overflow-hidden">
+                <span class="inline-flex items-center border-r border-gray-300 bg-gray-100 px-3 text-sm text-gray-700">CUST-</span>
+                <input
+                  :value="form.customerId"
+                  type="text"
+                  inputmode="numeric"
+                  :maxlength="ID_MAX_LENGTH"
+                  pattern="[0-9]*"
+                  autocomplete="off"
+                  placeholder="000000"
+                  class="w-full px-3 py-2 text-sm outline-none"
+                  @beforeinput="handleNumericBeforeInput"
+                  @paste="(event) => handleNumericPaste(event, (value) => (form.customerId = value))"
+                  @input="handleCustomerIdInput"
+                />
+              </div>
             </div>
 
             <div>
               <label class="block text-sm text-gray-700 mb-1">Tour ID</label>
               <input
-                v-model="form.tourId"
-                type="number"
-                min="1"
-                placeholder="Enter ID"
+                :value="form.tourId"
+                type="text"
+                inputmode="numeric"
+                :maxlength="SHORT_NUMERIC_MAX_LENGTH"
+                pattern="[0-9]*"
+                autocomplete="off"
+                placeholder="00"
                 class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                @beforeinput="handleNumericBeforeInput"
+                @paste="(event) => handleNumericPaste(event, (value) => (form.tourId = value), SHORT_NUMERIC_MAX_LENGTH)"
+                @input="handleTourIdInput"
               />
             </div>
 
@@ -347,20 +447,44 @@ onMounted(loadBookings)
             <div>
               <label class="block text-sm text-gray-700 mb-1">Adult Tickets</label>
               <input
-                v-model.number="form.adultTickets"
-                type="number"
-                min="0"
+                :value="form.adultTickets"
+                type="text"
+                inputmode="numeric"
+                :maxlength="SHORT_NUMERIC_MAX_LENGTH"
+                pattern="[0-9]*"
+                autocomplete="off"
+                placeholder="00"
                 class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                @beforeinput="handleNumericBeforeInput"
+                @paste="(event) => handleNumericPaste(event, (value) => (form.adultTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
+                @input="handleAdultTicketsInput"
               />
             </div>
 
             <div>
               <label class="block text-sm text-gray-700 mb-1">Child Tickets</label>
               <input
-                v-model.number="form.childTickets"
-                type="number"
-                min="0"
+                :value="form.childTickets"
+                type="text"
+                inputmode="numeric"
+                :maxlength="SHORT_NUMERIC_MAX_LENGTH"
+                pattern="[0-9]*"
+                autocomplete="off"
+                placeholder="00"
                 class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                @beforeinput="handleNumericBeforeInput"
+                @paste="(event) => handleNumericPaste(event, (value) => (form.childTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
+                @input="handleChildTicketsInput"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-700 mb-1">Total Tickets</label>
+              <input
+                :value="totalTicketCount"
+                type="text"
+                readonly
+                class="w-full rounded border border-gray-400 bg-gray-100 px-3 py-2 text-sm text-gray-700"
               />
             </div>
 
@@ -372,7 +496,7 @@ onMounted(loadBookings)
                 type="button"
                 class="flex-1 rounded bg-cyan-500 hover:bg-cyan-600 text-gray-900 py-2 text-sm font-medium disabled:opacity-60"
                 :disabled="saving"
-                @click="handleCreateBooking"
+                @click="handleCreateReservation"
               >
                 {{ saving ? 'Creating...' : 'Create' }}
               </button>
