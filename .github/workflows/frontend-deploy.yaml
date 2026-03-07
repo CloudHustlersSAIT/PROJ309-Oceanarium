@@ -30,7 +30,14 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@37.4.1
 
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend (pre-deploy validation)
+        run: npm run build
+
       - name: Pull Vercel Environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
       - name: Deploy to Vercel
-        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --debug
