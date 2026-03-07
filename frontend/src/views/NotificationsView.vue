@@ -140,7 +140,7 @@ function iconGlyph(type) {
       <section class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <h1 class="text-4xl font-semibold text-gray-900">Notifications Overview</h1>
 
-        <div class="flex flex-wrap gap-2">
+        <div class="flex w-full flex-wrap gap-2 lg:w-auto">
           <div class="relative w-full max-w-md">
             <input
               v-model="searchQuery"
@@ -151,7 +151,6 @@ function iconGlyph(type) {
             />
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">⌕</span>
           </div>
-
           <select
             v-model="selectedRange"
             class="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700"
@@ -267,3 +266,4 @@ function iconGlyph(type) {
     </main>
   </div>
 </template>
+

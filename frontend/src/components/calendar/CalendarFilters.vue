@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, watch } from 'vue'
 
 const props = defineProps({
@@ -57,3 +57,4 @@ watch(
     </label>
   </div>
 </template>
+

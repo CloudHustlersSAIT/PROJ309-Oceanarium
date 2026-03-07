@@ -41,7 +41,7 @@ const navItems = [
   { label: 'Dashboard', to: 'dashboard', icon: iconDashboard },
   { label: 'Notifications', to: 'notifications', icon: iconNotifications },
   { label: 'Assets', to: 'assets', icon: iconAssets },
-  { label: 'Bookings', to: 'bookings', icon: iconBookings },
+  { label: 'Reservation', to: 'bookings', icon: iconBookings },
   { label: 'Calendar', to: 'calendar', icon: iconCalendar },
   { label: 'Settings', to: 'settings', icon: iconSettings },
 ]

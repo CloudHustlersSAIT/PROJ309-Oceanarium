@@ -1,4 +1,4 @@
-// src/contexts/authContext.js
+﻿// src/contexts/authContext.js
 import { ref } from 'vue'
 import {
   onAuthStateChanged,
@@ -110,3 +110,4 @@ export function useAuth() {
     passwordResetWithEmail,
   }
 }
+

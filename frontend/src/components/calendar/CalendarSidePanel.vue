@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, watch } from 'vue'
 
 const props = defineProps({
@@ -163,3 +163,4 @@ function save() {
     </div>
   </aside>
 </template>
+

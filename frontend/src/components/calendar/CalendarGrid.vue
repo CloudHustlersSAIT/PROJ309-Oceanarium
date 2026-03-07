@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed } from 'vue'
 import CalendarEventCard from './CalendarEventCard.vue'
 
@@ -282,3 +282,4 @@ function isSelectedDate(dateLike) {
     </div>
   </section>
 </template>
+
