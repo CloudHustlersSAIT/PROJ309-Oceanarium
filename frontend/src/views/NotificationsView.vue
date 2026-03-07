@@ -1,8 +1,5 @@
 <script setup>
 import { computed, ref } from 'vue'
-﻿<script setup>
-// Import necessary modules
-import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 
 const selectedRange = ref('All Time')
@@ -152,7 +149,7 @@ function iconGlyph(type) {
       <section class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <h1 class="text-4xl font-semibold text-gray-900">Notifications Overview</h1>
 
-        <div class="flex flex-wrap gap-2">
+        <div class="flex w-full flex-wrap gap-2 lg:w-auto">
           <div class="relative w-full max-w-md">
             <input
               v-model="searchQuery"
@@ -162,31 +159,6 @@ function iconGlyph(type) {
             />
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
           </div>
-        <!-- Title -->
-        <h1 class="text-2xl md:text-3xl font-semibold text-gray-800 mb-2">
-          {{ pageTitle }}
-        </h1>
-
-        <!-- Subtitle -->
-        <p class="text-sm md:text-base text-gray-500 mb-6">
-          {{ pageDescription }}
-        </p>
-
-        <!-- Fun little ocean-themed line -->
-        <p class="text-xs md:text-sm text-[#0077B6] font-medium mb-6">
-          Our team is swimming as fast as they can to bring this experience to life. ðŸ¬
-        </p>
-
-        <!-- Actions -->
-        <div class="flex flex-wrap items-center justify-center gap-3">
-          <button
-            type="button"
-            class="px-5 py-2.5 rounded-full bg-[#0077B6] text-white text-sm font-medium hover:bg-[#0097e7] transition"
-            @click="router.push('/home')"
-          >
-            Back to home
-          </button>
-
           <select
             v-model="selectedRange"
             class="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700"
