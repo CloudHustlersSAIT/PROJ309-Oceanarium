@@ -34,7 +34,7 @@ const recentActivity = [
         <p class="mt-1 text-base text-slate-600">Today's Operations Overview</p>
       </header>
 
-      <section class="grid grid-cols-1 xl:grid-cols-[1.2fr_0.95fr_0.85fr] gap-5 items-start">
+      <section class="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
         <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 class="text-xl font-semibold text-slate-800 mb-2">Today's Schedule</h2>
           <ul class="mt-2 space-y-2">
@@ -44,47 +44,33 @@ const recentActivity = [
               class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
             >
               <div>
-                <span class="text-xs font-medium text-gray-500 mr-2">{{ row.time }}</span>
-                <span class="text-sm font-semibold text-slate-800">Guide {{ row.guide }}</span>
-                <span class="text-sm text-slate-600 ml-2">{{ row.tour }}</span>
+                <p class="text-sm font-semibold text-slate-800">{{ row.time }} - Guide {{ row.guide }}</p>
+                <p class="text-sm text-slate-600">{{ row.tour }}</p>
               </div>
               <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="row.tone">{{ row.status }}</span>
             </li>
           </ul>
         </article>
 
-        <div class="space-y-5">
-
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 class="text-xl font-semibold text-slate-800 mb-2">Alerts</h2>
-            <ul class="mt-2 space-y-2 text-sm text-slate-700">
-              <li v-for="alert in alerts" :key="alert" class="flex items-center gap-2">
-                <span class="inline-flex items-center justify-center w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full">
-                  <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 8v4m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z"
-                    />
-                  </svg>
-                </span>
-                <span>{{ alert }}</span>
-              </li>
-            </ul>
-            <button type="button" class="mt-3 text-blue-600 text-xs font-semibold">View Details</button>
-          </article>
-        </div>
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="text-xl font-semibold text-slate-800 mb-2">Alerts</h2>
+          <ul class="mt-2 space-y-2 text-sm text-slate-700">
+            <li v-for="alert in alerts" :key="alert" class="flex items-center gap-2">
+              <span class="inline-flex items-center justify-center w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full">!</span>
+              <span>{{ alert }}</span>
+            </li>
+          </ul>
+          <button type="button" class="mt-3 text-blue-600 text-xs font-semibold">View Details</button>
+        </article>
 
         <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 class="text-xl font-semibold text-slate-800 mb-2">Recent Activity</h2>
           <ul class="mt-2 space-y-2">
-            <li v-for="item in recentActivity" :key="`${item.time}-${item.text}`" class="border-b border-slate-200 pb-2 last:border-b-0 last:pb-0">
+            <li
+              v-for="item in recentActivity"
+              :key="`${item.time}-${item.text}`"
+              class="border-b border-slate-200 pb-2 last:border-b-0 last:pb-0"
+            >
               <span class="text-xs text-gray-500">{{ item.time }}</span>
               <span class="text-sm text-slate-800 ml-2">{{ item.text }}</span>
             </li>
