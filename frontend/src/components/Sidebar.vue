@@ -89,7 +89,7 @@ async function handleLogout() {
 
     <!-- Sidebar: drawer on mobile (fixed, slide-in), normal on md+ -->
     <aside
-      class="w-80 h-screen flex flex-col p-4 bg-gradient-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg fixed md:static inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-out -translate-x-full md:translate-x-0"
+      class="w-80 max-w-[85vw] min-h-dvh md:min-h-screen md:h-auto md:max-w-none flex flex-col p-4 bg-linear-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg fixed md:relative inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-out -translate-x-full md:translate-x-0 overflow-y-auto"
       :class="{ 'translate-x-0': mobileOpen }"
     >
       <!-- Close button for mobile (visible only when drawer is open) -->
@@ -103,7 +103,7 @@ async function handleLogout() {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
-      <div class="mb-10">
+      <div class="mb-6 md:mb-8">
       <div
         class="items-center bg-white rounded-xl px-10 py-4 drop-shadow-xl/25 flex justify-center"
       >
@@ -115,43 +115,45 @@ async function handleLogout() {
       </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="flex-1 space-y-1 mt-2">
-      <SidebarButton
-        v-for="item in navItems"
-        :key="item.to"
-        :label="item.label"
-        :to="item.to"
-        :icon="item.icon"
-      />
-    </nav>
+    <div class="flex min-h-0 flex-1 flex-col">
+      <!-- Navigation -->
+      <nav class="flex-1 space-y-1 mt-2 overflow-y-auto pr-1">
+        <SidebarButton
+          v-for="item in navItems"
+          :key="item.to"
+          :label="item.label"
+          :to="item.to"
+          :icon="item.icon"
+        />
+      </nav>
 
-    <!-- Bottom user info -->
-    <div class="mt-6 border-t border-white/20 pt-4">
-      <div class="flex items-center gap-3 mb-3 px-1">
-        <!-- Avatar circle -->
-        <div
-          class="h-10 w-10 rounded-full bg-white/90 text-[#0077B6] flex items-center justify-center text-lg font-semibold shadow-md"
+      <!-- Bottom user info -->
+      <div class="mt-6 border-t border-white/20 pt-4">
+        <div class="flex items-center gap-3 mb-3 px-1">
+          <!-- Avatar circle -->
+          <div
+            class="h-10 w-10 rounded-full bg-white/90 text-[#0077B6] flex items-center justify-center text-lg font-semibold shadow-md"
+          >
+            {{ avatarInitial }}
+          </div>
+
+          <div class="flex flex-col">
+            <span class="text-xs opacity-80">Welcome,</span>
+            <span class="text-sm font-semibold truncate max-w-36">
+              {{ displayName }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Logout button -->
+        <button
+          type="button"
+          @click="handleLogout"
+          class="w-full py-2.5 rounded-xl text-sm font-semibold bg-white text-[#0077B6] hover:bg-[#CAF0F8] hover:text-[#0077B6] transition shadow-sm"
         >
-          {{ avatarInitial }}
-        </div>
-
-        <div class="flex flex-col">
-          <span class="text-xs opacity-80">Welcome,</span>
-          <span class="text-sm font-semibold truncate max-w-[9rem]">
-            {{ displayName }}
-          </span>
-        </div>
+          Log out
+        </button>
       </div>
-
-      <!-- Logout button -->
-      <button
-        type="button"
-        @click="handleLogout"
-        class="w-full py-2.5 rounded-xl text-sm font-semibold bg-white text-[#0077B6] hover:bg-[#CAF0F8] hover:text-[#0077B6] transition shadow-sm"
-      >
-        Log out
-      </button>
     </div>
   </aside>
 </template>
