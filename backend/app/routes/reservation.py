@@ -17,7 +17,7 @@ class ReservationCreate(BaseModel):
     child_tickets: int
     clorian_reservation_id: Optional[str] = None
     clorian_purchase_id: Optional[int] = None
-    status: Optional[str] = "confirmed"
+    status: Optional[str] = "CONFIRMED"
 
 class ReservationReschedule(BaseModel):
     new_schedule_id: int
