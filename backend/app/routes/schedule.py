@@ -1,15 +1,26 @@
 import logging
-from datetime import date
+from datetime import date, datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from ..db import get_db
 from ..services import schedule as schedule_service
-from ..services.exceptions import ValidationError
+from ..services.exceptions import ConflictError, NotFoundError, ValidationError
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/schedules", tags=["Schedules"])
+
+
+class ScheduleCreate(BaseModel):
+    guide_id: Optional[int] = None
+    tour_id: int
+    language_code: str
+    event_start_datetime: datetime
+    event_end_datetime: datetime
+    status: Optional[str] = "CONFIRMED"
 
 
 @router.get("")
@@ -30,4 +41,19 @@ def read_schedules(
         raise HTTPException(status_code=400, detail=e.message)
     except Exception:
         logger.exception("Unexpected error listing schedules")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("")
+def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
+    try:
+        return schedule_service.create_schedule(conn, payload)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.message)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message)
+    except ConflictError as e:
+        raise HTTPException(status_code=409, detail=e.message)
+    except Exception:
+        logger.exception("Unexpected error creating schedule")
         raise HTTPException(status_code=500, detail="Internal server error")

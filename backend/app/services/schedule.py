@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, timezone
 
 from sqlalchemy import text
 
-from .exceptions import ValidationError
+from .exceptions import NotFoundError, ValidationError
 
 
 def list_schedules(conn, start_date: date | None = None, end_date: date | None = None, status: str | None = None):
@@ -66,3 +66,80 @@ def list_schedules(conn, start_date: date | None = None, end_date: date | None =
     columns = result.keys()
     rows = [dict(zip(columns, row)) for row in result.fetchall()]
     return rows
+
+
+def create_schedule(conn, data):
+    if data.event_end_datetime <= data.event_start_datetime:
+        raise ValidationError("event_end_datetime must be after event_start_datetime")
+
+    language_code = (data.language_code or "").strip()
+    if not language_code:
+        raise ValidationError("language_code is required")
+
+    if len(language_code) > 2:
+        raise ValidationError("language_code must be at most 2 characters")
+
+    status = (data.status or "CONFIRMED").strip().upper()
+    if not status:
+        raise ValidationError("status cannot be empty")
+
+    start_dt = data.event_start_datetime
+    end_dt = data.event_end_datetime
+    if start_dt.tzinfo is None:
+        start_dt = start_dt.replace(tzinfo=timezone.utc)
+    if end_dt.tzinfo is None:
+        end_dt = end_dt.replace(tzinfo=timezone.utc)
+
+    tour = conn.execute(
+        text(
+            """
+            SELECT id
+            FROM tours
+            WHERE id = :tour_id
+            """
+        ),
+        {"tour_id": data.tour_id},
+    ).fetchone()
+    if not tour:
+        raise NotFoundError("Tour not found")
+
+    guide_id = data.guide_id
+    if guide_id is not None:
+        guide = conn.execute(
+            text(
+                """
+                SELECT id
+                FROM guides
+                WHERE id = :guide_id
+                """
+            ),
+            {"guide_id": guide_id},
+        ).fetchone()
+        if not guide:
+            raise NotFoundError("Guide not found")
+
+    result = conn.execute(
+        text(
+            """
+            INSERT INTO schedule
+            (guide_id, tour_id, language_code, event_start_datetime, event_end_datetime, status)
+            VALUES
+            (:guide_id, :tour_id, :language_code, :event_start_datetime, :event_end_datetime, :status)
+            RETURNING *
+            """
+        ),
+        {
+            "guide_id": guide_id,
+            "tour_id": data.tour_id,
+            "language_code": language_code,
+            "event_start_datetime": start_dt,
+            "event_end_datetime": end_dt,
+            "status": status,
+        },
+    )
+
+    conn.commit()
+
+    columns = result.keys()
+    row = result.fetchone()
+    return dict(zip(columns, row))
