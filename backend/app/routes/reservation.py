@@ -19,14 +19,22 @@ class BookingCreate(BaseModel):
     date: date
     start_time: time
     end_time: time
+class ReservationCreate(BaseModel):
+    customer_id: int
+    schedule_id: int
     adult_tickets: int
     child_tickets: int
+    clorian_reservation_id: Optional[str] = None
+    clorian_purchase_id: Optional[int] = None
+    status: Optional[str] = "CONFIRMED"
 
 
 class BookingReschedule(BaseModel):
     new_date: date
     start_time: time
     end_time: time
+class ReservationReschedule(BaseModel):
+    new_schedule_id: int
 
 
 router = APIRouter(tags=["Reservations"])
@@ -52,6 +60,7 @@ def _cancel_reservation(reservation_id, conn):
 # New canonical routes
 
 
+# New routes
 @router.get("/reservations")
 def read_reservations(conn=Depends(get_db)):
     try:
@@ -62,7 +71,7 @@ def read_reservations(conn=Depends(get_db)):
 
 
 @router.post("/reservations")
-def create_reservation(payload: BookingCreate, conn=Depends(get_db)):
+def create_reservation(payload: ReservationCreate, conn=Depends(get_db)):
     try:
         return _create_reservation(payload, conn)
     except ValidationError as e:
@@ -77,7 +86,7 @@ def create_reservation(payload: BookingCreate, conn=Depends(get_db)):
 
 
 @router.patch("/reservations/{reservation_id}/reschedule")
-def reschedule_reservation(reservation_id: int, payload: BookingReschedule, conn=Depends(get_db)):
+def reschedule_reservation(reservation_id: int, payload: ReservationReschedule, conn=Depends(get_db)):
     try:
         return _reschedule_reservation(reservation_id, payload, conn)
     except ValidationError as e:
@@ -112,12 +121,12 @@ def read_bookings_legacy(conn=Depends(get_db)):
 
 
 @router.post("/bookings", deprecated=True)
-def create_booking_legacy(payload: BookingCreate, conn=Depends(get_db)):
+def create_booking_legacy(payload: ReservationCreate, conn=Depends(get_db)):
     return create_reservation(payload, conn)
 
 
 @router.patch("/bookings/{reservation_id}/reschedule", deprecated=True)
-def reschedule_booking_legacy(reservation_id: int, payload: BookingReschedule, conn=Depends(get_db)):
+def reschedule_booking_legacy(reservation_id: int, payload: ReservationReschedule, conn=Depends(get_db)):
     return reschedule_reservation(reservation_id, payload, conn)
 
 
