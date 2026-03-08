@@ -6,6 +6,7 @@ from .exceptions import NotFoundError, ValidationError
 
 
 def list_schedules(conn, start_date: date | None = None, end_date: date | None = None, status: str | None = None):
+    # Guard against impossible range filters before querying.
     if start_date and end_date and start_date > end_date:
         raise ValidationError("start_date cannot be after end_date")
 
@@ -13,6 +14,7 @@ def list_schedules(conn, start_date: date | None = None, end_date: date | None =
     if normalized_status == "":
         normalized_status = None
 
+    # The query returns schedule rows enriched with joined names and reservation counts.
     result = conn.execute(
         text(
             """
@@ -69,6 +71,7 @@ def list_schedules(conn, start_date: date | None = None, end_date: date | None =
 
 
 def create_schedule(conn, data):
+    # Basic temporal validation to prevent inverted schedule windows.
     if data.event_end_datetime <= data.event_start_datetime:
         raise ValidationError("event_end_datetime must be after event_start_datetime")
 
@@ -83,6 +86,7 @@ def create_schedule(conn, data):
     if not status:
         raise ValidationError("status cannot be empty")
 
+    # Normalize naive datetimes to UTC to keep inserts consistent.
     start_dt = data.event_start_datetime
     end_dt = data.event_end_datetime
     if start_dt.tzinfo is None:
@@ -90,7 +94,7 @@ def create_schedule(conn, data):
     if end_dt.tzinfo is None:
         end_dt = end_dt.replace(tzinfo=timezone.utc)
 
-    # Validate foreign keys
+    # Validate referenced catalog entities before insert for clearer API errors.
     tour = conn.execute(
         text(
             """
@@ -120,6 +124,7 @@ def create_schedule(conn, data):
     # Persist the canonical code as stored in the languages catalog.
     language_code = language.code
 
+    # guide_id is optional by design; validate only when supplied.
     guide_id = data.guide_id
     if guide_id is not None:
         guide = conn.execute(

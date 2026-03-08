@@ -15,6 +15,7 @@ router = APIRouter(prefix="/schedules", tags=["Schedules"])
 
 
 class ScheduleCreate(BaseModel):
+    # guide_id is optional because guide assignment can happen later.
     guide_id: Optional[int] = None
     tour_id: int
     language_code: str
@@ -30,6 +31,7 @@ def read_schedules(
     status: str | None = Query(default=None, description="Filter by schedule status (case-insensitive exact match)"),
     conn=Depends(get_db),
 ):
+    # Thin route: delegate filtering/query logic to service layer.
     try:
         return schedule_service.list_schedules(
             conn,
@@ -46,6 +48,7 @@ def read_schedules(
 
 @router.post("")
 def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
+    # Thin route: map domain exceptions to HTTP responses.
     try:
         return schedule_service.create_schedule(conn, payload)
     except ValidationError as e:
