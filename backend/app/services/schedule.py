@@ -90,6 +90,7 @@ def create_schedule(conn, data):
     if end_dt.tzinfo is None:
         end_dt = end_dt.replace(tzinfo=timezone.utc)
 
+    # Validate foreign keys
     tour = conn.execute(
         text(
             """
@@ -102,6 +103,22 @@ def create_schedule(conn, data):
     ).fetchone()
     if not tour:
         raise NotFoundError("Tour not found")
+
+    language = conn.execute(
+        text(
+            """
+            SELECT code
+            FROM languages
+            WHERE LOWER(code) = LOWER(:language_code)
+            """
+        ),
+        {"language_code": language_code},
+    ).fetchone()
+    if not language:
+        raise ValidationError("language_code not found in languages table")
+
+    # Persist the canonical code as stored in the languages catalog.
+    language_code = language.code
 
     guide_id = data.guide_id
     if guide_id is not None:
