@@ -30,7 +30,7 @@ const recentActivity = [
 
     <main class="flex-1 min-w-0 p-6 lg:p-8">
       <header class="mb-6">
-        <h1 class="text-2xl font-bold text-slate-800">Good Evening, Rogério</h1>
+        <h1 class="text-2xl font-bold text-slate-800">Good Evening, Rogerio</h1>
         <p class="mt-1 text-base text-slate-600">Today's Operations Overview</p>
       </header>
 
@@ -60,7 +60,19 @@ const recentActivity = [
             <ul class="mt-2 space-y-2 text-sm text-slate-700">
               <li v-for="alert in alerts" :key="alert" class="flex items-center gap-2">
                 <span class="inline-flex items-center justify-center w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z"/></svg>
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 8v4m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z"
+                    />
+                  </svg>
                 </span>
                 <span>{{ alert }}</span>
               </li>
