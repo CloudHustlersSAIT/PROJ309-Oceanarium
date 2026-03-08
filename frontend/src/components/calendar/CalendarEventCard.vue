@@ -10,7 +10,7 @@ const props = defineProps({
 const emit = defineEmits(['select', 'toggle-bulk'])
 
 function formatTime(dateLike) {
-  return new Date(dateLike).toLocaleTimeString('en-CA', {
+  return new Date(dateLike).toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
@@ -26,7 +26,7 @@ function formatTime(dateLike) {
       selected ? 'ring-2 ring-blue-500 shadow-sm' : 'hover:shadow-sm',
     ]"
     :title="`${event.title} • ${formatTime(event.start)}-${formatTime(event.end)} • ${event.resourceName}`"
-    @click="emit('select', event)"
+    @click.stop="emit('select', event)"
   >
     <div class="flex items-start justify-between gap-1">
       <div class="font-semibold text-gray-800 truncate leading-tight">{{ event.title }}</div>
@@ -34,7 +34,7 @@ function formatTime(dateLike) {
     </div>
 
     <div class="text-[11px] text-gray-600 mt-1 leading-tight">{{ formatTime(event.start) }} - {{ formatTime(event.end) }}</div>
-    <div class="text-[10px] text-gray-500 truncate mt-0.5">{{ event.resourceName }}</div>
+    <div class="text-[10px] text-gray-500 truncate mt-0.5">Guide: {{ event.resourceName || 'Unassigned Guide' }}</div>
 
     <div v-if="conflict" class="mt-1 text-[10px] font-semibold text-red-700 uppercase tracking-wide">Conflict detected</div>
   </div>
