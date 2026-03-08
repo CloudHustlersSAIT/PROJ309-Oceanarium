@@ -103,11 +103,11 @@ def create_reservation(conn, data):
         raise ConflictError("Customer already has a reservation for this schedule")
 
     # Persist status in a normalized uppercase representation.
-    status = ((data.status or "CONFIRMED").strip().upper() if hasattr(data, "status") else "CONFIRMED")
+    status = (data.status or "CONFIRMED").strip().upper()
     if not status:
         raise ValidationError("status cannot be empty")
 
-    clorian_purchase_id = data.clorian_purchase_id if hasattr(data, "clorian_purchase_id") else None
+    clorian_purchase_id = data.clorian_purchase_id
 
     result = conn.execute(
         text("""
