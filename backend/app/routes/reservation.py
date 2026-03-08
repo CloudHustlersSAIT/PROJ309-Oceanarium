@@ -1,5 +1,5 @@
 import logging
-from datetime import date, time
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -10,19 +10,17 @@ from ..services.exceptions import ConflictError, NotFoundError, ValidationError
 
 logger = logging.getLogger(__name__)
 
-class BookingCreate(BaseModel):
+class ReservationCreate(BaseModel):
     customer_id: int
-    tour_id: int
-    date: date
-    start_time: time
-    end_time: time
+    schedule_id: int
     adult_tickets: int
     child_tickets: int
+    clorian_reservation_id: Optional[str] = None
+    clorian_purchase_id: Optional[int] = None
+    status: Optional[str] = "confirmed"
 
-class BookingReschedule(BaseModel):
-    new_date: date
-    start_time: time
-    end_time: time
+class ReservationReschedule(BaseModel):
+    new_schedule_id: int
 
 router = APIRouter(tags=["Reservations"])
 
@@ -39,7 +37,7 @@ def _reschedule_reservation(reservation_id, payload, conn):
 def _cancel_reservation(reservation_id, conn):
     return reservation_service.cancel_reservation(conn, reservation_id)
 
-# New canonical routes
+# New routes
 @router.get("/reservations")
 def read_reservations(conn=Depends(get_db)):
     try:
@@ -49,7 +47,7 @@ def read_reservations(conn=Depends(get_db)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/reservations")
-def create_reservation(payload: BookingCreate, conn=Depends(get_db)):
+def create_reservation(payload: ReservationCreate, conn=Depends(get_db)):
     try:
         return _create_reservation(payload, conn)
     except ValidationError as e:
@@ -63,7 +61,7 @@ def create_reservation(payload: BookingCreate, conn=Depends(get_db)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.patch("/reservations/{reservation_id}/reschedule")
-def reschedule_reservation(reservation_id: int, payload: BookingReschedule, conn=Depends(get_db)):
+def reschedule_reservation(reservation_id: int, payload: ReservationReschedule, conn=Depends(get_db)):
     try:
         return _reschedule_reservation(reservation_id, payload, conn)
     except ValidationError as e:
@@ -94,11 +92,11 @@ def read_bookings_legacy(conn=Depends(get_db)):
     return read_reservations(conn)
 
 @router.post("/bookings", deprecated=True)
-def create_booking_legacy(payload: BookingCreate, conn=Depends(get_db)):
+def create_booking_legacy(payload: ReservationCreate, conn=Depends(get_db)):
     return create_reservation(payload, conn)
 
 @router.patch("/bookings/{reservation_id}/reschedule", deprecated=True)
-def reschedule_booking_legacy(reservation_id: int, payload: BookingReschedule, conn=Depends(get_db)):
+def reschedule_booking_legacy(reservation_id: int, payload: ReservationReschedule, conn=Depends(get_db)):
     return reschedule_reservation(reservation_id, payload, conn)
 
 @router.patch("/bookings/{reservation_id}/cancel", deprecated=True)
