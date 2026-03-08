@@ -92,6 +92,7 @@ def create_reservation(conn, data):
             FROM reservations
             WHERE customer_id = :customer_id
               AND schedule_id = :schedule_id
+              AND status != 'CANCELLED'
             """
         ),
         {
@@ -104,8 +105,6 @@ def create_reservation(conn, data):
 
     # Persist status in a normalized uppercase representation.
     status = (data.status or "CONFIRMED").strip().upper()
-    if not status:
-        raise ValidationError("status cannot be empty")
 
     clorian_purchase_id = data.clorian_purchase_id
 
@@ -180,6 +179,7 @@ def reschedule_reservation(conn, reservation_id, data):
             WHERE customer_id = :customer_id
               AND schedule_id = :schedule_id
               AND id <> :reservation_id
+              AND status != 'CANCELLED'
             """
         ),
         {
