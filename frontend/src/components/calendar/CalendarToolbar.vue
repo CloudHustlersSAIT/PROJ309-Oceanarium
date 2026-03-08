@@ -6,7 +6,7 @@ const props = defineProps({
   selectedDate: { type: Date, required: true },
 })
 
-const emit = defineEmits(['change-view', 'export', 'primary-create'])
+const emit = defineEmits(['change-view', 'export'])
 
 const dateRange = computed(() => {
   if (props.currentView === 'day') {
@@ -36,7 +36,7 @@ const dateRange = computed(() => {
 </script>
 
 <template>
-  <section class="bg-white rounded-xl shadow-md p-4 border border-blue-500">
+  <section class="bg-white rounded-xl shadow-md p-4 border-1 border-blue-500">
     <div class="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_auto_1fr] xl:items-center">
       <div class="xl:justify-self-start">
         <h1 class="text-3xl font-bold text-gray-800">Calendar</h1>
@@ -44,14 +44,7 @@ const dateRange = computed(() => {
 
       <div class="text-3xl font-bold text-gray-800 text-center">{{ dateRange }}</div>
 
-      <div class="xl:justify-self-end">
-        <button
-          class="px-3 py-1.5 rounded bg-blue-600 text-white border border-blue-600 hover:bg-blue-700"
-          @click="emit('primary-create')"
-        >
-          + Create
-        </button>
-      </div>
+      <div class="xl:justify-self-end" />
     </div>
 
     <div class="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -79,7 +72,7 @@ const dateRange = computed(() => {
         </button>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap xl:justify-end">
+      <div class="flex items-center gap-2 flex-wrap">
         <button
           class="px-3 py-1.5 rounded border bg-white text-gray-700 border-[#ACBAC4] hover:bg-gray-50"
           @click="emit('export')"

@@ -5,21 +5,6 @@ from sqlalchemy import text
 from .exceptions import ConflictError, NotFoundError, ValidationError
 
 
-def _has_language_column(conn):
-    result = conn.execute(
-        text(
-            """
-            SELECT 1
-            FROM information_schema.columns
-            WHERE table_name = 'reservations'
-            AND column_name = 'language'
-            LIMIT 1
-            """
-        )
-    ).fetchone()
-    return bool(result)
-
-
 def list_reservations(conn):
     result = conn.execute(
         text("SELECT * FROM reservations ORDER BY created_at DESC")
@@ -65,8 +50,7 @@ def create_reservation(conn, data):
     ).fetchone()
 
     if conflict:
-        raise ConflictError(
-            "A reservation already exists for this tour and start time")
+        raise ConflictError("A reservation already exists for this tour and start time")
 
     next_clorian_reservation_id = conn.execute(
         text(
@@ -77,42 +61,24 @@ def create_reservation(conn, data):
         )
     ).scalar_one()
 
-    supports_language = _has_language_column(conn)
-    payload = {
-        "clorian_reservation_id": next_clorian_reservation_id,
-        "customer_id": data.customer_id,
-        "tour_id": data.tour_id,
-        "event_start_datetime": event_start,
-        "current_ticket_num": data.adult_tickets + data.child_tickets,
-        "language": getattr(data, "language", None) or "English",
-    }
-
-    if supports_language:
-        result = conn.execute(
-            text("""
-                INSERT INTO reservations
-                (clorian_reservation_id, customer_id, tour_id,
-                 event_start_datetime, status, current_ticket_num, language)
-                VALUES
-                (:clorian_reservation_id, :customer_id, :tour_id,
-                 :event_start_datetime, 'confirmed', :current_ticket_num, :language)
-                RETURNING *
-            """),
-            payload,
-        )
-    else:
-        result = conn.execute(
-            text("""
-                INSERT INTO reservations
-                (clorian_reservation_id, customer_id, tour_id,
-                 event_start_datetime, status, current_ticket_num)
-                VALUES
-                (:clorian_reservation_id, :customer_id, :tour_id,
-                 :event_start_datetime, 'confirmed', :current_ticket_num)
-                RETURNING *
-            """),
-            payload,
-        )
+    result = conn.execute(
+        text("""
+            INSERT INTO reservations
+            (clorian_reservation_id, customer_id, tour_id,
+             event_start_datetime, status, current_ticket_num)
+            VALUES
+            (:clorian_reservation_id, :customer_id, :tour_id,
+             :event_start_datetime, 'confirmed', :current_ticket_num)
+            RETURNING *
+        """),
+        {
+            "clorian_reservation_id": next_clorian_reservation_id,
+            "customer_id": data.customer_id,
+            "tour_id": data.tour_id,
+            "event_start_datetime": event_start,
+            "current_ticket_num": data.adult_tickets + data.child_tickets,
+        },
+    )
 
     conn.commit()
 

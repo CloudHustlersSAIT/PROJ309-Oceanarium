@@ -1,8 +1,7 @@
 ﻿<script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import { cancelBooking, createBooking, getBookings, rescheduleBooking } from '../services/api'
-import { LANGUAGE_OPTIONS } from '../constants/languages'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -20,29 +19,10 @@ const createDefaultForm = () => ({
   reservationId: '',
   customerId: '',
   tourId: '',
-  language: 'English',
   date: '',
-  startTime: '09:00',
-  endTime: '10:00',
   adultTickets: '',
   childTickets: '',
 })
-
-const timeOptions = Array.from({ length: 15 }, (_, i) => {
-  const minutes = (9 * 60) + i * 30
-  const hh = String(Math.floor(minutes / 60)).padStart(2, '0')
-  const mm = String(minutes % 60).padStart(2, '0')
-  const value = `${hh}:${mm}`
-  const label = new Date(`2000-01-01T${value}:00`).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  })
-  return { value, label }
-})
-
-const startTimeOptions = computed(() => timeOptions.slice(0, -1))
-const endTimeOptions = computed(() => timeOptions.filter((option) => option.value > form.value.startTime))
 
 const form = ref(createDefaultForm())
 
@@ -225,16 +205,6 @@ async function handleCreateReservation() {
     return
   }
 
-  if (!form.value.startTime || !form.value.endTime) {
-    createError.value = 'Start time and End time are required.'
-    return
-  }
-
-  if (form.value.endTime <= form.value.startTime) {
-    createError.value = 'End time must be after Start time.'
-    return
-  }
-
   if (!/^\d{1,6}$/.test(form.value.customerId)) {
     createError.value = 'Customer ID must contain only numbers (up to 6 digits).'
     return
@@ -266,10 +236,7 @@ async function handleCreateReservation() {
     await createBooking({
       customer_id: form.value.customerId.trim(),
       tour_id: parsedTourId,
-      language: form.value.language,
       date: form.value.date,
-      start_time: `${form.value.startTime}:00`,
-      end_time: `${form.value.endTime}:00`,
       adult_tickets: Number(form.value.adultTickets) || 0,
       child_tickets: Number(form.value.childTickets) || 0,
     })
@@ -283,20 +250,6 @@ async function handleCreateReservation() {
     saving.value = false
   }
 }
-
-watch(
-  () => form.value.startTime,
-  () => {
-    if (!endTimeOptions.value.length) {
-      form.value.endTime = form.value.startTime
-      return
-    }
-
-    if (!endTimeOptions.value.some((option) => option.value === form.value.endTime)) {
-      form.value.endTime = endTimeOptions.value[0].value
-    }
-  },
-)
 
 async function handleCancelReservation(reservation) {
   const reservationId = getReservationId(reservation)
@@ -379,7 +332,6 @@ onMounted(loadReservations)
                   <th class="text-left font-semibold px-5 py-3">Date</th>
                   <th class="text-left font-semibold px-5 py-3">Customer ID</th>
                   <th class="text-left font-semibold px-5 py-3">Tour ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Language</th>
                   <th class="text-left font-semibold px-5 py-3">Status</th>
                   <th class="text-left font-semibold px-5 py-3">Actions</th>
                 </tr>
@@ -394,7 +346,6 @@ onMounted(loadReservations)
                   <td class="px-5 py-4 text-gray-700">{{ normalizeDate(getReservationDate(reservation)) }}</td>
                   <td class="px-5 py-4 text-gray-700">{{ getCustomerId(reservation) }}</td>
                   <td class="px-5 py-4 text-gray-700">{{ getTourId(reservation) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ reservation.language || '-' }}</td>
                   <td class="px-5 py-4 text-gray-700 capitalize">{{ getStatus(reservation) }}</td>
                   <td class="px-5 py-4">
                     <div class="flex flex-wrap gap-2">
@@ -484,18 +435,6 @@ onMounted(loadReservations)
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Language</label>
-              <select
-                v-model="form.language"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-              >
-                <option v-for="language in LANGUAGE_OPTIONS" :key="language" :value="language">
-                  {{ language }}
-                </option>
-              </select>
-            </div>
-
-            <div>
               <label class="block text-sm text-gray-700 mb-1">Date</label>
               <input
                 v-model="form.date"
@@ -503,24 +442,6 @@ onMounted(loadReservations)
                 lang="en-US"
                 class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
               />
-            </div>
-
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Start time</label>
-              <select v-model="form.startTime" class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm">
-                <option v-for="option in startTimeOptions" :key="`start-${option.value}`" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">End time</label>
-              <select v-model="form.endTime" class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm">
-                <option v-for="option in endTimeOptions" :key="`end-${option.value}`" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
             </div>
 
             <div>

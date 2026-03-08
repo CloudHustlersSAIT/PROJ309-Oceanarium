@@ -1,10 +1,5 @@
 ﻿import { defineStore } from 'pinia'
-import { getSchedules, rescheduleBooking } from '../services/api'
-
-const OPERATING_START_MINUTES = 10 * 60
-const OPERATING_END_MINUTES = 18 * 60 + 30
-const CALENDAR_SLOT_MINUTES = 30
-const DEFAULT_EVENT_DURATION_MINUTES = 60
+import { getTours, getBookings, rescheduleBooking } from '../services/api'
 
 function toIso(date) {
   return new Date(date).toISOString()
@@ -28,10 +23,6 @@ function addMinutes(dateLike, minutes) {
   return d
 }
 
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value))
-}
-
 function safeId(prefix) {
   if (globalThis.crypto?.randomUUID) return `${prefix}-${globalThis.crypto.randomUUID()}`
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`
@@ -50,43 +41,31 @@ function getDateField(record) {
   return isNaN(parsed) ? null : parsed
 }
 
-function hasExplicitTime(record) {
-  const raw = ['start', 'datetime', 'time', 'date', 'booking_date', 'start_date']
-    .map((field) => record?.[field])
-    .find(Boolean)
+function normalizeTour(tour) {
+  const start = getDateField(tour) || new Date()
+  const end = addMinutes(start, 60)
 
-  if (!raw) return false
-  return /[T\s]\d{1,2}:\d{2}/.test(String(raw))
-}
-
-function alignToCalendarWindow(baseDate, explicitTime = false) {
-  const date = new Date(baseDate)
-
-  // Date-only records from reservations are placed at opening time.
-  if (!explicitTime) {
-    date.setHours(10, 0, 0, 0)
-    return date
+  return {
+    id: `tour-${tour.id ?? safeId('tour')}`,
+    source: 'tour',
+    sourceId: tour.id ?? null,
+    title: tour.tour || tour.title || 'Tour',
+    start: toIso(start),
+    end: toIso(end),
+    resourceId: `guide-${tour.guide_id ?? tour.guide ?? 'unassigned'}`,
+    resourceName: tour.guide || tour.guide_name || 'Unassigned Guide',
+    status: 'scheduled',
+    type: 'tour',
+    priority: 'medium',
+    conflictFlag: false,
+    notes: '',
   }
-
-  const totalMinutes = date.getHours() * 60 + date.getMinutes()
-  const clamped = clamp(totalMinutes, OPERATING_START_MINUTES, OPERATING_END_MINUTES)
-  const roundedToSlot = Math.floor(clamped / CALENDAR_SLOT_MINUTES) * CALENDAR_SLOT_MINUTES
-
-  date.setHours(Math.floor(roundedToSlot / 60), roundedToSlot % 60, 0, 0)
-  return date
 }
 
 function normalizeBooking(booking) {
-  const start = alignToCalendarWindow(getDateField(booking) || new Date(), hasExplicitTime(booking))
-  const durationMinutes = Number(booking.duration) || DEFAULT_EVENT_DURATION_MINUTES
-  const end = addMinutes(start, durationMinutes)
+  const start = getDateField(booking) || new Date()
+  const end = addMinutes(start, 60)
   const sourceId = booking.id ?? booking.booking_id ?? booking.bookingId ?? null
-  const guideId = booking.guide_id ?? booking.guideId ?? null
-  const productId =
-    booking.clorian_product_id ?? booking.product_id ?? booking.tour_id ?? booking.tourId ?? null
-
-  const rawType = String(booking.type || 'booking').toLowerCase()
-  const normalizedType = rawType === 'event' ? 'tour' : rawType
 
   return {
     id: `booking-${sourceId ?? safeId('booking')}`,
@@ -95,68 +74,13 @@ function normalizeBooking(booking) {
     title: booking.tour || booking.tour_name || booking.title || 'Booking',
     start: toIso(start),
     end: toIso(end),
-    resourceId: `guide-${guideId ?? 'unassigned'}`,
+    resourceId: `guide-${booking.guide_id ?? booking.guide ?? 'unassigned'}`,
     resourceName: booking.guide || booking.guide_name || 'Unassigned Guide',
-    guideId,
-    productId,
-    durationMinutes,
     status: booking.status || 'pending',
-    type: normalizedType,
+    type: booking.type || 'booking',
     priority: booking.priority || 'medium',
     conflictFlag: false,
     notes: booking.notes || '',
-    customerId: Number(booking.customer_id ?? booking.customerId ?? 0),
-    tourId: Number(booking.tour_id ?? booking.tourId ?? 0),
-    adultTickets: Number(booking.adult_tickets ?? booking.adultTickets ?? 0),
-    childTickets: Number(booking.child_tickets ?? booking.childTickets ?? 0),
-    language: booking.language || 'English',
-  }
-}
-
-function mapLanguage(languageCode) {
-  if (!languageCode) return 'English'
-  const normalized = String(languageCode).trim().toLowerCase()
-  if (normalized === 'en' || normalized === 'english') return 'English'
-  if (normalized === 'pt' || normalized === 'portuguese') return 'Portuguese'
-  if (normalized === 'es' || normalized === 'spanish') return 'Spanish'
-  if (normalized === 'fr' || normalized === 'french') return 'French'
-  if (normalized === 'zh' || normalized === 'chinese') return 'Chinese'
-  return String(languageCode)
-}
-
-function normalizeSchedule(schedule) {
-  const start = alignToCalendarWindow(
-    schedule.event_start_datetime || getDateField(schedule) || new Date(),
-    true,
-  )
-  const fallbackEnd = addMinutes(start, DEFAULT_EVENT_DURATION_MINUTES)
-  const rawEnd = schedule.event_end_datetime ? new Date(schedule.event_end_datetime) : fallbackEnd
-  const end = Number.isNaN(rawEnd.getTime()) || rawEnd <= start ? fallbackEnd : rawEnd
-  const durationMinutes = Math.max(15, Math.round((end - start) / 60000))
-
-  return {
-    id: `schedule-${schedule.id ?? safeId('schedule')}`,
-    source: 'schedule',
-    sourceId: schedule.id ?? null,
-    title: schedule.tour_name || `Tour ${schedule.tour_id ?? ''}`.trim() || 'Scheduled Tour',
-    start: toIso(start),
-    end: toIso(end),
-    resourceId: `guide-${schedule.guide_id ?? 'unassigned'}`,
-    resourceName: schedule.guide_name || 'Unassigned Guide',
-    guideId: schedule.guide_id ?? null,
-    productId: schedule.tour_id ?? null,
-    durationMinutes,
-    status: schedule.status || 'scheduled',
-    type: 'tour',
-    priority: 'medium',
-    conflictFlag: false,
-    notes: schedule.reservation_count != null ? `Reservations: ${schedule.reservation_count}` : '',
-    customerId: null,
-    tourId: Number(schedule.tour_id ?? 0),
-    adultTickets: null,
-    childTickets: null,
-    language: mapLanguage(schedule.language_code),
-    reservationCount: Number(schedule.reservation_count ?? 0),
   }
 }
 
@@ -357,11 +281,8 @@ export const useCalendarStore = defineStore('calendar', {
       const grouped = {}
 
       this.events.forEach((event) => {
-        // Conflict only matters when a concrete guide is assigned.
-        if (!event.guideId) return
-        const key = `guide-${event.guideId}`
-        if (!grouped[key]) grouped[key] = []
-        grouped[key].push(event)
+        if (!grouped[event.resourceId]) grouped[event.resourceId] = []
+        grouped[event.resourceId].push(event)
       })
 
       Object.values(grouped).forEach((events) => {
@@ -397,11 +318,10 @@ export const useCalendarStore = defineStore('calendar', {
       this.error = null
 
       try {
-        const schedules = await getSchedules()
-        const normalizedSchedules = (Array.isArray(schedules) ? schedules : []).map(
-          normalizeSchedule,
-        )
-        this.events = [...normalizedSchedules]
+        const [tours, bookings] = await Promise.all([getTours(), getBookings()])
+        const normalizedTours = (Array.isArray(tours) ? tours : []).map(normalizeTour)
+        const normalizedBookings = (Array.isArray(bookings) ? bookings : []).map(normalizeBooking)
+        this.events = [...normalizedTours, ...normalizedBookings]
 
         const resourceMap = {}
         this.events.forEach((event) => {
@@ -422,3 +342,4 @@ export const useCalendarStore = defineStore('calendar', {
     },
   },
 })
+
