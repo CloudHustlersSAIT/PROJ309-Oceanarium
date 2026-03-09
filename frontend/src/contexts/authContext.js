@@ -98,18 +98,20 @@ async function passwordResetWithEmail(email) {
   }
 }
 
-// Function to get the current user's ID token (for authenticated API calls)
-// AUTHOR: Joao Santiago - 2026-03-08
-async function getAuthToken() {
+//Token helper
+async function getIdToken() {
+  authError.value = null
   if (!auth || !currentUser.value) {
     return null
   }
+
   try {
     return await currentUser.value.getIdToken()
   } catch (err) {
     authError.value = err
     throw err
   }
+
 }
 
 // Composable-style function to use in components
@@ -122,7 +124,7 @@ export function useAuth() {
     signupWithEmail,
     logout,
     passwordResetWithEmail,
-    getAuthToken,
+    getIdToken,
   }
 }
 
