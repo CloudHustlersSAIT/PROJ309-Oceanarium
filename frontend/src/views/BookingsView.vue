@@ -1,8 +1,7 @@
 ﻿<script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import { cancelBooking, createBooking, getBookings, getSchedules, rescheduleBooking } from '../services/api'
-import { LANGUAGE_OPTIONS } from '../constants/languages'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -12,42 +11,30 @@ const createSuccess = ref('')
 const searchText = ref('')
 const reservations = ref([])
 const actionState = ref({ id: null, type: '' })
+const availableSchedules = ref([])
+const schedulesLoading = ref(false)
+const schedulesError = ref('')
 
 const ID_MAX_LENGTH = 6
 const SHORT_NUMERIC_MAX_LENGTH = 2
 
 const createDefaultForm = () => ({
-  reservationId: '',
   customerId: '',
-  tourId: '',
-  language: 'English',
-  date: '',
-  startTime: '09:00',
-  endTime: '10:00',
+  selectedScheduleId: '',
   adultTickets: '',
   childTickets: '',
 })
-
-const timeOptions = Array.from({ length: 15 }, (_, i) => {
-  const minutes = (9 * 60) + i * 30
-  const hh = String(Math.floor(minutes / 60)).padStart(2, '0')
-  const mm = String(minutes % 60).padStart(2, '0')
-  const value = `${hh}:${mm}`
-  const label = new Date(`2000-01-01T${value}:00`).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  })
-  return { value, label }
-})
-
-const startTimeOptions = computed(() => timeOptions.slice(0, -1))
-const endTimeOptions = computed(() => timeOptions.filter((option) => option.value > form.value.startTime))
 
 const form = ref(createDefaultForm())
 
 const totalTicketCount = computed(() => {
   return (Number(form.value.adultTickets) || 0) + (Number(form.value.childTickets) || 0)
+})
+
+const selectedCreateSchedule = computed(() => {
+  const selectedId = Number(form.value.selectedScheduleId)
+  if (!Number.isInteger(selectedId) || selectedId <= 0) return null
+  return availableSchedules.value.find((schedule) => Number(schedule?.id) === selectedId) || null
 })
 
 const filteredReservations = computed(() => {
@@ -189,6 +176,23 @@ function getReservationLanguage(reservation) {
   )
 }
 
+function formatScheduleDateTime(rawValue) {
+  const raw = String(rawValue || '').trim()
+  if (!raw) return '-'
+
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return raw
+
+  return parsed.toLocaleString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
 function scheduleMatchesStartDateTime(schedule, date, time) {
   const raw = String(schedule?.event_start_datetime || '').trim()
   if (!raw) return false
@@ -236,6 +240,40 @@ async function resolveScheduleIdByCriteria(tourId, date, startTime, endTime, lan
 
   if (exactEndMatches.length === 1) return exactEndMatches[0]?.id ?? null
   return null
+}
+
+function buildScheduleOptionLabel(schedule) {
+  const guideName = schedule?.guide_name || 'Unassigned Guide'
+  const status = schedule?.status || 'scheduled'
+  const start = formatScheduleDateTime(schedule?.event_start_datetime)
+  const reservationCount = Number(schedule?.reservation_count ?? 0)
+  const tourId = schedule?.tour_id ?? '-'
+  return `#${schedule?.id} | Tour ${tourId} | ${start} | ${guideName} | ${status} | reservations: ${reservationCount}`
+}
+
+async function loadCreateSchedules() {
+  schedulesLoading.value = true
+  schedulesError.value = ''
+
+  try {
+    const schedules = await getSchedules()
+    const nextSchedules = (Array.isArray(schedules) ? schedules : []).filter((schedule) => {
+      const status = String(schedule?.status || '').trim().toLowerCase()
+      return status !== 'cancelled' && status !== 'completed'
+    })
+
+    availableSchedules.value = nextSchedules
+    const selectedId = Number(form.value.selectedScheduleId)
+    if (!nextSchedules.some((schedule) => Number(schedule?.id) === selectedId)) {
+      form.value.selectedScheduleId = nextSchedules.length === 1 ? String(nextSchedules[0]?.id) : ''
+    }
+  } catch (err) {
+    availableSchedules.value = []
+    form.value.selectedScheduleId = ''
+    schedulesError.value = err?.message || 'Failed to load schedules.'
+  } finally {
+    schedulesLoading.value = false
+  }
 }
 
 function inferReservationLanguage(reservation) {
@@ -309,16 +347,8 @@ function setNumericField(event, field, maxLength = ID_MAX_LENGTH) {
   form.value[field] = digitsOnly
 }
 
-function handleReservationIdInput(event) {
-  setNumericField(event, 'reservationId', ID_MAX_LENGTH)
-}
-
 function handleCustomerIdInput(event) {
   setNumericField(event, 'customerId', ID_MAX_LENGTH)
-}
-
-function handleTourIdInput(event) {
-  setNumericField(event, 'tourId', SHORT_NUMERIC_MAX_LENGTH)
 }
 
 function handleAdultTicketsInput(event) {
@@ -334,24 +364,12 @@ async function handleCreateReservation() {
   createSuccess.value = ''
 
   // Defensive validation before submit.
-  form.value.reservationId = sanitizeNumericId(form.value.reservationId, ID_MAX_LENGTH)
   form.value.customerId = sanitizeNumericId(form.value.customerId, ID_MAX_LENGTH)
-  form.value.tourId = sanitizeNumericId(form.value.tourId, SHORT_NUMERIC_MAX_LENGTH)
   form.value.adultTickets = sanitizeNumericId(form.value.adultTickets, SHORT_NUMERIC_MAX_LENGTH)
   form.value.childTickets = sanitizeNumericId(form.value.childTickets, SHORT_NUMERIC_MAX_LENGTH)
 
-  if (!form.value.customerId.trim() || !form.value.tourId || !form.value.date) {
-    createError.value = 'Customer ID, Tour ID, and date are required.'
-    return
-  }
-
-  if (!form.value.startTime || !form.value.endTime) {
-    createError.value = 'Start time and End time are required.'
-    return
-  }
-
-  if (form.value.endTime <= form.value.startTime) {
-    createError.value = 'End time must be after Start time.'
+  if (!form.value.customerId.trim()) {
+    createError.value = 'Customer ID is required.'
     return
   }
 
@@ -360,19 +378,8 @@ async function handleCreateReservation() {
     return
   }
 
-  if (!/^\d{1,2}$/.test(form.value.tourId)) {
-    createError.value = 'Tour ID must contain only numbers (up to 2 digits).'
-    return
-  }
-
   if (!/^\d{0,2}$/.test(form.value.adultTickets) || !/^\d{0,2}$/.test(form.value.childTickets)) {
     createError.value = 'Adult and Child Tickets must contain only numbers (up to 2 digits).'
-    return
-  }
-
-  const parsedTourId = Number(form.value.tourId)
-  if (!Number.isInteger(parsedTourId) || parsedTourId <= 0) {
-    createError.value = 'Tour ID must be a valid positive number.'
     return
   }
 
@@ -381,52 +388,30 @@ async function handleCreateReservation() {
     return
   }
 
+  const selectedScheduleId = Number(form.value.selectedScheduleId)
+  if (!Number.isInteger(selectedScheduleId) || selectedScheduleId <= 0) {
+    createError.value = 'Please select a matching schedule before creating the reservation.'
+    return
+  }
+
   saving.value = true
   try {
-    const scheduleId = await resolveScheduleIdByCriteria(
-      parsedTourId,
-      form.value.date,
-      form.value.startTime,
-      form.value.endTime,
-      form.value.language,
-    )
-
-    if (!scheduleId) {
-      createError.value =
-        'No matching schedule was found for this Tour/Date/Time. Create the schedule first, then try again.'
-      return
-    }
-
     await createBooking({
       customer_id: form.value.customerId.trim(),
-      schedule_id: Number(scheduleId),
+      schedule_id: selectedScheduleId,
       adult_tickets: Number(form.value.adultTickets) || 0,
       child_tickets: Number(form.value.childTickets) || 0,
     })
 
     createSuccess.value = 'Reservation created successfully.'
     resetForm()
-    await loadReservations()
+    await Promise.all([loadReservations(), loadCreateSchedules()])
   } catch (err) {
     createError.value = err?.message || 'Failed to create reservation.'
   } finally {
     saving.value = false
   }
 }
-
-watch(
-  () => form.value.startTime,
-  () => {
-    if (!endTimeOptions.value.length) {
-      form.value.endTime = form.value.startTime
-      return
-    }
-
-    if (!endTimeOptions.value.some((option) => option.value === form.value.endTime)) {
-      form.value.endTime = endTimeOptions.value[0].value
-    }
-  },
-)
 
 async function handleCancelReservation(reservation) {
   const reservationId = getReservationId(reservation)
@@ -488,7 +473,9 @@ async function handleRescheduleReservation(reservation) {
   }
 }
 
-onMounted(loadReservations)
+onMounted(async () => {
+  await Promise.all([loadReservations(), loadCreateSchedules()])
+})
 </script>
 
 <template>
@@ -578,19 +565,13 @@ onMounted(loadReservations)
               <div class="flex items-stretch rounded border border-gray-400 bg-white overflow-hidden">
                 <span class="inline-flex items-center border-r border-gray-300 bg-gray-100 px-3 text-sm text-gray-700">RSV-</span>
                 <input
-                  :value="form.reservationId"
+                  value="Auto-generated after creation"
                   type="text"
-                  inputmode="numeric"
-                  :maxlength="ID_MAX_LENGTH"
-                  pattern="[0-9]*"
-                  autocomplete="off"
-                  placeholder="000000"
-                  class="w-full px-3 py-2 text-sm outline-none"
-                  @beforeinput="handleNumericBeforeInput"
-                  @paste="(event) => handleNumericPaste(event, (value) => (form.reservationId = value))"
-                  @input="handleReservationIdInput"
+                  readonly
+                  class="w-full px-3 py-2 text-sm text-gray-600 bg-gray-50 outline-none"
                 />
               </div>
+              <p class="mt-1 text-xs text-gray-500">Reservation ID is assigned automatically by the system.</p>
             </div>
 
             <div>
@@ -614,60 +595,42 @@ onMounted(loadReservations)
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Tour ID</label>
-              <input
-                :value="form.tourId"
-                type="text"
-                inputmode="numeric"
-                :maxlength="SHORT_NUMERIC_MAX_LENGTH"
-                pattern="[0-9]*"
-                autocomplete="off"
-                placeholder="00"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-                @beforeinput="handleNumericBeforeInput"
-                @paste="(event) => handleNumericPaste(event, (value) => (form.tourId = value), SHORT_NUMERIC_MAX_LENGTH)"
-                @input="handleTourIdInput"
-              />
-            </div>
-
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Language</label>
+              <label class="block text-sm text-gray-700 mb-1">Schedule</label>
               <select
-                v-model="form.language"
+                v-model="form.selectedScheduleId"
                 class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                :disabled="schedulesLoading || availableSchedules.length === 0"
               >
-                <option v-for="language in LANGUAGE_OPTIONS" :key="language" :value="language">
-                  {{ language }}
+                <option value="">Select a schedule</option>
+                <option v-for="schedule in availableSchedules" :key="`schedule-${schedule.id}`" :value="String(schedule.id)">
+                  {{ buildScheduleOptionLabel(schedule) }}
                 </option>
               </select>
+              <div class="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700"
+                  :disabled="schedulesLoading"
+                  @click="loadCreateSchedules"
+                >
+                  {{ schedulesLoading ? 'Refreshing...' : 'Refresh Schedules' }}
+                </button>
+              </div>
+              <p v-if="schedulesLoading" class="mt-1 text-xs text-gray-500">Loading available schedules...</p>
+              <p v-else-if="schedulesError" class="mt-1 text-xs text-red-600">{{ schedulesError }}</p>
+              <p v-else-if="!availableSchedules.length" class="mt-1 text-xs text-amber-700">
+                No open schedules available. Create a schedule first.
+              </p>
+              <p v-else class="mt-1 text-xs text-gray-500">Pick the event schedule for this reservation.</p>
             </div>
 
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Date</label>
-              <input
-                v-model="form.date"
-                type="date"
-                lang="en-US"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">Start time</label>
-              <select v-model="form.startTime" class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm">
-                <option v-for="option in startTimeOptions" :key="`start-${option.value}`" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm text-gray-700 mb-1">End time</label>
-              <select v-model="form.endTime" class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm">
-                <option v-for="option in endTimeOptions" :key="`end-${option.value}`" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
+            <div v-if="selectedCreateSchedule" class="rounded border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+              <div><span class="font-medium">Tour:</span> {{ selectedCreateSchedule.tour_name || `Tour ${selectedCreateSchedule.tour_id}` }}</div>
+              <div><span class="font-medium">Language:</span> {{ mapCodeToLanguage(selectedCreateSchedule.language_code) || selectedCreateSchedule.language_code || '-' }}</div>
+              <div><span class="font-medium">Starts:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}</div>
+              <div><span class="font-medium">Ends:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_end_datetime) }}</div>
+              <div><span class="font-medium">Guide:</span> {{ selectedCreateSchedule.guide_name || 'Unassigned Guide' }}</div>
+              <div><span class="font-medium">Status:</span> {{ selectedCreateSchedule.status || '-' }}</div>
             </div>
 
             <div>
