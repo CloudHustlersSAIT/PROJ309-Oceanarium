@@ -33,7 +33,9 @@ function resolveReservationId(item) {
 }
 
 function mapLanguageCodeToLabel(code) {
-  const normalized = String(code || '').trim().toLowerCase()
+  const normalized = String(code || '')
+    .trim()
+    .toLowerCase()
   if (normalized === 'en') return 'English'
   if (normalized === 'pt') return 'Portuguese'
   if (normalized === 'es') return 'Spanish'
@@ -159,45 +161,38 @@ export async function getBookings() {
 
 // Create a new booking
 export async function createBooking(bookingData) {
-  if (bookingData?.schedule_id != null) {
-    const normalizedPayload = {
-      customer_id: Number(bookingData?.customer_id),
-      schedule_id: Number(bookingData?.schedule_id),
-      adult_tickets: Number(bookingData?.adult_tickets) || 0,
-      child_tickets: Number(bookingData?.child_tickets) || 0,
-    }
+  const customerId = Number(bookingData?.customer_id)
+  const scheduleId = Number(bookingData?.schedule_id)
+  const adultTickets = Number(bookingData?.adult_tickets) || 0
+  const childTickets = Number(bookingData?.child_tickets) || 0
 
-    return fetchAPI('/reservations', {
-      method: 'POST',
-      body: JSON.stringify(normalizedPayload),
-    })
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    throw new Error('Customer ID must be a valid positive number.')
+  }
+
+  if (!Number.isInteger(scheduleId) || scheduleId <= 0) {
+    throw new Error('Schedule is required and must be valid.')
+  }
+
+  if (adultTickets < 0 || childTickets < 0) {
+    throw new Error('Ticket counts cannot be negative.')
+  }
+
+  if (adultTickets + childTickets <= 0) {
+    throw new Error('At least one ticket is required.')
   }
 
   const normalizedPayload = {
-    customer_id: String(bookingData?.customer_id ?? '').trim(),
-    tour_id: Number(bookingData?.tour_id),
-    language: bookingData?.language || 'English',
-    date: bookingData?.date,
-    start_time: bookingData?.start_time || '09:00:00',
-    end_time: bookingData?.end_time || '10:00:00',
-    adult_tickets: Number(bookingData?.adult_tickets) || 0,
-    child_tickets: Number(bookingData?.child_tickets) || 0,
+    customer_id: customerId,
+    schedule_id: scheduleId,
+    adult_tickets: adultTickets,
+    child_tickets: childTickets,
   }
 
-  const created = await fetchAPI('/reservations', {
+  return fetchAPI('/reservations', {
     method: 'POST',
     body: JSON.stringify(normalizedPayload),
   })
-
-  const reservationId = resolveReservationId(created)
-  if (reservationId) {
-    persistReservationLanguage(reservationId, normalizedPayload.language)
-  }
-
-  return {
-    ...created,
-    language: created?.language || normalizedPayload.language,
-  }
 }
 
 // Reschedule a booking

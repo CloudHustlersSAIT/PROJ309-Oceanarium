@@ -15,7 +15,7 @@ const availableSchedules = ref([])
 const schedulesLoading = ref(false)
 const schedulesError = ref('')
 
-const ID_MAX_LENGTH = 6
+const CUSTOMER_ID_MAX_LENGTH = 10
 const SHORT_NUMERIC_MAX_LENGTH = 2
 
 const createDefaultForm = () => ({
@@ -62,18 +62,33 @@ const filteredReservations = computed(() => {
   })
 })
 
-function normalizeDate(value) {
+const knownCustomerIds = computed(() => {
+  const ids = new Set()
+
+  for (const reservation of reservations.value) {
+    const rawId = reservation?.customer_id ?? reservation?.customerId
+    const normalized = String(rawId ?? '').trim()
+    if (/^\d+$/.test(normalized)) ids.add(normalized)
+  }
+
+  return Array.from(ids).sort((a, b) => Number(a) - Number(b))
+})
+
+function formatShortDate(value) {
   if (!value) return '-'
   const raw = String(value).trim()
   const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
 
-  // Build date-only values in local time to avoid UTC day shift issues.
   const d = dateOnlyMatch
     ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
     : new Date(raw)
 
   if (Number.isNaN(d.getTime())) return 'Invalid date'
-  return d.toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
+
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const year = String(d.getFullYear()).slice(-2)
+  return `${month}/${day}/${year}`
 }
 
 function getReservationId(reservation) {
@@ -94,6 +109,14 @@ function getTourId(reservation) {
 
 function getStatus(reservation) {
   return reservation.status || '-'
+}
+
+function formatStatusLabel(reservation) {
+  const status = String(getStatus(reservation) || '').trim()
+  if (!status || status === '-') return '-'
+
+  const normalized = status.toLowerCase()
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
 }
 
 function getReservationDate(reservation) {
@@ -321,7 +344,7 @@ function resetForm() {
   form.value = createDefaultForm()
 }
 
-function sanitizeNumericId(value, maxLength = ID_MAX_LENGTH) {
+function sanitizeNumericId(value, maxLength = CUSTOMER_ID_MAX_LENGTH) {
   return String(value ?? '')
     .replace(/\D/g, '')
     .slice(0, maxLength)
@@ -334,21 +357,21 @@ function handleNumericBeforeInput(event) {
   }
 }
 
-function handleNumericPaste(event, setter, maxLength = ID_MAX_LENGTH) {
+function handleNumericPaste(event, setter, maxLength = CUSTOMER_ID_MAX_LENGTH) {
   const pastedText = event?.clipboardData?.getData('text') ?? ''
   const sanitized = sanitizeNumericId(pastedText, maxLength)
   event.preventDefault()
   setter(sanitized)
 }
 
-function setNumericField(event, field, maxLength = ID_MAX_LENGTH) {
+function setNumericField(event, field, maxLength = CUSTOMER_ID_MAX_LENGTH) {
   const digitsOnly = sanitizeNumericId(event?.target?.value, maxLength)
   if (event?.target) event.target.value = digitsOnly
   form.value[field] = digitsOnly
 }
 
 function handleCustomerIdInput(event) {
-  setNumericField(event, 'customerId', ID_MAX_LENGTH)
+  setNumericField(event, 'customerId', CUSTOMER_ID_MAX_LENGTH)
 }
 
 function handleAdultTicketsInput(event) {
@@ -364,7 +387,7 @@ async function handleCreateReservation() {
   createSuccess.value = ''
 
   // Defensive validation before submit.
-  form.value.customerId = sanitizeNumericId(form.value.customerId, ID_MAX_LENGTH)
+  form.value.customerId = sanitizeNumericId(form.value.customerId, CUSTOMER_ID_MAX_LENGTH)
   form.value.adultTickets = sanitizeNumericId(form.value.adultTickets, SHORT_NUMERIC_MAX_LENGTH)
   form.value.childTickets = sanitizeNumericId(form.value.childTickets, SHORT_NUMERIC_MAX_LENGTH)
 
@@ -373,8 +396,8 @@ async function handleCreateReservation() {
     return
   }
 
-  if (!/^\d{1,6}$/.test(form.value.customerId)) {
-    createError.value = 'Customer ID must contain only numbers (up to 6 digits).'
+  if (!/^\d{1,10}$/.test(form.value.customerId)) {
+    createError.value = 'Customer ID must contain only numbers (up to 10 digits).'
     return
   }
 
@@ -495,7 +518,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-[minmax(700px,1fr)_320px] gap-6">
+      <div class="grid grid-cols-1 2xl:grid-cols-[minmax(760px,1fr)_320px] gap-6">
         <section class="bg-white border border-gray-300 rounded-lg overflow-hidden">
           <div v-if="loading" class="p-4 text-sm text-gray-500">Loading reservations...</div>
           <div v-else-if="error" class="p-4 text-sm text-red-600">
@@ -505,17 +528,26 @@ onMounted(async () => {
             </button>
           </div>
           <div v-else-if="filteredReservations.length === 0" class="p-4 text-sm text-gray-500">No reservations found.</div>
-          <div v-else class="overflow-x-auto">
-            <table class="w-full min-w-[860px] text-sm">
+          <div v-else class="overflow-hidden">
+            <table class="w-full table-fixed text-sm">
+              <colgroup>
+                <col class="w-[16%]" />
+                <col class="w-[12%]" />
+                <col class="w-[14%]" />
+                <col class="w-[8%]" />
+                <col class="w-[14%]" />
+                <col class="w-[10%]" />
+                <col class="w-[26%]" />
+              </colgroup>
               <thead class="bg-gray-50 text-gray-800 border-b border-gray-200">
                 <tr>
-                  <th class="text-left font-semibold px-5 py-3">Reservation ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Date</th>
-                  <th class="text-left font-semibold px-5 py-3">Customer ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Tour ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Language</th>
-                  <th class="text-left font-semibold px-5 py-3">Status</th>
-                  <th class="text-left font-semibold px-5 py-3">Actions</th>
+                  <th class="px-5 py-3 text-left font-semibold">Reservation</th>
+                  <th class="px-5 py-3 text-center font-semibold">Date</th>
+                  <th class="px-5 py-3 text-center font-semibold">Customer</th>
+                  <th class="px-5 py-3 text-center font-semibold">Tour</th>
+                  <th class="px-5 py-3 text-center font-semibold">Language</th>
+                  <th class="px-5 py-3 text-center font-semibold">Status</th>
+                  <th class="px-5 py-3 text-center font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -524,14 +556,14 @@ onMounted(async () => {
                   :key="getRowKey(reservation, index)"
                   class="border-b border-gray-200 hover:bg-gray-50"
                 >
-                  <td class="px-5 py-4 text-gray-700">{{ getReservationDisplayId(reservation) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ normalizeDate(getReservationDate(reservation)) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ getCustomerId(reservation) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ getTourId(reservation) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ getReservationLanguage(reservation) }}</td>
-                  <td class="px-5 py-4 text-gray-700 capitalize">{{ getStatus(reservation) }}</td>
-                  <td class="px-5 py-4">
-                    <div class="flex flex-wrap gap-2">
+                  <td class="px-5 py-4 text-left text-gray-700 wrap-break-word">{{ getReservationDisplayId(reservation) }}</td>
+                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatShortDate(getReservationDate(reservation)) }}</td>
+                  <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getCustomerId(reservation) }}</td>
+                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ getTourId(reservation) }}</td>
+                  <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getReservationLanguage(reservation) }}</td>
+                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatStatusLabel(reservation) }}</td>
+                  <td class="px-5 py-4 text-center">
+                    <div class="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
                       <button
                         type="button"
                         class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700"
@@ -541,9 +573,10 @@ onMounted(async () => {
                         {{ actionState.id === getReservationId(reservation) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
                       </button>
                       <button
+                        v-if="!isCancelledStatus(reservation)"
                         type="button"
                         class="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
-                        :disabled="actionState.id === getReservationId(reservation) || isCancelledStatus(reservation)"
+                        :disabled="actionState.id === getReservationId(reservation)"
                         @click="handleCancelReservation(reservation)"
                       >
                         {{ actionState.id === getReservationId(reservation) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
@@ -561,41 +594,55 @@ onMounted(async () => {
 
           <div class="space-y-3">
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Reservation ID</label>
-              <div class="flex items-stretch rounded border border-gray-400 bg-white overflow-hidden">
-                <span class="inline-flex items-center border-r border-gray-300 bg-gray-100 px-3 text-sm text-gray-700">RSV-</span>
-                <input
-                  value="Auto-generated after creation"
-                  type="text"
-                  readonly
-                  class="w-full px-3 py-2 text-sm text-gray-600 bg-gray-50 outline-none"
-                />
-              </div>
-              <p class="mt-1 text-xs text-gray-500">Reservation ID is assigned automatically by the system.</p>
-            </div>
-
-            <div>
               <label class="block text-sm text-gray-700 mb-1">Customer ID</label>
-              <div class="flex items-stretch rounded border border-gray-400 bg-white overflow-hidden">
-                <span class="inline-flex items-center border-r border-gray-300 bg-gray-100 px-3 text-sm text-gray-700">CUST-</span>
-                <input
-                  :value="form.customerId"
-                  type="text"
-                  inputmode="numeric"
-                  :maxlength="ID_MAX_LENGTH"
-                  pattern="[0-9]*"
-                  autocomplete="off"
-                  placeholder="000000"
-                  class="w-full px-3 py-2 text-sm outline-none"
-                  @beforeinput="handleNumericBeforeInput"
-                  @paste="(event) => handleNumericPaste(event, (value) => (form.customerId = value))"
-                  @input="handleCustomerIdInput"
-                />
-              </div>
+              <input
+                :value="form.customerId"
+                type="text"
+                inputmode="numeric"
+                :maxlength="CUSTOMER_ID_MAX_LENGTH"
+                pattern="[0-9]*"
+                autocomplete="off"
+                list="customer-id-options"
+                placeholder="Enter existing customer numeric ID"
+                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                @beforeinput="handleNumericBeforeInput"
+                @paste="(event) => handleNumericPaste(event, (value) => (form.customerId = value), CUSTOMER_ID_MAX_LENGTH)"
+                @input="handleCustomerIdInput"
+              />
+              <datalist id="customer-id-options">
+                <option v-for="customerId in knownCustomerIds" :key="`customer-${customerId}`" :value="customerId" />
+              </datalist>
+              <p class="mt-1 text-xs text-gray-500">Use an existing customer ID from the customers table. Suggestions come from existing reservations.</p>
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Schedule</label>
+              <label class="mb-1 flex items-center gap-1 text-sm text-gray-700">
+                <button
+                  type="button"
+                  class="inline-flex items-center rounded p-0.5 text-gray-700 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="schedulesLoading"
+                  aria-label="Refresh schedules"
+                  title="Refresh schedules"
+                  @click="loadCreateSchedules"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="h-4 w-4"
+                    :class="{ 'animate-spin': schedulesLoading }"
+                    aria-hidden="true"
+                  >
+                    <path d="M21 2v6h-6" />
+                    <path d="M3 12a9 9 0 0 1 15.3-6.3L21 8" />
+                    <path d="M3 22v-6h6" />
+                    <path d="M21 12a9 9 0 0 1-15.3 6.3L3 16" />
+                  </svg>
+                </button>
+                <span>Schedule</span>
+              </label>
               <select
                 v-model="form.selectedScheduleId"
                 class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
@@ -606,16 +653,6 @@ onMounted(async () => {
                   {{ buildScheduleOptionLabel(schedule) }}
                 </option>
               </select>
-              <div class="mt-2 flex justify-end">
-                <button
-                  type="button"
-                  class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700"
-                  :disabled="schedulesLoading"
-                  @click="loadCreateSchedules"
-                >
-                  {{ schedulesLoading ? 'Refreshing...' : 'Refresh Schedules' }}
-                </button>
-              </div>
               <p v-if="schedulesLoading" class="mt-1 text-xs text-gray-500">Loading available schedules...</p>
               <p v-else-if="schedulesError" class="mt-1 text-xs text-red-600">{{ schedulesError }}</p>
               <p v-else-if="!availableSchedules.length" class="mt-1 text-xs text-amber-700">
