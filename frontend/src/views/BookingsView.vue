@@ -2,6 +2,12 @@
 import { computed, onMounted, ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import { cancelBooking, createBooking, getBookings, getSchedules, rescheduleBooking } from '../services/api'
+import {
+  formatScheduleDateTimeForDisplay,
+  formatStatusLabel,
+  mapLanguageCodeToName,
+  sanitizeNumericInput,
+} from '../utils/reservation'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -15,7 +21,7 @@ const availableSchedules = ref([])
 const schedulesLoading = ref(false)
 const schedulesError = ref('')
 
-const CUSTOMER_ID_MAX_LENGTH = 10
+const CUSTOMER_ID_MAX_LENGTH = 4
 const SHORT_NUMERIC_MAX_LENGTH = 2
 
 const createDefaultForm = () => ({
@@ -39,27 +45,29 @@ const selectedCreateSchedule = computed(() => {
 
 const filteredReservations = computed(() => {
   const text = searchText.value.trim().toLowerCase()
-  if (!text) return reservations.value
+  const baseReservations = !text
+    ? reservations.value
+    : reservations.value.filter((reservation) => {
+      const searchable = [
+        getReservationDisplayId(reservation),
+        getReservationId(reservation),
+        reservation.booking_id,
+        reservation.id,
+        reservation.clorian_reservation_id,
+        reservation.customer_id,
+        reservation.customerId,
+        reservation.tour_id,
+        reservation.tourId,
+        getReservationDate(reservation),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
 
-  return reservations.value.filter((reservation) => {
-    const searchable = [
-      getReservationDisplayId(reservation),
-      getReservationId(reservation),
-      reservation.booking_id,
-      reservation.id,
-      reservation.clorian_reservation_id,
-      reservation.customer_id,
-      reservation.customerId,
-      reservation.tour_id,
-      reservation.tourId,
-      getReservationDate(reservation),
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
+      return searchable.includes(text)
+    })
 
-    return searchable.includes(text)
-  })
+  return [...baseReservations].sort(compareReservationsByNearestDate)
 })
 
 const knownCustomerIds = computed(() => {
@@ -111,16 +119,58 @@ function getStatus(reservation) {
   return reservation.status || '-'
 }
 
-function formatStatusLabel(reservation) {
-  const status = String(getStatus(reservation) || '').trim()
-  if (!status || status === '-') return '-'
-
-  const normalized = status.toLowerCase()
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
-}
-
 function getReservationDate(reservation) {
   return reservation.date || reservation.event_start_datetime || reservation.eventStartDatetime || ''
+}
+
+function parseReservationDateMs(reservation) {
+  const raw = String(getReservationDate(reservation) || '').trim()
+  if (!raw) return Number.NEGATIVE_INFINITY
+
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return Number.NEGATIVE_INFINITY
+  return parsed.getTime()
+}
+
+function compareReservationsByNearestDate(a, b) {
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todayStartMs = todayStart.getTime()
+  const aDate = parseReservationDateMs(a)
+  const bDate = parseReservationDateMs(b)
+
+  const aValid = Number.isFinite(aDate)
+  const bValid = Number.isFinite(bDate)
+  if (!aValid && !bValid) {
+    const aId = Number(getReservationId(a))
+    const bId = Number(getReservationId(b))
+    if (Number.isInteger(aId) && Number.isInteger(bId)) return bId - aId
+    return String(getReservationDisplayId(b)).localeCompare(String(getReservationDisplayId(a)))
+  }
+  if (!aValid) return 1
+  if (!bValid) return -1
+
+  const aIsFutureOrToday = aDate >= todayStartMs
+  const bIsFutureOrToday = bDate >= todayStartMs
+
+  // Upcoming reservations first; within upcoming, nearest date first.
+  if (aIsFutureOrToday && !bIsFutureOrToday) return -1
+  if (!aIsFutureOrToday && bIsFutureOrToday) return 1
+
+  if (aIsFutureOrToday && bIsFutureOrToday) {
+    const byUpcoming = aDate - bDate
+    if (byUpcoming !== 0) return byUpcoming
+  } else {
+    // For past reservations, keep most recent first.
+    const byPast = bDate - aDate
+    if (byPast !== 0) return byPast
+  }
+
+  const aId = Number(getReservationId(a))
+  const bId = Number(getReservationId(b))
+  if (Number.isInteger(aId) && Number.isInteger(bId)) return bId - aId
+
+  return String(getReservationDisplayId(b)).localeCompare(String(getReservationDisplayId(a)))
 }
 
 function isCancelledStatus(reservation) {
@@ -180,40 +230,17 @@ function mapLanguageToCode(language) {
   return ''
 }
 
-function mapCodeToLanguage(code) {
-  const normalized = String(code || '').trim().toLowerCase()
-  if (normalized === 'en') return 'English'
-  if (normalized === 'pt') return 'Portuguese'
-  if (normalized === 'es') return 'Spanish'
-  if (normalized === 'fr') return 'French'
-  if (normalized === 'zh') return 'Chinese'
-  return ''
-}
-
 function getReservationLanguage(reservation) {
   return (
     reservation?.language
-    || mapCodeToLanguage(reservation?.language_code)
-    || mapCodeToLanguage(reservation?.languageCode)
+    || mapLanguageCodeToName(reservation?.language_code)
+    || mapLanguageCodeToName(reservation?.languageCode)
     || 'English'
   )
 }
 
 function formatScheduleDateTime(rawValue) {
-  const raw = String(rawValue || '').trim()
-  if (!raw) return '-'
-
-  const parsed = new Date(raw)
-  if (Number.isNaN(parsed.getTime())) return raw
-
-  return parsed.toLocaleString('en-US', {
-    month: 'short',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  })
+  return formatScheduleDateTimeForDisplay(rawValue)
 }
 
 function scheduleMatchesStartDateTime(schedule, date, time) {
@@ -279,7 +306,13 @@ async function loadCreateSchedules() {
   schedulesError.value = ''
 
   try {
-    const schedules = await getSchedules()
+    const today = getTodayIsoDate()
+    let schedules = await getSchedules({ startDate: today, status: 'scheduled' })
+
+    if (!Array.isArray(schedules) || schedules.length === 0) {
+      schedules = await getSchedules({ startDate: today })
+    }
+
     const nextSchedules = (Array.isArray(schedules) ? schedules : []).filter((schedule) => {
       const status = String(schedule?.status || '').trim().toLowerCase()
       return status !== 'cancelled' && status !== 'completed'
@@ -344,10 +377,12 @@ function resetForm() {
   form.value = createDefaultForm()
 }
 
-function sanitizeNumericId(value, maxLength = CUSTOMER_ID_MAX_LENGTH) {
-  return String(value ?? '')
-    .replace(/\D/g, '')
-    .slice(0, maxLength)
+function getTodayIsoDate() {
+  const now = new Date()
+  const year = String(now.getFullYear())
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function handleNumericBeforeInput(event) {
@@ -359,13 +394,13 @@ function handleNumericBeforeInput(event) {
 
 function handleNumericPaste(event, setter, maxLength = CUSTOMER_ID_MAX_LENGTH) {
   const pastedText = event?.clipboardData?.getData('text') ?? ''
-  const sanitized = sanitizeNumericId(pastedText, maxLength)
+  const sanitized = sanitizeNumericInput(pastedText, maxLength)
   event.preventDefault()
   setter(sanitized)
 }
 
 function setNumericField(event, field, maxLength = CUSTOMER_ID_MAX_LENGTH) {
-  const digitsOnly = sanitizeNumericId(event?.target?.value, maxLength)
+  const digitsOnly = sanitizeNumericInput(event?.target?.value, maxLength)
   if (event?.target) event.target.value = digitsOnly
   form.value[field] = digitsOnly
 }
@@ -387,17 +422,17 @@ async function handleCreateReservation() {
   createSuccess.value = ''
 
   // Defensive validation before submit.
-  form.value.customerId = sanitizeNumericId(form.value.customerId, CUSTOMER_ID_MAX_LENGTH)
-  form.value.adultTickets = sanitizeNumericId(form.value.adultTickets, SHORT_NUMERIC_MAX_LENGTH)
-  form.value.childTickets = sanitizeNumericId(form.value.childTickets, SHORT_NUMERIC_MAX_LENGTH)
+  form.value.customerId = sanitizeNumericInput(form.value.customerId, CUSTOMER_ID_MAX_LENGTH)
+  form.value.adultTickets = sanitizeNumericInput(form.value.adultTickets, SHORT_NUMERIC_MAX_LENGTH)
+  form.value.childTickets = sanitizeNumericInput(form.value.childTickets, SHORT_NUMERIC_MAX_LENGTH)
 
   if (!form.value.customerId.trim()) {
     createError.value = 'Customer ID is required.'
     return
   }
 
-  if (!/^\d{1,10}$/.test(form.value.customerId)) {
-    createError.value = 'Customer ID must contain only numbers (up to 10 digits).'
+  if (!/^\d{1,4}$/.test(form.value.customerId)) {
+    createError.value = 'Customer ID must contain only numbers (up to 4 digits).'
     return
   }
 
@@ -561,7 +596,7 @@ onMounted(async () => {
                   <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getCustomerId(reservation) }}</td>
                   <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ getTourId(reservation) }}</td>
                   <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getReservationLanguage(reservation) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatStatusLabel(reservation) }}</td>
+                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatStatusLabel(getStatus(reservation), '-') }}</td>
                   <td class="px-5 py-4 text-center">
                     <div class="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
                       <button
@@ -580,6 +615,15 @@ onMounted(async () => {
                         @click="handleCancelReservation(reservation)"
                       >
                         {{ actionState.id === getReservationId(reservation) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
+                      </button>
+                      <button
+                        v-else
+                        type="button"
+                        class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-400 cursor-not-allowed"
+                        disabled
+                        aria-disabled="true"
+                      >
+                        Cancel
                       </button>
                     </div>
                   </td>
@@ -663,7 +707,7 @@ onMounted(async () => {
 
             <div v-if="selectedCreateSchedule" class="rounded border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700">
               <div><span class="font-medium">Tour:</span> {{ selectedCreateSchedule.tour_name || `Tour ${selectedCreateSchedule.tour_id}` }}</div>
-              <div><span class="font-medium">Language:</span> {{ mapCodeToLanguage(selectedCreateSchedule.language_code) || selectedCreateSchedule.language_code || '-' }}</div>
+              <div><span class="font-medium">Language:</span> {{ mapLanguageCodeToName(selectedCreateSchedule.language_code) || selectedCreateSchedule.language_code || '-' }}</div>
               <div><span class="font-medium">Starts:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}</div>
               <div><span class="font-medium">Ends:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_end_datetime) }}</div>
               <div><span class="font-medium">Guide:</span> {{ selectedCreateSchedule.guide_name || 'Unassigned Guide' }}</div>

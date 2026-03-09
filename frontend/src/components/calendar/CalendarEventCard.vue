@@ -1,4 +1,6 @@
 <script setup>
+import { formatLocalTimeLowerAmPm } from '../../utils/reservation'
+
 const props = defineProps({
   event: { type: Object, required: true },
   selected: { type: Boolean, default: false },
@@ -10,11 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['select', 'toggle-bulk'])
 
 function formatTime(dateLike) {
-  return new Date(dateLike).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  })
+  return formatLocalTimeLowerAmPm(dateLike)
 }
 </script>
 

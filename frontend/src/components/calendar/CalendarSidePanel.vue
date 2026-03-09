@@ -113,7 +113,7 @@ function save() {
               <option v-for="minute in minuteOptions" :key="`start-minute-${minute}`" :value="minute">{{ minute }}</option>
             </select>
             <select v-model="form.startPeriod" class="border border-[#ACBAC4] rounded px-2 py-2 text-sm">
-              <option v-for="period in periodOptions" :key="`start-period-${period}`" :value="period">{{ period }}</option>
+              <option v-for="period in periodOptions" :key="`start-period-${period}`" :value="period">{{ period.toLowerCase() }}</option>
             </select>
           </div>
         </div>
@@ -129,7 +129,7 @@ function save() {
               <option v-for="minute in minuteOptions" :key="`end-minute-${minute}`" :value="minute">{{ minute }}</option>
             </select>
             <select v-model="form.endPeriod" class="border border-[#ACBAC4] rounded px-2 py-2 text-sm">
-              <option v-for="period in periodOptions" :key="`end-period-${period}`" :value="period">{{ period }}</option>
+              <option v-for="period in periodOptions" :key="`end-period-${period}`" :value="period">{{ period.toLowerCase() }}</option>
             </select>
           </div>
         </div>
