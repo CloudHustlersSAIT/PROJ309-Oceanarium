@@ -32,6 +32,16 @@ function resolveReservationId(item) {
   return item?.id ?? item?.booking_id ?? item?.bookingId ?? item?.clorian_reservation_id ?? null
 }
 
+function mapLanguageCodeToLabel(code) {
+  const normalized = String(code || '').trim().toLowerCase()
+  if (normalized === 'en') return 'English'
+  if (normalized === 'pt') return 'Portuguese'
+  if (normalized === 'es') return 'Spanish'
+  if (normalized === 'fr') return 'French'
+  if (normalized === 'zh') return 'Chinese'
+  return ''
+}
+
 function formatApiErrorDetail(detail) {
   if (typeof detail === 'string') return detail
 
@@ -133,7 +143,8 @@ export async function getBookings() {
   return data.map((item) => {
     const reservationId = resolveReservationId(item)
     const cachedLanguage = reservationId ? cache[String(reservationId)] : ''
-    const language = item?.language || cachedLanguage || 'English'
+    const languageFromCode = mapLanguageCodeToLabel(item?.language_code ?? item?.languageCode)
+    const language = item?.language || languageFromCode || cachedLanguage || 'English'
 
     if (reservationId && language) {
       persistReservationLanguage(reservationId, language)
@@ -148,6 +159,20 @@ export async function getBookings() {
 
 // Create a new booking
 export async function createBooking(bookingData) {
+  if (bookingData?.schedule_id != null) {
+    const normalizedPayload = {
+      customer_id: Number(bookingData?.customer_id),
+      schedule_id: Number(bookingData?.schedule_id),
+      adult_tickets: Number(bookingData?.adult_tickets) || 0,
+      child_tickets: Number(bookingData?.child_tickets) || 0,
+    }
+
+    return fetchAPI('/reservations', {
+      method: 'POST',
+      body: JSON.stringify(normalizedPayload),
+    })
+  }
+
   const normalizedPayload = {
     customer_id: String(bookingData?.customer_id ?? '').trim(),
     tour_id: Number(bookingData?.tour_id),
@@ -182,6 +207,24 @@ export async function rescheduleBooking(
   startTime = '09:00:00',
   endTime = '10:00:00',
 ) {
+  if (typeof newDate === 'number') {
+    return fetchAPI(`/reservations/${bookingId}/reschedule`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        new_schedule_id: newDate,
+      }),
+    })
+  }
+
+  if (newDate && typeof newDate === 'object' && newDate.new_schedule_id != null) {
+    return fetchAPI(`/reservations/${bookingId}/reschedule`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        new_schedule_id: Number(newDate.new_schedule_id),
+      }),
+    })
+  }
+
   return fetchAPI(`/reservations/${bookingId}/reschedule`, {
     method: 'PATCH',
     body: JSON.stringify({

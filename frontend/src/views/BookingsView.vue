@@ -1,7 +1,7 @@
 ﻿<script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
-import { cancelBooking, createBooking, getBookings, rescheduleBooking } from '../services/api'
+import { cancelBooking, createBooking, getBookings, getSchedules, rescheduleBooking } from '../services/api'
 import { LANGUAGE_OPTIONS } from '../constants/languages'
 
 const loading = ref(false)
@@ -145,6 +145,126 @@ function isIsoDate(value) {
   return d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day
 }
 
+function formatDatePart(dateLike) {
+  return [
+    String(dateLike.getFullYear()).padStart(4, '0'),
+    String(dateLike.getMonth() + 1).padStart(2, '0'),
+    String(dateLike.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function formatTimePart(dateLike) {
+  return [
+    String(dateLike.getHours()).padStart(2, '0'),
+    String(dateLike.getMinutes()).padStart(2, '0'),
+  ].join(':')
+}
+
+function mapLanguageToCode(language) {
+  const normalized = String(language || '').trim().toLowerCase()
+  if (normalized === 'english') return 'en'
+  if (normalized === 'portuguese') return 'pt'
+  if (normalized === 'spanish') return 'es'
+  if (normalized === 'french') return 'fr'
+  if (normalized === 'chinese') return 'zh'
+  return ''
+}
+
+function mapCodeToLanguage(code) {
+  const normalized = String(code || '').trim().toLowerCase()
+  if (normalized === 'en') return 'English'
+  if (normalized === 'pt') return 'Portuguese'
+  if (normalized === 'es') return 'Spanish'
+  if (normalized === 'fr') return 'French'
+  if (normalized === 'zh') return 'Chinese'
+  return ''
+}
+
+function getReservationLanguage(reservation) {
+  return (
+    reservation?.language
+    || mapCodeToLanguage(reservation?.language_code)
+    || mapCodeToLanguage(reservation?.languageCode)
+    || 'English'
+  )
+}
+
+function scheduleMatchesStartDateTime(schedule, date, time) {
+  const raw = String(schedule?.event_start_datetime || '').trim()
+  if (!raw) return false
+
+  // Direct string match against ISO prefix when API returns YYYY-MM-DDTHH:mm...
+  if (raw.startsWith(`${date}T${time}`)) return true
+
+  // Fallback to local-time comparison for timezone-normalized payloads.
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return false
+
+  return formatDatePart(parsed) === date && formatTimePart(parsed) === time
+}
+
+function scheduleMatchesEndTime(schedule, date, endTime) {
+  const raw = String(schedule?.event_end_datetime || '').trim()
+  if (!raw) return false
+
+  if (raw.startsWith(`${date}T${endTime}`)) return true
+
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return false
+
+  return formatDatePart(parsed) === date && formatTimePart(parsed) === endTime
+}
+
+async function resolveScheduleIdByCriteria(tourId, date, startTime, endTime, language) {
+  const languageCode = mapLanguageToCode(language)
+  const schedules = await getSchedules({ startDate: date, endDate: date })
+  const candidates = (Array.isArray(schedules) ? schedules : [])
+    .filter((schedule) => Number(schedule?.tour_id) === Number(tourId))
+    .filter((schedule) => scheduleMatchesStartDateTime(schedule, date, startTime))
+    .filter((schedule) => {
+      if (!languageCode) return true
+      if (!schedule?.language_code) return true
+      return String(schedule.language_code).trim().toLowerCase() === languageCode
+    })
+
+  if (candidates.length === 0) return null
+  if (candidates.length === 1) return candidates[0]?.id ?? null
+
+  const exactEndMatches = candidates.filter((schedule) =>
+    scheduleMatchesEndTime(schedule, date, endTime),
+  )
+
+  if (exactEndMatches.length === 1) return exactEndMatches[0]?.id ?? null
+  return null
+}
+
+function inferReservationLanguage(reservation) {
+  return getReservationLanguage(reservation)
+}
+
+function inferReservationStartTime(reservation) {
+  const raw = String(reservation?.event_start_datetime || reservation?.eventStartDatetime || '').trim()
+  if (!raw) return '09:00'
+
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return '09:00'
+  return formatTimePart(parsed)
+}
+
+function inferReservationEndTime(reservation) {
+  const raw = String(reservation?.event_end_datetime || reservation?.eventEndDatetime || '').trim()
+  if (raw) {
+    const parsed = new Date(raw)
+    if (!Number.isNaN(parsed.getTime())) return formatTimePart(parsed)
+  }
+
+  const startTime = inferReservationStartTime(reservation)
+  const [h, m] = startTime.split(':').map(Number)
+  const base = new Date(2000, 0, 1, h, m, 0, 0)
+  base.setMinutes(base.getMinutes() + 60)
+  return formatTimePart(base)
+}
+
 async function loadReservations() {
   loading.value = true
   error.value = ''
@@ -263,13 +383,23 @@ async function handleCreateReservation() {
 
   saving.value = true
   try {
+    const scheduleId = await resolveScheduleIdByCriteria(
+      parsedTourId,
+      form.value.date,
+      form.value.startTime,
+      form.value.endTime,
+      form.value.language,
+    )
+
+    if (!scheduleId) {
+      createError.value =
+        'No matching schedule was found for this Tour/Date/Time. Create the schedule first, then try again.'
+      return
+    }
+
     await createBooking({
       customer_id: form.value.customerId.trim(),
-      tour_id: parsedTourId,
-      language: form.value.language,
-      date: form.value.date,
-      start_time: `${form.value.startTime}:00`,
-      end_time: `${form.value.endTime}:00`,
+      schedule_id: Number(scheduleId),
       adult_tickets: Number(form.value.adultTickets) || 0,
       child_tickets: Number(form.value.childTickets) || 0,
     })
@@ -321,6 +451,16 @@ async function handleRescheduleReservation(reservation) {
   const reservationId = getReservationId(reservation)
   if (!reservationId) return
 
+  const tourId = Number(getTourId(reservation))
+  if (!Number.isInteger(tourId) || tourId <= 0) {
+    error.value = 'Unable to identify Tour ID for this reservation.'
+    return
+  }
+
+  const language = inferReservationLanguage(reservation)
+  const startTime = inferReservationStartTime(reservation)
+  const endTime = inferReservationEndTime(reservation)
+
   const userInput = window.prompt('New date (YYYY-MM-DD):', formatApiDate(getReservationDate(reservation)))
   if (!userInput) return
 
@@ -332,7 +472,14 @@ async function handleRescheduleReservation(reservation) {
 
   actionState.value = { id: reservationId, type: 'reschedule' }
   try {
-    await rescheduleBooking(reservationId, newDate)
+    const newScheduleId = await resolveScheduleIdByCriteria(tourId, newDate, startTime, endTime, language)
+    if (!newScheduleId) {
+      error.value =
+        'No matching schedule was found for the selected date/time. Create the schedule first, then try again.'
+      return
+    }
+
+    await rescheduleBooking(reservationId, { new_schedule_id: Number(newScheduleId) })
     await loadReservations()
   } catch (err) {
     error.value = err?.message || 'Failed to reschedule reservation'
@@ -394,7 +541,7 @@ onMounted(loadReservations)
                   <td class="px-5 py-4 text-gray-700">{{ normalizeDate(getReservationDate(reservation)) }}</td>
                   <td class="px-5 py-4 text-gray-700">{{ getCustomerId(reservation) }}</td>
                   <td class="px-5 py-4 text-gray-700">{{ getTourId(reservation) }}</td>
-                  <td class="px-5 py-4 text-gray-700">{{ reservation.language || '-' }}</td>
+                  <td class="px-5 py-4 text-gray-700">{{ getReservationLanguage(reservation) }}</td>
                   <td class="px-5 py-4 text-gray-700 capitalize">{{ getStatus(reservation) }}</td>
                   <td class="px-5 py-4">
                     <div class="flex flex-wrap gap-2">
