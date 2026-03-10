@@ -1,12 +1,51 @@
 ﻿const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' // FastAPI default port
 const RESERVATION_LANGUAGE_CACHE_KEY = 'reservation-language-cache-v1'
+const RESERVATION_LANGUAGE_CACHE_MAX_ENTRIES = 500
+const RESERVATION_LANGUAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+function normalizeReservationLanguageCacheEntry(entry) {
+  if (typeof entry === 'string') {
+    return { language: entry, updatedAt: 0 }
+  }
+
+  if (entry && typeof entry === 'object' && typeof entry.language === 'string') {
+    const updatedAt = Number(entry.updatedAt)
+    return {
+      language: entry.language,
+      updatedAt: Number.isFinite(updatedAt) ? updatedAt : 0,
+    }
+  }
+
+  return null
+}
+
+function pruneReservationLanguageCache(cache) {
+  const now = Date.now()
+  const normalizedEntries = Object.entries(cache || {})
+    .map(([reservationId, value]) => {
+      const normalized = normalizeReservationLanguageCacheEntry(value)
+      if (!normalized) return null
+      if (!normalized.language.trim()) return null
+
+      const age = now - normalized.updatedAt
+      if (normalized.updatedAt > 0 && age > RESERVATION_LANGUAGE_CACHE_TTL_MS) return null
+
+      return [reservationId, normalized]
+    })
+    .filter(Boolean)
+    .sort((a, b) => b[1].updatedAt - a[1].updatedAt)
+    .slice(0, RESERVATION_LANGUAGE_CACHE_MAX_ENTRIES)
+
+  return Object.fromEntries(normalizedEntries)
+}
 
 function getReservationLanguageCache() {
   if (typeof window === 'undefined') return {}
   try {
     const raw = window.localStorage.getItem(RESERVATION_LANGUAGE_CACHE_KEY)
     const parsed = raw ? JSON.parse(raw) : {}
-    return parsed && typeof parsed === 'object' ? parsed : {}
+    const normalizedCache = parsed && typeof parsed === 'object' ? parsed : {}
+    return pruneReservationLanguageCache(normalizedCache)
   } catch {
     return {}
   }
@@ -15,7 +54,10 @@ function getReservationLanguageCache() {
 function setReservationLanguageCache(cache) {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(RESERVATION_LANGUAGE_CACHE_KEY, JSON.stringify(cache))
+    window.localStorage.setItem(
+      RESERVATION_LANGUAGE_CACHE_KEY,
+      JSON.stringify(pruneReservationLanguageCache(cache)),
+    )
   } catch {
     // Ignore storage failures and keep app functional.
   }
@@ -24,7 +66,10 @@ function setReservationLanguageCache(cache) {
 function persistReservationLanguage(reservationId, language) {
   if (!reservationId || !language) return
   const cache = getReservationLanguageCache()
-  cache[String(reservationId)] = String(language)
+  cache[String(reservationId)] = {
+    language: String(language),
+    updatedAt: Date.now(),
+  }
   setReservationLanguageCache(cache)
 }
 
@@ -144,7 +189,9 @@ export async function getBookings() {
   const cache = getReservationLanguageCache()
   return data.map((item) => {
     const reservationId = resolveReservationId(item)
-    const cachedLanguage = reservationId ? cache[String(reservationId)] : ''
+    const cachedLanguage = reservationId
+      ? normalizeReservationLanguageCacheEntry(cache[String(reservationId)])?.language || ''
+      : ''
     const languageFromCode = mapLanguageCodeToLabel(item?.language_code ?? item?.languageCode)
     const language = item?.language || languageFromCode || cachedLanguage || 'English'
 

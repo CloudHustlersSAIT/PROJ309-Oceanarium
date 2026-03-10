@@ -32,17 +32,17 @@ function keyDate(date) {
 }
 
 function formatHourLabel(hour24) {
-  const period = hour24 >= 12 ? 'p.m.' : 'a.m.'
+  const period = hour24 >= 12 ? 'pm' : 'am'
   const hour12 = hour24 % 12 || 12
-  return `${String(hour12).padStart(2, '0')}:00${period}`
+  return `${String(hour12).padStart(2, '0')}:00 ${period}`
 }
 
 function formatSlotLabel(totalMinutes) {
   const hour24 = Math.floor(totalMinutes / 60)
   const minute = totalMinutes % 60
-  const period = hour24 >= 12 ? 'p.m.' : 'a.m.'
+  const period = hour24 >= 12 ? 'pm' : 'am'
   const hour12 = hour24 % 12 || 12
-  return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')}${period}`
+  return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`
 }
 
 const weekDays = computed(() => {
