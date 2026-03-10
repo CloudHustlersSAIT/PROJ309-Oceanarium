@@ -54,6 +54,7 @@ const searchPlaceholder = computed(() => {
 })
 
 const resourceTypes = computed(() => {
+  return [...new Set(resources.value.map((item) => item.type.toLowerCase()))]
   const typeMap = new Map()
 
   for (const item of resources.value) {
@@ -198,9 +199,10 @@ function statusClasses(status) {
             v-model="searchQuery"
             type="search"
             :placeholder="searchPlaceholder"
+            :aria-label="searchPlaceholder"
             class="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-sky-200"
           />
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">⌕</span>
         </div>
 
         <select
@@ -209,6 +211,8 @@ function statusClasses(status) {
           class="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700"
         >
           <option value="all">All resources</option>
+          <option v-for="type in resourceTypes" :key="type" :value="type">
+            {{ type }}
           <option v-for="rt in resourceTypes" :key="rt.value" :value="rt.value">
             {{ rt.label }}
           </option>

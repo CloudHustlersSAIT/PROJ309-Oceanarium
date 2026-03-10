@@ -10,7 +10,6 @@ const feedbackMessage = ref('')
 const notifications = ref([
   {
     id: 1,
-    category: 'all',
     icon: 'swap',
     message: 'Guide Ana Costa swapped tour Dolphin Feeding with guide Hermes Costello on November 12th at 08:00',
     timeAgo: '2 Minutes Ago',
@@ -18,7 +17,6 @@ const notifications = ref([
   },
   {
     id: 2,
-    category: 'all',
     icon: 'warning',
     message: 'Guide Liam Brown will be unavailable on November 11th',
     timeAgo: '3 Hours Ago',
@@ -26,7 +24,6 @@ const notifications = ref([
   },
   {
     id: 3,
-    category: 'all',
     icon: 'cancel',
     message: 'Guide Liam Brown has cancelled the tour Molluscs on November 11th, Guide David Martinez assigned instead',
     timeAgo: '2 Days Ago',
@@ -34,7 +31,6 @@ const notifications = ref([
   },
   {
     id: 4,
-    category: 'archived',
     icon: 'assign',
     message: 'Admin Kim Wexler assigned Guide James McGill to the tour Underwater Dining on November 11th',
     timeAgo: '2 Days Ago',
@@ -42,7 +38,6 @@ const notifications = ref([
   },
   {
     id: 5,
-    category: 'archived',
     icon: 'warning',
     message: 'System is unable to assign a guide to the tour Underwater Dining on November 11th, please review manually',
     timeAgo: '2 Days Ago',
@@ -50,7 +45,6 @@ const notifications = ref([
   },
   {
     id: 6,
-    category: 'archived',
     icon: 'assign',
     message: 'Admin Gus Fring assigned Guide Walter White to the tour Blue Sea Cooking on November 10th',
     timeAgo: '3 Days Ago',
@@ -58,7 +52,6 @@ const notifications = ref([
   },
   {
     id: 7,
-    category: 'archived',
     icon: 'warning',
     message: 'System is unable to assign a guide to the tour Blue Sea Cooking on November 10th, please review manually',
     timeAgo: '3 Days Ago',
@@ -66,7 +59,6 @@ const notifications = ref([
   },
   {
     id: 8,
-    category: 'trash',
     icon: 'swap',
     message: 'Guide Tyler Durden swapped tour Shark Diving with guide Aldo Raine on November 7th at 12:00',
     timeAgo: '28 Days Ago',
@@ -74,7 +66,6 @@ const notifications = ref([
   },
   {
     id: 9,
-    category: 'trash',
     icon: 'swap',
     message: 'Guide Ana Costa swapped tour Dolphin Feeding with guide Hermes Costello on November 12th at 08:00',
     timeAgo: '22 Days Ago',
@@ -155,9 +146,10 @@ function iconGlyph(type) {
               v-model="searchQuery"
               type="search"
               placeholder="Search notifications"
+              aria-label="Search notifications"
               class="w-full rounded-lg border border-gray-300 bg-white px-10 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-sky-200"
             />
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">⌕</span>
           </div>
           <select
             v-model="selectedRange"
