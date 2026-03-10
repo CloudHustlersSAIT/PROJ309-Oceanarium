@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { getSchedules, getStats } from '../services/api'
 import { useAuth } from '../contexts/authContext'
 import Sidebar from '../components/Sidebar.vue'
+import { formatScheduleTimeForDisplay, formatStatusLabel } from '../utils/reservation'
 
 const router = useRouter()
 const { user } = useAuth()
@@ -13,6 +14,7 @@ const alerts = ref([])
 const recentActivity = ref([])
 const scheduleModalOpen = ref(false)
 const scheduleLoadWarning = ref('')
+const scheduleSectionLoading = ref(true)
 
 const greetingByTimeOfDay = computed(() => {
   const hour = new Date().getHours()
@@ -57,24 +59,6 @@ function getTodayUtcIsoDate() {
   return `${year}-${month}-${day}`
 }
 
-function formatScheduleTime(value) {
-  const raw = String(value || '').trim()
-  if (!raw) return '--:--'
-
-  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/)
-  if (isoMatch) return `${isoMatch[4]}:${isoMatch[5]}`
-
-  // Fallback for uncommon formats without timezone conversion.
-  const genericTimeMatch = raw.match(/(\d{2}):(\d{2})/)
-  return genericTimeMatch ? `${genericTimeMatch[1]}:${genericTimeMatch[2]}` : '--:--'
-}
-
-function formatStatusLabel(status) {
-  const normalized = String(status || '').trim().toLowerCase()
-  if (!normalized) return 'Scheduled'
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
-}
-
 function getStatusTone(status) {
   const normalized = String(status || '').trim().toLowerCase()
   if (normalized === 'cancelled' || normalized === 'overbooked') {
@@ -89,10 +73,10 @@ function getStatusTone(status) {
 function buildScheduleRowsFromApi(schedules) {
   return schedules.map((schedule, index) => ({
     id: schedule?.id ?? `schedule-${index}`,
-    time: formatScheduleTime(schedule?.event_start_datetime),
+    time: formatScheduleTimeForDisplay(schedule?.event_start_datetime, { style: 'us' }),
     guide: schedule?.guide_name || 'Unassigned',
     tour: schedule?.tour_name || `Tour ${schedule?.tour_id ?? '-'}`,
-    status: formatStatusLabel(schedule?.status),
+    status: formatStatusLabel(schedule?.status, 'Scheduled'),
     tone: getStatusTone(schedule?.status),
   }))
 }
@@ -123,89 +107,94 @@ function sortByStartDateTimeAsc(a, b) {
 }
 
 async function loadHomeData() {
-  const localToday = getTodayIsoDate()
-  const utcToday = getTodayUtcIsoDate()
-  scheduleLoadWarning.value = ''
+  scheduleSectionLoading.value = true
+  try {
+    const localToday = getTodayIsoDate()
+    const utcToday = getTodayUtcIsoDate()
+    scheduleLoadWarning.value = ''
 
-  const [statsResult, schedulesResult] = await Promise.allSettled([
-    getStats(),
-    getSchedules({ startDate: localToday, endDate: localToday }),
-  ])
+    const [statsResult, schedulesResult] = await Promise.allSettled([
+      getStats(),
+      getSchedules({ startDate: localToday, endDate: localToday }),
+    ])
 
-  let todaySchedules =
-    schedulesResult.status === 'fulfilled' && Array.isArray(schedulesResult.value)
-      ? schedulesResult.value
+    let todaySchedules =
+      schedulesResult.status === 'fulfilled' && Array.isArray(schedulesResult.value)
+        ? schedulesResult.value
+        : null
+
+    // Around midnight in different timezones, a UTC-based date may reflect the intended "today" on the server.
+    if (Array.isArray(todaySchedules) && todaySchedules.length === 0 && utcToday !== localToday) {
+      try {
+        const utcSchedules = await getSchedules({ startDate: utcToday, endDate: utcToday })
+        if (Array.isArray(utcSchedules) && utcSchedules.length > 0) {
+          todaySchedules = utcSchedules
+        }
+      } catch {
+        // Keep primary result; warning handling below will inform user on schedule API failures.
+      }
+    }
+
+    const schedulesForCard = Array.isArray(todaySchedules)
+      ? todaySchedules.filter((schedule) => isActiveScheduleStatus(schedule?.status)).sort(sortByStartDateTimeAsc)
       : null
 
-  // Around midnight in different timezones, a UTC-based date may reflect the intended "today" on the server.
-  if (Array.isArray(todaySchedules) && todaySchedules.length === 0 && utcToday !== localToday) {
-    try {
-      const utcSchedules = await getSchedules({ startDate: utcToday, endDate: utcToday })
-      if (Array.isArray(utcSchedules) && utcSchedules.length > 0) {
-        todaySchedules = utcSchedules
+    if (Array.isArray(schedulesForCard)) {
+      allDayScheduleRows.value = buildScheduleRowsFromApi(schedulesForCard)
+    } else {
+      allDayScheduleRows.value = []
+    }
+
+    const statsResponse = statsResult.status === 'fulfilled' ? statsResult.value : null
+    const totalEventsToday = Array.isArray(todaySchedules) ? todaySchedules.length : 'Unavailable'
+    if (statsResponse) {
+      const toursToday = Number(statsResponse?.toursToday) || 0
+      const customersToday = Number(statsResponse?.customersToday) || 0
+      const cancellations = Number(statsResponse?.cancellations) || 0
+
+      const computedAlerts = []
+      if (Array.isArray(todaySchedules) && todaySchedules.length === 0) {
+        computedAlerts.push('No tours scheduled for today')
       }
-    } catch {
-      // Keep primary result; warning handling below will inform user on schedule API failures.
+      if (cancellations > 0) computedAlerts.push(`${cancellations} cancellation(s) recorded today`)
+
+      const delayedCount = Array.isArray(todaySchedules)
+        ? todaySchedules.filter((schedule) => {
+            const status = String(schedule?.status || '').trim().toLowerCase()
+            return status === 'delay' || status === 'delayed'
+          }).length
+        : 0
+
+      if (delayedCount > 0) computedAlerts.push(`${delayedCount} schedule(s) delayed`)
+      if (computedAlerts.length === 0) computedAlerts.push('No critical alerts at the moment')
+
+      alerts.value = computedAlerts
+      recentActivity.value = [
+        { metric: 'Total Events', value: totalEventsToday },
+        { metric: 'Reservations', value: toursToday },
+        { metric: 'Tickets Assigned', value: customersToday },
+        { metric: 'Cancellations', value: cancellations },
+      ]
+    } else {
+      alerts.value = ['Live stats unavailable right now']
+      recentActivity.value = [
+        { metric: 'Total Events', value: totalEventsToday },
+        { metric: 'Status', value: 'Unavailable' },
+      ]
     }
-  }
 
-  const schedulesForCard = Array.isArray(todaySchedules)
-    ? todaySchedules.filter((schedule) => isActiveScheduleStatus(schedule?.status)).sort(sortByStartDateTimeAsc)
-    : null
+    if (statsResult.status === 'rejected' || schedulesResult.status === 'rejected') {
+      console.error('Home data partial load failed', {
+        statsError: statsResult.status === 'rejected' ? statsResult.reason : null,
+        schedulesError: schedulesResult.status === 'rejected' ? schedulesResult.reason : null,
+      })
 
-  if (Array.isArray(schedulesForCard)) {
-    allDayScheduleRows.value = buildScheduleRowsFromApi(schedulesForCard)
-  } else {
-    allDayScheduleRows.value = []
-  }
-
-  const statsResponse = statsResult.status === 'fulfilled' ? statsResult.value : null
-  const totalEventsToday = Array.isArray(todaySchedules) ? todaySchedules.length : 'Unavailable'
-  if (statsResponse) {
-    const toursToday = Number(statsResponse?.toursToday) || 0
-    const customersToday = Number(statsResponse?.customersToday) || 0
-    const cancellations = Number(statsResponse?.cancellations) || 0
-
-    const computedAlerts = []
-    if (Array.isArray(todaySchedules) && todaySchedules.length === 0) {
-      computedAlerts.push('No tours scheduled for today')
+      if (schedulesResult.status === 'rejected') {
+        scheduleLoadWarning.value = 'Unable to load today\'s schedules right now.'
+      }
     }
-    if (cancellations > 0) computedAlerts.push(`${cancellations} cancellation(s) recorded today`)
-
-    const delayedCount = Array.isArray(todaySchedules)
-      ? todaySchedules.filter((schedule) => {
-          const status = String(schedule?.status || '').trim().toLowerCase()
-          return status === 'delay' || status === 'delayed'
-        }).length
-      : 0
-
-    if (delayedCount > 0) computedAlerts.push(`${delayedCount} schedule(s) delayed`)
-    if (computedAlerts.length === 0) computedAlerts.push('No critical alerts at the moment')
-
-    alerts.value = computedAlerts
-    recentActivity.value = [
-      { metric: 'Total Events', value: totalEventsToday },
-      { metric: 'Reservations', value: toursToday },
-      { metric: 'Tickets Assigned', value: customersToday },
-      { metric: 'Cancellations', value: cancellations },
-    ]
-  } else {
-    alerts.value = ['Live stats unavailable right now']
-    recentActivity.value = [
-      { metric: 'Total Events', value: totalEventsToday },
-      { metric: 'Status', value: 'Unavailable' },
-    ]
-  }
-
-  if (statsResult.status === 'rejected' || schedulesResult.status === 'rejected') {
-    console.error('Home data partial load failed', {
-      statsError: statsResult.status === 'rejected' ? statsResult.reason : null,
-      schedulesError: schedulesResult.status === 'rejected' ? schedulesResult.reason : null,
-    })
-
-    if (schedulesResult.status === 'rejected') {
-      scheduleLoadWarning.value = 'Unable to load today\'s schedules right now.'
-    }
+  } finally {
+    scheduleSectionLoading.value = false
   }
 }
 
@@ -262,7 +251,10 @@ onMounted(loadHomeData)
               </div>
               <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="row.tone">{{ row.status }}</span>
             </li>
-            <li v-if="!visibleScheduleRows.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+            <li v-if="scheduleSectionLoading" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+              Loading today's schedule...
+            </li>
+            <li v-else-if="!visibleScheduleRows.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
               No schedules for today.
             </li>
           </ul>

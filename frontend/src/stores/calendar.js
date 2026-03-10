@@ -41,13 +41,36 @@ function overlaps(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd
 }
 
+function parseDateTimeKeepingWallClock(rawValue) {
+  if (rawValue == null) return null
+  const raw = String(rawValue).trim()
+  if (!raw) return null
+
+  // Keep API wall-clock values stable across browsers by ignoring timezone suffixes.
+  const dateTimeMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/)
+
+  if (dateTimeMatch) {
+    const year = Number(dateTimeMatch[1])
+    const month = Number(dateTimeMatch[2])
+    const day = Number(dateTimeMatch[3])
+    const hour = Number(dateTimeMatch[4] ?? 0)
+    const minute = Number(dateTimeMatch[5] ?? 0)
+    const second = Number(dateTimeMatch[6] ?? 0)
+
+    const parsed = new Date(year, month - 1, day, hour, minute, second, 0)
+    if (!Number.isNaN(parsed.getTime())) return parsed
+  }
+
+  const fallback = new Date(raw)
+  return Number.isNaN(fallback.getTime()) ? null : fallback
+}
+
 function getDateField(record) {
   const dateFields = ['date', 'booking_date', 'start_date', 'start', 'datetime', 'time']
   const raw = dateFields.map((f) => record?.[f]).find(Boolean)
   if (!raw) return null
 
-  const parsed = new Date(raw)
-  return isNaN(parsed) ? null : parsed
+  return parseDateTimeKeepingWallClock(raw)
 }
 
 function hasExplicitTime(record) {
@@ -125,12 +148,15 @@ function mapLanguage(languageCode) {
 }
 
 function normalizeSchedule(schedule) {
-  const start = alignToCalendarWindow(
-    schedule.event_start_datetime || getDateField(schedule) || new Date(),
-    true,
-  )
+  const start =
+    parseDateTimeKeepingWallClock(schedule.event_start_datetime) ||
+    getDateField(schedule) ||
+    new Date()
   const fallbackEnd = addMinutes(start, DEFAULT_EVENT_DURATION_MINUTES)
-  const rawEnd = schedule.event_end_datetime ? new Date(schedule.event_end_datetime) : fallbackEnd
+  const rawEndCandidate = schedule.event_end_datetime
+    ? parseDateTimeKeepingWallClock(schedule.event_end_datetime)
+    : fallbackEnd
+  const rawEnd = rawEndCandidate instanceof Date ? rawEndCandidate : fallbackEnd
   const end = Number.isNaN(rawEnd.getTime()) || rawEnd <= start ? fallbackEnd : rawEnd
   const durationMinutes = Math.max(15, Math.round((end - start) / 60000))
 
