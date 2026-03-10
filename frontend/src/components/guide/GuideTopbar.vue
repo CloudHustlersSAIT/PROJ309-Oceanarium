@@ -1,8 +1,6 @@
 ﻿<template>
-  <header class="sticky top-0 z-20 border-b border-black/10 bg-white/90 backdrop-blur">
+  <header class="sticky top-0 z-20 border-b border-black/10 bg-white/90 backdrop-blur md:hidden">
     <div class="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-3 overflow-hidden px-4 py-3.5 sm:px-6 lg:px-8">
-
-      <!-- Brand -->
       <div class="flex min-w-0 flex-nowrap items-center gap-3 sm:gap-3.5">
         <img
           src="@/assets/images/logo.svg"
@@ -10,89 +8,14 @@
           class="h-9 w-auto shrink-0 sm:h-10"
         />
         <div class="min-w-0 leading-tight">
-          <p class="truncate text-base font-bold text-[#1C1C1C]">
-            Oceanarium Portal
-          </p>
-          <p class="truncate text-sm text-black/65">
-            Guide
-          </p>
+          <p class="truncate text-base font-bold text-[#1C1C1C]">Oceanarium Portal</p>
+          <p class="truncate text-sm text-black/65">Guide</p>
         </div>
       </div>
 
-      <!-- Navigation (Desktop) -->
-      <nav class="hidden md:flex flex-nowrap items-center gap-1.5 overflow-hidden whitespace-nowrap lg:gap-2">
-        <RouterLink
-          to="/guide/home"
-          class="shrink-0 rounded-xl px-3 py-2 text-sm font-semibold transition lg:px-3.5 lg:text-[15px]"
-          :class="linkClass('/guide/home')"
-        >
-          Home
-        </RouterLink>
-
-        <RouterLink
-          to="/guide/schedule"
-          class="shrink-0 rounded-xl px-3 py-2 text-sm font-semibold transition lg:px-3.5 lg:text-[15px]"
-          :class="linkClass('/guide/schedule')"
-        >
-          My Schedule
-        </RouterLink>
-
-        <RouterLink
-          to="/guide/requests"
-          class="shrink-0 rounded-xl px-3 py-2 text-sm font-semibold transition lg:px-3.5 lg:text-[15px]"
-          :class="linkClass('/guide/requests')"
-        >
-          Requests
-        </RouterLink>
-
-        <RouterLink
-          to="/guide/notifications"
-          class="shrink-0 rounded-xl px-2.5 py-2 text-sm font-semibold transition lg:px-3 lg:text-[15px]"
-          :class="linkClass('/guide/notifications')"
-          aria-label="Notifications"
-        >
-          <span class="inline-flex items-center gap-2">
-            <span>Notifications</span>
-            <span
-              v-if="unreadCount > 0"
-              class="inline-flex min-w-[1.35rem] items-center justify-center rounded-full bg-[#E63946] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white"
-            >
-              {{ unreadCount > 99 ? "99+" : unreadCount }}
-            </span>
-          </span>
-        </RouterLink>
-
-        <!-- NEW: Profile -->
-        <RouterLink
-          to="/guide/profile"
-          class="shrink-0 rounded-xl px-3 py-2 text-sm font-semibold transition lg:px-3.5 lg:text-[15px]"
-          :class="linkClass('/guide/profile')"
-        >
-          Profile
-        </RouterLink>
-      </nav>
-
-      <!-- User + Logout (Desktop) -->
-      <div class="hidden md:flex shrink-0 flex-nowrap items-center gap-2 lg:gap-3">
-        <div class="hidden lg:block text-right leading-tight pr-0.5">
-          <p class="text-sm text-black/60">Signed in as</p>
-          <p class="max-w-[180px] truncate text-base font-semibold text-[#1C1C1C]">
-            {{ userEmail }}
-          </p>
-        </div>
-
-        <button
-          class="rounded-xl bg-[#0077B6] px-3.5 py-2 text-sm font-bold text-white hover:bg-[#0097E7] transition lg:px-4 lg:text-[15px]"
-          @click="handleLogout"
-        >
-          Log out
-        </button>
-      </div>
-
-      <!-- Mobile menu trigger -->
       <button
         type="button"
-        class="inline-flex md:hidden items-center justify-center rounded-xl border border-black/15 bg-white px-3 py-2 text-sm font-semibold text-[#1C1C1C] hover:bg-[#CAF0F8]/50 transition"
+        class="inline-flex md:hidden items-center justify-center rounded-xl border border-black/15 bg-white px-3 py-2 text-sm font-semibold text-[#1C1C1C] transition hover:bg-[#CAF0F8]/50"
         @click="toggleMenu"
         aria-label="Open menu"
       >
@@ -103,7 +26,6 @@
     </div>
   </header>
 
-  <!-- Mobile Slide-over -->
   <transition
     enter-active-class="transition-opacity duration-200"
     leave-active-class="transition-opacity duration-200"
@@ -220,9 +142,7 @@ const { user, logout } = useAuth();
 const unreadCount = ref(0);
 const isMenuOpen = ref(false);
 
-const userEmail = firebaseDisabled
-  ? "guest@local"
-  : user?.value?.email || "Guide";
+const userEmail = firebaseDisabled ? "guest@local" : user?.value?.email || "Guide";
 
 function loadUnreadCountFromStorage() {
   const raw = localStorage.getItem("guideUnreadNotifications");
@@ -288,4 +208,3 @@ async function handleLogout() {
   router.push("/login");
 }
 </script>
-
