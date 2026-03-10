@@ -133,47 +133,7 @@ function formatApiErrorDetail(detail) {
   return ''
 }
 
-// Generic fetch helper
-/*
-async function fetchAPI(endpoint, options = {}) {
-  try {
-    const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    })
-
-    if (!response.ok) {
-      let message = `API Error: ${response.status} ${response.statusText}`
-      try {
-        const errorBody = await response.clone().json()
-        if (errorBody?.detail) {
-          const detailMessage = formatApiErrorDetail(errorBody.detail)
-          if (detailMessage) message = detailMessage
-        }
-      } catch {
-        try {
-          const errorText = await response.text()
-          if (errorText) message = errorText
-        } catch {
-          // Keep fallback message when response body cannot be parsed.
-        }
-      }
-      throw new Error(message)
-    }
-
-    return await response.json()
-  } catch (error) {
-    // API request failed - error will be handled by caller
-    throw error
-  }
-}
-*/
-
 // Generic fetch helper with authorization header support
-// Updated by Joao Santiago to include optional auth headers 
 async function fetchAPI(endpoint, options = {}) {
   try {
     const {
@@ -185,6 +145,11 @@ async function fetchAPI(endpoint, options = {}) {
     // Build headers with optional auth
     const authHeaders = requiresAuth ? await getAuthorizationHeader() : {}
 
+    // Fail early for authenticated requests when no token is available,
+    // so callers can prompt login instead of sending an unauthenticated request.
+    if (requiresAuth && !authHeaders.Authorization) {
+      throw new Error('Authentication required. Please sign in to continue.')
+    }
     const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
