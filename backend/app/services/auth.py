@@ -32,10 +32,11 @@ def resolve_authenticated_user(conn, decoded_user: dict) -> dict:
     ).fetchone()
     
     if admin_row:
-        if not admin_row.is_active:
-            raise ValidationError("User account is inactive")
-        
+        # Confirm this row is actually an admin before applying the inactive-user check,
+        # so a non-admin inactive row doesn't block guide resolution.
         if str(admin_row.role).strip().lower() == "admin":
+            if not admin_row.is_active:
+                raise ValidationError("User account is inactive")
             return {
                 "uid": uid,
                 "email": email,
@@ -51,6 +52,7 @@ def resolve_authenticated_user(conn, decoded_user: dict) -> dict:
             SELECT id, first_name, last_name, email, is_active
             FROM guides
             WHERE LOWER(email) = :email
+              AND is_active = true
             LIMIT 1
             """
         ),
@@ -58,9 +60,6 @@ def resolve_authenticated_user(conn, decoded_user: dict) -> dict:
     ).fetchone()
 
     if guide_row:
-        if not guide_row.is_active:
-            raise ValidationError("Guide account is inactive")
-
         return {
             "uid": uid,
             "email": email,

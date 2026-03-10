@@ -3,7 +3,11 @@ import os
 from fastapi import Header, HTTPException
 from ..firebase_auth import verify_firebase_token
 
-ENV = os.getenv("ENV", "development").lower()
+# Default to production to ensure the safest behavior when ENV is not explicitly set.
+ENV = os.getenv("ENV", "production").lower()
+# Bypass auth only when explicitly opted in (AUTH_BYPASS=true) AND in development mode.
+AUTH_BYPASS = os.getenv("AUTH_BYPASS", "false").lower() == "true"
+
 
 def _extract_bearer_token(authorization: str | None) -> str:
     if not authorization:
@@ -34,10 +38,10 @@ def require_authenticated_user(
     """
     Returns decoded Firebase claims for an authenticated user.
 
-    In development mode, allows a local bypass if no Authorization header is provided.
-    This keeps local teammate testing simple while protecting deployed environments.
+    A local bypass is only active when ENV=development AND AUTH_BYPASS=true are both
+    explicitly set, preventing accidental bypasses from misconfigured environments.
     """
-    if ENV == "development" and not authorization:
+    if ENV == "development" and AUTH_BYPASS and not authorization:
         return {
             "uid": "local-dev-user",
             "email": "local-dev@oceanarium.local",

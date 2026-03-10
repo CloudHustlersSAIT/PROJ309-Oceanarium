@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 
 import firebase_admin
 
 from firebase_admin import credentials, auth
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 
 
 _firebase_initialized = False 
@@ -35,9 +38,9 @@ def initialize_firebase() -> None:
     _firebase_initialized = True
 
 
-def verify_firebase_token(token: str) -> str:
+def verify_firebase_token(token: str) -> dict:
     """
-    Verifies the provided Firebase ID token and returns the associated user ID.
+    Verifies the provided Firebase ID token and returns the decoded token claims.
     Raises an HTTPException if the token is invalid or verification fails.
     """
     if not token:
@@ -46,4 +49,5 @@ def verify_firebase_token(token: str) -> str:
         decoded_token = auth.verify_id_token(token)
         return decoded_token
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid Firebase token: {e}")
+        logger.warning("Firebase token verification failed: %s", e)
+        raise HTTPException(status_code=401, detail="Invalid or expired authentication token")
