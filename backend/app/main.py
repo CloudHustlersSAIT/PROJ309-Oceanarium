@@ -13,6 +13,7 @@ from .routes.reservation import router as reservation_router
 from .routes.schedule import router as schedule_router
 from .routes.stats import router as stats_router
 from .routes.tour import router as tour_router
+from .routes.auth import router as auth_router  
 
 app = FastAPI(title="My Project API")
 
@@ -38,6 +39,7 @@ app.include_router(notification_router)
 app.include_router(issue_router)
 app.include_router(stats_router)
 app.include_router(mock_router)
+app.include_router(auth_router)
 
 origins = [
     "http://localhost:5173",
