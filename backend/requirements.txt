@@ -3,3 +3,4 @@ sqlalchemy==2.0.47
 psycopg2-binary==2.9.11
 python-dotenv==1.2.1
 alembic==1.16.5
+firebase-admin==6.0.0
