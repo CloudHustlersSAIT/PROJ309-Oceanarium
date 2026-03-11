@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -15,18 +16,48 @@ from ..services.mock_poller import (
 )
 
 ENV = os.getenv("ENV", "production").lower()
-_LOOPBACK = {"127.0.0.1", "::1"}
 
 router = APIRouter(prefix="/mock", tags=["Mock Poller"])
+
+
+def _is_loopback_ip(ip_value: str | None) -> bool:
+    if not ip_value:
+        return False
+
+    candidate = ip_value.strip().strip('"').strip("[]")
+    if not candidate:
+        return False
+
+    try:
+        return ipaddress.ip_address(candidate).is_loopback
+    except ValueError:
+        return False
+
+
+def _get_originating_ip(request: Request) -> str | None:
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",", 1)[0].strip()
+
+    forwarded = request.headers.get("forwarded")
+    if forwarded:
+        for part in forwarded.split(";"):
+            key, _, value = part.strip().partition("=")
+            if key.lower() == "for" and value:
+                return value.strip()
+
+    return request.client.host if request.client else None
 
 
 def _require_dev_or_localhost(request: Request) -> None:
     """Allow the mock poller in development mode or from localhost (EC2 cronjob)."""
     if ENV == "development":
         return
-    client_ip = request.client.host if request.client else None
-    if client_ip in _LOOPBACK:
+
+    client_ip = _get_originating_ip(request)
+    if _is_loopback_ip(client_ip):
         return
+
     raise HTTPException(
         status_code=403,
         detail="Mock poller is only available in development or from localhost",
