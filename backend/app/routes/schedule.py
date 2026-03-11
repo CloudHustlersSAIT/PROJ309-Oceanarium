@@ -3,13 +3,12 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from ..db import get_db
-from ..dependencies.auth import require_authenticated_user
 from ..services import schedule as schedule_service
-from ..services.exceptions import ConflictError, NotFoundError, ValidationError
+from ..services.error_handlers import handle_domain_exception
 
 logger = logging.getLogger(__name__)
 
@@ -44,28 +43,13 @@ def read_schedules(
             end_date=end_date,
             status=status,
         )
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message) from e
-    except Exception:
-        logger.exception("Unexpected error listing schedules")
-        raise HTTPException(status_code=500, detail="Internal server error") from None
+    except Exception as e:
+        return handle_domain_exception(e)
 
 
 @router.post("")
-def create_schedule(
-    payload: ScheduleCreate,
-    conn=Depends(get_db),
-    decoded_user: dict = Depends(require_authenticated_user),
-):
-    # Thin route: map domain exceptions to HTTP responses.
+def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
     try:
         return schedule_service.create_schedule(conn, payload)
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message) from e
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message) from e
-    except ConflictError as e:
-        raise HTTPException(status_code=409, detail=e.message) from e
-    except Exception:
-        logger.exception("Unexpected error creating schedule")
-        raise HTTPException(status_code=500, detail="Internal server error") from None
+    except Exception as e:
+        return handle_domain_exception(e)

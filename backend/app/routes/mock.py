@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..db import engine
-from ..services.exceptions import ValidationError
+from ..services.error_handlers import handle_domain_exception
 from ..services.mock_poller import (
     MockRunRequest,
     MockRunResponse,
@@ -107,9 +107,6 @@ def run_mock_poller(
             run_id = response.run_id
         return response
 
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message) from e
-
     except SQLAlchemyError as e:
         if run_id:
             try:
@@ -122,3 +119,6 @@ def run_mock_poller(
             status_code=500,
             detail="Mock poller execution failed. Check server logs.",
         ) from e
+
+    except Exception as e:
+        return handle_domain_exception(e)

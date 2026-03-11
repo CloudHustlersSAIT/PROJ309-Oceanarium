@@ -1,16 +1,10 @@
-from __future__ import annotations
-
-import logging
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from ..db import get_db
 from ..dependencies.auth import require_authenticated_user
 from ..services import reservation as reservation_service
-from ..services.exceptions import ConflictError, NotFoundError, ValidationError
-
-logger = logging.getLogger(__name__)
+from ..services.error_handlers import handle_domain_exception
 
 
 class ReservationCreate(BaseModel):
@@ -52,9 +46,8 @@ def _cancel_reservation(reservation_id, conn):
 def read_reservations(conn=Depends(get_db)):
     try:
         return _read_reservations(conn)
-    except Exception:
-        logger.exception("Unexpected error listing reservations")
-        raise HTTPException(status_code=500, detail="Internal server error") from None
+    except Exception as e:
+        return handle_domain_exception(e)
 
 
 @router.post("/reservations")
@@ -65,15 +58,8 @@ def create_reservation(
 ):
     try:
         return _create_reservation(payload, conn)
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message) from e
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message) from e
-    except ConflictError as e:
-        raise HTTPException(status_code=409, detail=e.message) from e
-    except Exception:
-        logger.exception("Unexpected error creating reservation")
-        raise HTTPException(status_code=500, detail="Internal server error") from None
+    except Exception as e:
+        return handle_domain_exception(e)
 
 
 @router.patch("/reservations/{reservation_id}/reschedule")
@@ -85,15 +71,8 @@ def reschedule_reservation(
 ):
     try:
         return _reschedule_reservation(reservation_id, payload, conn)
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message) from e
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message) from e
-    except ConflictError as e:
-        raise HTTPException(status_code=409, detail=e.message) from e
-    except Exception:
-        logger.exception("Unexpected error rescheduling reservation")
-        raise HTTPException(status_code=500, detail="Internal server error") from None
+    except Exception as e:
+        return handle_domain_exception(e)
 
 
 @router.patch("/reservations/{reservation_id}/cancel")
@@ -104,13 +83,8 @@ def cancel_reservation(
 ):
     try:
         return _cancel_reservation(reservation_id, conn)
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message) from e
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message) from e
-    except Exception:
-        logger.exception("Unexpected error cancelling reservation")
-        raise HTTPException(status_code=500, detail="Internal server error") from None
+    except Exception as e:
+        return handle_domain_exception(e)
 
 
 # Backward-compatible aliases (deprecated)

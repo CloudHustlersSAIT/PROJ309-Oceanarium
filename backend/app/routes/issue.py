@@ -1,11 +1,12 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from ..db import get_db
 from ..dependencies.auth import require_authenticated_user
 from ..services import issue as issue_service
+from ..services.error_handlers import handle_domain_exception
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,5 @@ def create_issue(
 ):
     try:
         return issue_service.create_issue(conn, issue)
-    except Exception:
-        logger.exception("Unexpected error creating issue")
-        raise HTTPException(status_code=500, detail="Internal server error") from None
+    except Exception as e:
+        return handle_domain_exception(e)

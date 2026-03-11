@@ -1,9 +1,10 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from ..db import get_db
 from ..services import tour as tour_service
+from ..services.error_handlers import handle_domain_exception
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,5 @@ router = APIRouter(prefix="/tours", tags=["Tours"])
 def read_tours(conn=Depends(get_db)):
     try:
         return tour_service.list_tours(conn)
-    except Exception:
-        logger.exception("Unexpected error listing tours")
-        raise HTTPException(status_code=500, detail="Internal server error") from None
+    except Exception as e:
+        return handle_domain_exception(e)
