@@ -14,3 +14,9 @@ class ConflictError(DomainError):
 
 class ValidationError(DomainError):
     pass
+
+
+class UnassignableError(DomainError):
+    def __init__(self, message: str, reasons: list[str] | None = None):
+        self.reasons = reasons or []
+        super().__init__(message)
