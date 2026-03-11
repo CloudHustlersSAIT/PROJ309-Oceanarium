@@ -1,1 +1,43 @@
-@import "tailwindcss";
+﻿@import 'tailwindcss';
+
+@layer components {
+  .app-page-wrap {
+    @apply mx-auto w-full max-w-6xl space-y-5;
+  }
+
+  .app-surface-card {
+    @apply rounded-2xl border border-black/10 bg-white shadow-sm;
+  }
+
+  .app-section-padding {
+    @apply p-4 sm:p-5 lg:p-6;
+  }
+
+  .app-title {
+    @apply text-xl font-bold tracking-tight text-[#1C1C1C] sm:text-2xl;
+  }
+
+  .app-subtitle {
+    @apply text-sm font-medium text-black/75 sm:text-base;
+  }
+
+  .app-body-title {
+    @apply text-sm font-bold text-[#1C1C1C] sm:text-base;
+  }
+
+  .app-body-meta {
+    @apply text-xs text-black/65 sm:text-sm;
+  }
+
+  .app-action-btn {
+    @apply h-10 rounded-lg px-3.5 text-sm font-bold transition;
+  }
+
+  .notification-card {
+    @apply rounded-xl border border-black/10 bg-[#F4F8FB] transition hover:bg-[#EDF3F7];
+  }
+
+  .notification-card-unread {
+    @apply rounded-xl border border-[#00B4D8]/35 bg-[#CAF0F8]/50 transition hover:bg-[#BFEAF5]/60;
+  }
+}

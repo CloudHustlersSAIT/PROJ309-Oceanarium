@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
-import { getTours, getBookings, rescheduleBooking } from '../services/api'
+import { getSchedules, rescheduleBooking } from '../services/api'
+
+const DEFAULT_EVENT_DURATION_MINUTES = 60
 
 function toIso(date) {
   return new Date(date).toISOString()
@@ -32,55 +34,85 @@ function overlaps(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd
 }
 
+function parseDateTimeKeepingWallClock(rawValue) {
+  if (rawValue == null) return null
+  const raw = String(rawValue).trim()
+  if (!raw) return null
+
+  // Keep API wall-clock values stable across browsers by ignoring timezone suffixes.
+  const dateTimeMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/)
+
+  if (dateTimeMatch) {
+    const year = Number(dateTimeMatch[1])
+    const month = Number(dateTimeMatch[2])
+    const day = Number(dateTimeMatch[3])
+    const hour = Number(dateTimeMatch[4] ?? 0)
+    const minute = Number(dateTimeMatch[5] ?? 0)
+    const second = Number(dateTimeMatch[6] ?? 0)
+
+    const parsed = new Date(year, month - 1, day, hour, minute, second, 0)
+    if (!Number.isNaN(parsed.getTime())) return parsed
+  }
+
+  const fallback = new Date(raw)
+  return Number.isNaN(fallback.getTime()) ? null : fallback
+}
+
 function getDateField(record) {
   const dateFields = ['date', 'booking_date', 'start_date', 'start', 'datetime', 'time']
   const raw = dateFields.map((f) => record?.[f]).find(Boolean)
   if (!raw) return null
 
-  const parsed = new Date(raw)
-  return isNaN(parsed) ? null : parsed
+  return parseDateTimeKeepingWallClock(raw)
 }
 
-function normalizeTour(tour) {
-  const start = getDateField(tour) || new Date()
-  const end = addMinutes(start, 60)
+function mapLanguage(languageCode) {
+  if (!languageCode) return 'English'
+  const normalized = String(languageCode).trim().toLowerCase()
+  if (normalized === 'en' || normalized === 'english') return 'English'
+  if (normalized === 'pt' || normalized === 'portuguese') return 'Portuguese'
+  if (normalized === 'es' || normalized === 'spanish') return 'Spanish'
+  if (normalized === 'fr' || normalized === 'french') return 'French'
+  if (normalized === 'zh' || normalized === 'chinese') return 'Chinese'
+  return String(languageCode)
+}
+
+function normalizeSchedule(schedule) {
+  const start =
+    parseDateTimeKeepingWallClock(schedule.event_start_datetime) ||
+    getDateField(schedule) ||
+    new Date()
+  const fallbackEnd = addMinutes(start, DEFAULT_EVENT_DURATION_MINUTES)
+  const rawEndCandidate = schedule.event_end_datetime
+    ? parseDateTimeKeepingWallClock(schedule.event_end_datetime)
+    : fallbackEnd
+  const rawEnd = rawEndCandidate instanceof Date ? rawEndCandidate : fallbackEnd
+  const end = Number.isNaN(rawEnd.getTime()) || rawEnd <= start ? fallbackEnd : rawEnd
+  const durationMinutes = Math.max(15, Math.round((end - start) / 60000))
 
   return {
-    id: `tour-${tour.id ?? safeId('tour')}`,
-    source: 'tour',
-    sourceId: tour.id ?? null,
-    title: tour.tour || tour.title || 'Tour',
+    id: `schedule-${schedule.id ?? safeId('schedule')}`,
+    source: 'schedule',
+    sourceId: schedule.id ?? null,
+    title: schedule.tour_name || `Tour ${schedule.tour_id ?? ''}`.trim() || 'Scheduled Tour',
     start: toIso(start),
     end: toIso(end),
-    resourceId: `guide-${tour.guide_id ?? tour.guide ?? 'unassigned'}`,
-    resourceName: tour.guide || tour.guide_name || 'Unassigned Guide',
-    status: 'scheduled',
+    resourceId: `guide-${schedule.guide_id ?? 'unassigned'}`,
+    resourceName: schedule.guide_name || 'Unassigned Guide',
+    guideId: schedule.guide_id ?? null,
+    productId: schedule.tour_id ?? null,
+    durationMinutes,
+    status: schedule.status || 'scheduled',
     type: 'tour',
     priority: 'medium',
     conflictFlag: false,
-    notes: '',
-  }
-}
-
-function normalizeBooking(booking) {
-  const start = getDateField(booking) || new Date()
-  const end = addMinutes(start, 60)
-  const sourceId = booking.id ?? booking.booking_id ?? booking.bookingId ?? null
-
-  return {
-    id: `booking-${sourceId ?? safeId('booking')}`,
-    source: 'booking',
-    sourceId,
-    title: booking.tour || booking.tour_name || booking.title || 'Booking',
-    start: toIso(start),
-    end: toIso(end),
-    resourceId: `guide-${booking.guide_id ?? booking.guide ?? 'unassigned'}`,
-    resourceName: booking.guide || booking.guide_name || 'Unassigned Guide',
-    status: booking.status || 'pending',
-    type: booking.type || 'booking',
-    priority: booking.priority || 'medium',
-    conflictFlag: false,
-    notes: booking.notes || '',
+    notes: schedule.reservation_count != null ? `Reservations: ${schedule.reservation_count}` : '',
+    customerId: null,
+    tourId: Number(schedule.tour_id ?? 0),
+    adultTickets: null,
+    childTickets: null,
+    language: mapLanguage(schedule.language_code),
+    reservationCount: Number(schedule.reservation_count ?? 0),
   }
 }
 
@@ -281,8 +313,11 @@ export const useCalendarStore = defineStore('calendar', {
       const grouped = {}
 
       this.events.forEach((event) => {
-        if (!grouped[event.resourceId]) grouped[event.resourceId] = []
-        grouped[event.resourceId].push(event)
+        // Conflict only matters when a concrete guide is assigned.
+        if (!event.guideId) return
+        const key = `guide-${event.guideId}`
+        if (!grouped[key]) grouped[key] = []
+        grouped[key].push(event)
       })
 
       Object.values(grouped).forEach((events) => {
@@ -318,10 +353,11 @@ export const useCalendarStore = defineStore('calendar', {
       this.error = null
 
       try {
-        const [tours, bookings] = await Promise.all([getTours(), getBookings()])
-        const normalizedTours = (Array.isArray(tours) ? tours : []).map(normalizeTour)
-        const normalizedBookings = (Array.isArray(bookings) ? bookings : []).map(normalizeBooking)
-        this.events = [...normalizedTours, ...normalizedBookings]
+        const schedules = await getSchedules()
+        const normalizedSchedules = (Array.isArray(schedules) ? schedules : []).map(
+          normalizeSchedule,
+        )
+        this.events = [...normalizedSchedules]
 
         const resourceMap = {}
         this.events.forEach((event) => {

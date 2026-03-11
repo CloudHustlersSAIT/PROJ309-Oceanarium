@@ -1,4 +1,4 @@
-// src/contexts/authContext.js
+﻿// src/contexts/authContext.js
 import { ref } from 'vue'
 import {
   onAuthStateChanged,
@@ -98,6 +98,21 @@ async function passwordResetWithEmail(email) {
   }
 }
 
+//Token helper
+async function getIdToken() {
+  authError.value = null
+  if (!auth || !currentUser.value) {
+    return null
+  }
+
+  try {
+    return await currentUser.value.getIdToken()
+  } catch (err) {
+    authError.value = err
+    throw err
+  }
+}
+
 // Composable-style function to use in components
 export function useAuth() {
   return {
@@ -108,5 +123,6 @@ export function useAuth() {
     signupWithEmail,
     logout,
     passwordResetWithEmail,
+    getIdToken,
   }
 }

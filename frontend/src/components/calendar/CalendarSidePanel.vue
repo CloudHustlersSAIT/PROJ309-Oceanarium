@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, watch } from 'vue'
 
 const props = defineProps({
@@ -99,21 +99,52 @@ function save() {
     <div v-if="!event" class="text-sm text-gray-500">Select an event to edit details.</div>
 
     <div v-else class="space-y-3">
-      <input v-model="form.title" class="w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm" placeholder="Title" />
+      <input
+        v-model="form.title"
+        class="w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+        placeholder="Title"
+      />
 
       <div class="grid grid-cols-1 gap-3">
         <div>
           <label class="text-xs text-gray-600 block mb-1">Start</label>
           <div class="grid grid-cols-[1fr_72px_72px_72px] gap-2">
-            <input v-model="form.startDate" type="date" class="border border-[#ACBAC4] rounded px-3 py-2 text-sm" />
-            <select v-model="form.startHour" class="border border-[#ACBAC4] rounded px-2 py-2 text-sm">
-              <option v-for="hour in hourOptions" :key="`start-hour-${hour}`" :value="hour">{{ hour }}</option>
+            <input
+              v-model="form.startDate"
+              type="date"
+              class="border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+            />
+            <select
+              v-model="form.startHour"
+              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+            >
+              <option v-for="hour in hourOptions" :key="`start-hour-${hour}`" :value="hour">
+                {{ hour }}
+              </option>
             </select>
-            <select v-model="form.startMinute" class="border border-[#ACBAC4] rounded px-2 py-2 text-sm">
-              <option v-for="minute in minuteOptions" :key="`start-minute-${minute}`" :value="minute">{{ minute }}</option>
+            <select
+              v-model="form.startMinute"
+              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+            >
+              <option
+                v-for="minute in minuteOptions"
+                :key="`start-minute-${minute}`"
+                :value="minute"
+              >
+                {{ minute }}
+              </option>
             </select>
-            <select v-model="form.startPeriod" class="border border-[#ACBAC4] rounded px-2 py-2 text-sm">
-              <option v-for="period in periodOptions" :key="`start-period-${period}`" :value="period">{{ period }}</option>
+            <select
+              v-model="form.startPeriod"
+              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+            >
+              <option
+                v-for="period in periodOptions"
+                :key="`start-period-${period}`"
+                :value="period"
+              >
+                {{ period.toLowerCase() }}
+              </option>
             </select>
           </div>
         </div>
@@ -121,22 +152,46 @@ function save() {
         <div>
           <label class="text-xs text-gray-600 block mb-1">End</label>
           <div class="grid grid-cols-[1fr_72px_72px_72px] gap-2">
-            <input v-model="form.endDate" type="date" class="border border-[#ACBAC4] rounded px-3 py-2 text-sm" />
-            <select v-model="form.endHour" class="border border-[#ACBAC4] rounded px-2 py-2 text-sm">
-              <option v-for="hour in hourOptions" :key="`end-hour-${hour}`" :value="hour">{{ hour }}</option>
+            <input
+              v-model="form.endDate"
+              type="date"
+              class="border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+            />
+            <select
+              v-model="form.endHour"
+              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+            >
+              <option v-for="hour in hourOptions" :key="`end-hour-${hour}`" :value="hour">
+                {{ hour }}
+              </option>
             </select>
-            <select v-model="form.endMinute" class="border border-[#ACBAC4] rounded px-2 py-2 text-sm">
-              <option v-for="minute in minuteOptions" :key="`end-minute-${minute}`" :value="minute">{{ minute }}</option>
+            <select
+              v-model="form.endMinute"
+              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+            >
+              <option v-for="minute in minuteOptions" :key="`end-minute-${minute}`" :value="minute">
+                {{ minute }}
+              </option>
             </select>
-            <select v-model="form.endPeriod" class="border border-[#ACBAC4] rounded px-2 py-2 text-sm">
-              <option v-for="period in periodOptions" :key="`end-period-${period}`" :value="period">{{ period }}</option>
+            <select
+              v-model="form.endPeriod"
+              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+            >
+              <option v-for="period in periodOptions" :key="`end-period-${period}`" :value="period">
+                {{ period.toLowerCase() }}
+              </option>
             </select>
           </div>
         </div>
       </div>
 
-      <select v-model="form.resourceId" class="w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm">
-        <option v-for="resource in resources" :key="resource.id" :value="resource.id">{{ resource.name }}</option>
+      <select
+        v-model="form.resourceId"
+        class="w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+      >
+        <option v-for="resource in resources" :key="resource.id" :value="resource.id">
+          {{ resource.name }}
+        </option>
       </select>
 
       <div class="grid grid-cols-2 gap-2">
@@ -153,12 +208,29 @@ function save() {
         </select>
       </div>
 
-      <textarea v-model="form.notes" rows="4" class="w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm" placeholder="Notes" />
+      <textarea
+        v-model="form.notes"
+        rows="4"
+        class="w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+        placeholder="Notes"
+      />
 
       <div class="flex items-center gap-2 pt-2">
-        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded" @click="save">Save</button>
-        <button class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded" @click="emit('duplicate', event.id)">Duplicate</button>
-        <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded" @click="emit('delete', event.id)">Delete</button>
+        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded" @click="save">
+          Save
+        </button>
+        <button
+          class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+          @click="emit('duplicate', event.id)"
+        >
+          Duplicate
+        </button>
+        <button
+          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+          @click="emit('delete', event.id)"
+        >
+          Delete
+        </button>
       </div>
     </div>
   </aside>
