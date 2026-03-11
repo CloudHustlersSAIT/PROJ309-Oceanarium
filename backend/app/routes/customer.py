@@ -13,6 +13,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
 
+class CustomerCreate(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    clorian_client_id: str | None = None
+
+
 class CustomerUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
@@ -23,6 +30,24 @@ class CustomerUpdate(BaseModel):
 def read_customers(conn=Depends(get_db)):
     try:
         return customer_service.list_customers(conn)
+    except Exception as e:
+        return handle_domain_exception(e)
+
+
+@router.post("")
+def create_customer(
+    payload: CustomerCreate,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
+    try:
+        return customer_service.create_customer(
+            conn,
+            payload.first_name,
+            payload.last_name,
+            payload.email,
+            payload.clorian_client_id,
+        )
     except Exception as e:
         return handle_domain_exception(e)
 
