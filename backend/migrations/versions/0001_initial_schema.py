@@ -294,10 +294,10 @@ def upgrade() -> None:
     op.execute("CREATE INDEX ix_surveys_reservation_id ON surveys (reservation_id);")
     op.execute("CREATE INDEX ix_tour_assignment_logs_schedule_id ON tour_assignment_logs (schedule_id);")
     op.execute("CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id);")
-    op.execute("CREATE INDEX ix_poll_staging_poll_execution_id ON poll_staging (poll_execution_id);")
-    op.execute("CREATE INDEX ix_poll_staging_external_id ON poll_staging (external_id);")
-    op.execute("CREATE INDEX ix_poll_staging_processed_at ON poll_staging (processed_at);")
-    op.execute("CREATE INDEX ix_poll_staging_entity_type_external_id ON poll_staging (entity_type, external_id);")
+    op.execute("CREATE INDEX idx_poll_staging_execution_id ON poll_staging (poll_execution_id);")
+    op.execute("CREATE INDEX idx_poll_staging_external_id ON poll_staging (external_id);")
+    op.execute("CREATE INDEX idx_poll_staging_processed_at ON poll_staging (processed_at);")
+    op.execute("CREATE INDEX idx_poll_staging_entity_type_external_id ON poll_staging (entity_type, external_id);")
 
 
 def downgrade() -> None:

@@ -123,3 +123,120 @@ Example `400` response:
   "detail": "start_date cannot be after end_date"
 }
 ```
+
+---
+
+## Guide Assignment Endpoints
+
+These endpoints assign a guide to a schedule based on FDR-002 rules.
+
+### Auto Assign Guide
+
+- Method: `POST`
+- Path: `/schedules/{schedule_id}/assign`
+- No request body required.
+
+Automatically finds the best eligible guide using three hard constraints:
+
+1. **Language** — guide speaks `schedule.language_code`
+2. **Expertise** — guide is qualified for `schedule.tour_id`
+3. **Availability** — guide has matching availability slots, no blocked exceptions, and no overlapping schedules
+
+When multiple guides pass all constraints, priority is:
+1. Fewest same-day assignments
+2. Highest `guide_rating`
+3. Lowest `guide.id` (deterministic tiebreaker)
+
+#### Example Request
+
+```http
+POST /schedules/10/assign
+```
+
+#### Success Response (200)
+
+```json
+{
+  "schedule_id": 10,
+  "guide_id": 3,
+  "guide_name": "Maria Silva",
+  "assignment_type": "AUTO",
+  "constraints_met": {
+    "language": true,
+    "availability": true,
+    "expertise": true
+  }
+}
+```
+
+#### Unassignable Response (422)
+
+Returned when no guide satisfies all constraints. The schedule status is set to `UNASSIGNABLE`.
+
+```json
+{
+  "detail": {
+    "message": "No eligible guide found for this schedule",
+    "reasons": ["NO_LANGUAGE_MATCH"]
+  }
+}
+```
+
+Possible reason codes: `NO_LANGUAGE_MATCH`, `NO_EXPERTISE_MATCH`, `NO_AVAILABILITY_MATCH`.
+
+### Manual Assign Guide (Admin Override)
+
+- Method: `PUT`
+- Path: `/schedules/{schedule_id}/assign`
+
+Assigns a specific guide to a schedule. Constraint violations produce warnings but do **not** block the assignment.
+
+#### Example Request
+
+```http
+PUT /schedules/10/assign
+Content-Type: application/json
+
+{
+  "guide_id": 7,
+  "reason": "Customer requested specific guide"
+}
+```
+
+#### Success Response (200)
+
+```json
+{
+  "schedule_id": 10,
+  "guide_id": 7,
+  "guide_name": "John Doe",
+  "assignment_type": "MANUAL",
+  "warnings": ["Guide does not speak requested language: pt"]
+}
+```
+
+`warnings` is an empty array when all constraints are satisfied.
+
+### Assignment Error Cases
+
+- `404 Not Found`: schedule or guide does not exist.
+- `400 Bad Request`: guide is inactive.
+- `422 Unprocessable Entity`: no eligible guide (auto-assign only).
+
+### Frontend Usage
+
+```js
+// Auto-assign a guide
+export async function autoAssignGuide(scheduleId) {
+  return fetchAPI(`/schedules/${scheduleId}/assign`, { method: 'POST' })
+}
+
+// Manual assign a guide (admin override)
+export async function manualAssignGuide(scheduleId, guideId, reason = null) {
+  return fetchAPI(`/schedules/${scheduleId}/assign`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guide_id: guideId, reason }),
+  })
+}
+```

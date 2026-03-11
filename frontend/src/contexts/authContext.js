@@ -1,29 +1,91 @@
 ﻿// src/contexts/authContext.js
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
 } from 'firebase/auth'
 import { auth, firebaseDisabled } from '../utils/firebase'
+import { getCurrentAuthenticatedUser } from '../services/authService'
 
 // Reactive references to hold auth state
 const currentUser = ref(null)
+const profile = ref(null)
 const authLoading = ref(true)
+const profileLoading = ref(false)
 const authError = ref(null)
+
+let profileRequestId = 0
+let initialAuthResolved = false
+let resolveInitialAuthPromise
+
+const initialAuthPromise = new Promise((resolve) => {
+  resolveInitialAuthPromise = resolve
+})
+
+function finishInitialAuthResolution() {
+  if (!initialAuthResolved) {
+    initialAuthResolved = true
+    resolveInitialAuthPromise?.()
+  }
+}
+
+async function syncAuthenticatedProfile(user) {
+  const requestId = ++profileRequestId
+
+  if (!user) {
+    profile.value = null
+    profileLoading.value = false
+    return null
+  }
+
+  profileLoading.value = true
+
+  try {
+    const idToken = await user.getIdToken()
+    const authenticatedProfile = await getCurrentAuthenticatedUser(idToken)
+
+    if (requestId === profileRequestId) {
+      profile.value = authenticatedProfile
+    }
+
+    return authenticatedProfile
+  } catch (err) {
+    if (requestId === profileRequestId) {
+      profile.value = null
+      authError.value = err
+    }
+    throw err
+  } finally {
+    if (requestId === profileRequestId) {
+      profileLoading.value = false
+    }
+  }
+}
 
 // If Firebase is configured, listen for auth state changes.
 // Otherwise keep user null and set loading=false so the app can render.
 if (!firebaseDisabled && auth) {
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     currentUser.value = user
-    authLoading.value = false
+    authError.value = null
+
+    try {
+      await syncAuthenticatedProfile(user)
+    } catch {
+      // Keep the Firebase session visible so callers can surface the backend mapping error.
+    } finally {
+      authLoading.value = false
+      finishInitialAuthResolution()
+    }
   })
 } else {
   currentUser.value = null
+  profile.value = null
   authLoading.value = false
+  profileLoading.value = false
+  finishInitialAuthResolution()
 }
 
 /////////////////////////////////////////////////
@@ -42,25 +104,14 @@ async function loginWithEmail(email, password) {
   }
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password)
+    await syncAuthenticatedProfile(cred.user)
     return cred.user
   } catch (err) {
-    authError.value = err
-    throw err
-  }
-}
-
-// Signup function
-async function signupWithEmail(email, password) {
-  authError.value = null
-  if (!auth) {
-    const err = new Error('Firebase is not configured. Cannot create account.')
-    authError.value = err
-    throw err
-  }
-  try {
-    const cred = await createUserWithEmailAndPassword(auth, email, password)
-    return cred.user
-  } catch (err) {
+    if (auth.currentUser) {
+      await signOut(auth)
+    }
+    currentUser.value = null
+    profile.value = null
     authError.value = err
     throw err
   }
@@ -69,6 +120,7 @@ async function signupWithEmail(email, password) {
 // Logout function
 async function logout() {
   authError.value = null
+  profile.value = null
   if (!auth) {
     const err = new Error('Firebase is not configured. Cannot logout.')
     authError.value = err
@@ -76,6 +128,7 @@ async function logout() {
   }
   try {
     await signOut(auth)
+    currentUser.value = null
   } catch (err) {
     authError.value = err
     throw err
@@ -113,16 +166,31 @@ async function getIdToken() {
   }
 }
 
+async function ensureAuthReady() {
+  if (!initialAuthResolved) {
+    await initialAuthPromise
+  }
+
+  if (currentUser.value && !profile.value && !profileLoading.value) {
+    await syncAuthenticatedProfile(currentUser.value)
+  }
+
+  return profile.value
+}
+
 // Composable-style function to use in components
 export function useAuth() {
   return {
     user: currentUser,
+    profile,
+    role: computed(() => profile.value?.role || null),
     loading: authLoading,
+    profileLoading,
     error: authError,
     loginWithEmail,
-    signupWithEmail,
     logout,
     passwordResetWithEmail,
     getIdToken,
+    ensureAuthReady,
   }
 }
