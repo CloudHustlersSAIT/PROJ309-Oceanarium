@@ -1,12 +1,13 @@
-name: Backend CI – Validate Migrations
+name: CI – Quality & Migrations
 
 on:
   pull_request:
-    paths: ["backend/**"]
+    paths: ["backend/**", "frontend/**"]
 
 jobs:
   validate-migrations:
     runs-on: ubuntu-latest
+    if: contains(toJSON(github.event.pull_request.changed_files), 'backend/') || github.event_name == 'pull_request'
 
     services:
       postgres:
@@ -49,3 +50,125 @@ jobs:
       - name: Re-upgrade to head (idempotent re-apply)
         working-directory: backend
         run: alembic upgrade head
+
+  frontend-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint check
+        working-directory: frontend
+        run: npm run lint:check
+
+      - name: Test with coverage
+        working-directory: frontend
+        run: npm run test:coverage
+
+  backend-quality:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: oceanarium
+          POSTGRES_PASSWORD: oceanarium
+          POSTGRES_DB: oceanarium
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oceanarium"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg2://oceanarium:oceanarium@localhost:5432/oceanarium
+      ENV: development
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Ruff lint check
+        working-directory: backend
+        run: ruff check app/
+
+      - name: Ruff format check
+        working-directory: backend
+        run: ruff format --check app/
+
+      - name: Run tests with coverage
+        working-directory: backend
+        run: pytest tests/ --cov=app --cov-report=term --cov-fail-under=80
+
+  backend-load-test:
+    runs-on: ubuntu-latest
+    needs: [backend-quality, validate-migrations]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: oceanarium
+          POSTGRES_PASSWORD: oceanarium
+          POSTGRES_DB: oceanarium
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oceanarium"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg2://oceanarium:oceanarium@localhost:5432/oceanarium
+      ENV: development
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run migrations
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Start server
+        working-directory: backend
+        run: uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+
+      - name: Wait for server
+        run: sleep 5
+
+      - name: Run load tests
+        working-directory: backend
+        run: locust -f load_tests/locustfile.py --headless -u 50 -r 10 -t 30s --host http://localhost:8000

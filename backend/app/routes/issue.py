@@ -22,4 +22,4 @@ def create_issue(issue: IssueCreate, conn=Depends(get_db)):
         return issue_service.create_issue(conn, issue)
     except Exception:
         logger.exception("Unexpected error creating issue")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from None

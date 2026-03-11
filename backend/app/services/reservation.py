@@ -8,9 +8,7 @@ from .exceptions import ConflictError, NotFoundError, ValidationError
 
 def list_reservations(conn):
     # Read path only: return newest reservations first for dashboard-style views.
-    result = conn.execute(
-        text("SELECT * FROM reservations ORDER BY created_at DESC")
-    )
+    result = conn.execute(text("SELECT * FROM reservations ORDER BY created_at DESC"))
     columns = result.keys()
     rows = [dict(zip(columns, row)) for row in result.fetchall()]
     return rows
@@ -64,9 +62,7 @@ def create_reservation(conn, data):
 
     # Accept client-provided external ID, otherwise generate deterministic manual prefix.
     clorian_reservation_id = (
-        (data.clorian_reservation_id or "").strip()
-        if hasattr(data, "clorian_reservation_id")
-        else ""
+        (data.clorian_reservation_id or "").strip() if hasattr(data, "clorian_reservation_id") else ""
     )
     if not clorian_reservation_id:
         clorian_reservation_id = f"MANUAL-{uuid4().hex[:12].upper()}"

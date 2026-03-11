@@ -1,4 +1,4 @@
-﻿import { fileURLToPath, URL } from 'node:url'
+import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -24,10 +24,23 @@ export default defineConfig(async () => {
       },
     },
     build: {
-      // Remove console logs in production builds
       minify: 'esbuild',
       esbuild: {
         drop: ['console', 'debugger'],
+      },
+    },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'lcov'],
+        thresholds: {
+          lines: 80,
+          branches: 80,
+          functions: 80,
+          statements: 80,
+        },
       },
     },
   }

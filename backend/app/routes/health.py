@@ -25,4 +25,4 @@ def health_db():
         raise
     except Exception:
         logger.exception("Database health check failed")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from None

@@ -5,9 +5,7 @@
       <div class="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 class="text-2xl font-semibold text-[#1C1C1C]">My Profile</h1>
-          <p class="text-sm text-black/60">
-            View and update your guide preferences.
-          </p>
+          <p class="text-sm text-black/60">View and update your guide preferences.</p>
         </div>
 
         <div class="flex items-center gap-2">
@@ -31,7 +29,9 @@
       <!-- Left: identity card -->
       <div class="md:col-span-1 rounded-2xl bg-white border border-black/10 shadow-sm p-6">
         <div class="flex items-center gap-3">
-          <div class="h-12 w-12 rounded-2xl bg-[#CAF0F8] ring-1 ring-[#00B4D8]/40 flex items-center justify-center">
+          <div
+            class="h-12 w-12 rounded-2xl bg-[#CAF0F8] ring-1 ring-[#00B4D8]/40 flex items-center justify-center"
+          >
             <span class="text-[#0077B6] font-bold">
               {{ initials }}
             </span>
@@ -178,7 +178,7 @@
               :disabled="saving"
               class="rounded-xl bg-[#0077B6] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0097E7] disabled:opacity-60 disabled:cursor-not-allowed transition"
             >
-              {{ saving ? "Saving..." : "Save Changes" }}
+              {{ saving ? 'Saving...' : 'Save Changes' }}
             </button>
 
             <button
@@ -205,103 +205,107 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from "vue";
-import { useAuth } from "@/contexts/authContext";
-import { firebaseDisabled } from "@/utils/firebase";
+import { computed, reactive, ref } from 'vue'
+import { useAuth } from '@/contexts/authContext'
+import { firebaseDisabled } from '@/utils/firebase'
 
-const { user } = useAuth();
+const { user } = useAuth()
 
 // Simple demo identity values
-const displayEmail = computed(() => (firebaseDisabled ? "guest@local" : user?.value?.email || "unknown"));
+const displayEmail = computed(() =>
+  firebaseDisabled ? 'guest@local' : user?.value?.email || 'unknown',
+)
 const displayName = computed(() => {
-  if (firebaseDisabled) return "Guest Guide";
-  const email = user?.value?.email || "";
-  return email ? email.split("@")[0] : "Guide";
-});
+  if (firebaseDisabled) return 'Guest Guide'
+  const email = user?.value?.email || ''
+  return email ? email.split('@')[0] : 'Guide'
+})
 const initials = computed(() => {
-  const name = displayName.value || "G";
-  const parts = name.replace(/[^a-zA-Z0-9 ]/g, " ").trim().split(/\s+/);
-  const first = parts[0]?.[0] || "G";
-  const second = parts[1]?.[0] || "";
-  return (first + second).toUpperCase();
-});
-const employeeId = computed(() => "GD-" + (displayEmail.value || "000").slice(0, 3).toUpperCase());
+  const name = displayName.value || 'G'
+  const parts = name
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .trim()
+    .split(/\s+/)
+  const first = parts[0]?.[0] || 'G'
+  const second = parts[1]?.[0] || ''
+  return (first + second).toUpperCase()
+})
+const employeeId = computed(() => 'GD-' + (displayEmail.value || '000').slice(0, 3).toUpperCase())
 
 // Options
-const shifts = ["Morning", "Afternoon", "Evening"];
-const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const tourTypes = ["Dolphins", "Reef", "Sharks", "Molluscs", "Deep Sea"];
+const shifts = ['Morning', 'Afternoon', 'Evening']
+const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const tourTypes = ['Dolphins', 'Reef', 'Sharks', 'Molluscs', 'Deep Sea']
 
 // Storage key for demo persistence
-const STORAGE_KEY = "guide_profile";
+const STORAGE_KEY = 'guide_profile'
 
 // Form state
 const defaultProfile = () => ({
-  phone: "",
-  primaryLanguage: "English",
-  secondaryLanguage: "",
-  shifts: ["Morning"],
-  days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-  tourTypes: ["Dolphins", "Reef"],
-});
+  phone: '',
+  primaryLanguage: 'English',
+  secondaryLanguage: '',
+  shifts: ['Morning'],
+  days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+  tourTypes: ['Dolphins', 'Reef'],
+})
 
-const form = reactive(defaultProfile());
-const saving = ref(false);
-const toast = ref("");
-const toastType = ref("success");
+const form = reactive(defaultProfile())
+const saving = ref(false)
+const toast = ref('')
+const toastType = ref('success')
 
 function chipClass(arr, value) {
-  const active = arr.includes(value);
+  const active = arr.includes(value)
   return active
-    ? "bg-[#CAF0F8] text-[#0077B6] border-[#00B4D8]/40"
-    : "bg-white text-black/70 border-black/10 hover:bg-[#CAF0F8]/60";
+    ? 'bg-[#CAF0F8] text-[#0077B6] border-[#00B4D8]/40'
+    : 'bg-white text-black/70 border-black/10 hover:bg-[#CAF0F8]/60'
 }
 
 function toggleChip(arr, value) {
-  const idx = arr.indexOf(value);
-  if (idx >= 0) arr.splice(idx, 1);
-  else arr.push(value);
+  const idx = arr.indexOf(value)
+  if (idx >= 0) arr.splice(idx, 1)
+  else arr.push(value)
 }
 
 function loadProfile() {
-  toast.value = "";
-  const raw = localStorage.getItem(STORAGE_KEY);
-  const data = raw ? JSON.parse(raw) : null;
-  const merged = data ? { ...defaultProfile(), ...data } : defaultProfile();
+  toast.value = ''
+  const raw = localStorage.getItem(STORAGE_KEY)
+  const data = raw ? JSON.parse(raw) : null
+  const merged = data ? { ...defaultProfile(), ...data } : defaultProfile()
 
-  Object.assign(form, merged);
+  Object.assign(form, merged)
 }
 
 function resetToDefaults() {
-  localStorage.removeItem(STORAGE_KEY);
-  Object.assign(form, defaultProfile());
-  toastType.value = "success";
-  toast.value = "Reset to default settings.";
-  setTimeout(() => (toast.value = ""), 2000);
+  localStorage.removeItem(STORAGE_KEY)
+  Object.assign(form, defaultProfile())
+  toastType.value = 'success'
+  toast.value = 'Reset to default settings.'
+  setTimeout(() => (toast.value = ''), 2000)
 }
 
 async function saveProfile() {
-  toast.value = "";
-  saving.value = true;
+  toast.value = ''
+  saving.value = true
 
   try {
     // basic validation example
     if (form.phone && form.phone.length < 7) {
-      toastType.value = "error";
-      toast.value = "Phone number looks too short.";
-      return;
+      toastType.value = 'error'
+      toast.value = 'Phone number looks too short.'
+      return
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
-    toastType.value = "success";
-    toast.value = "Profile saved successfully.";
-    setTimeout(() => (toast.value = ""), 2000);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(form))
+    toastType.value = 'success'
+    toast.value = 'Profile saved successfully.'
+    setTimeout(() => (toast.value = ''), 2000)
   } finally {
-    saving.value = false;
+    saving.value = false
   }
 }
 
 // Load profile when page opens
-loadProfile();
+loadProfile()
 </script>
-

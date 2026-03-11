@@ -1,7 +1,13 @@
-﻿<script setup>
+<script setup>
 import { computed, onMounted, ref } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
-import { cancelBooking, createBooking, getBookings, getSchedules, rescheduleBooking } from '../services/api'
+import AppSidebar from '../components/AppSidebar.vue'
+import {
+  cancelBooking,
+  createBooking,
+  getBookings,
+  getSchedules,
+  rescheduleBooking,
+} from '../services/api'
 import {
   formatScheduleDateTimeForDisplay,
   formatStatusLabel,
@@ -48,24 +54,24 @@ const filteredReservations = computed(() => {
   const baseReservations = !text
     ? reservations.value
     : reservations.value.filter((reservation) => {
-      const searchable = [
-        getReservationDisplayId(reservation),
-        getReservationId(reservation),
-        reservation.booking_id,
-        reservation.id,
-        reservation.clorian_reservation_id,
-        reservation.customer_id,
-        reservation.customerId,
-        reservation.tour_id,
-        reservation.tourId,
-        getReservationDate(reservation),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
+        const searchable = [
+          getReservationDisplayId(reservation),
+          getReservationId(reservation),
+          reservation.booking_id,
+          reservation.id,
+          reservation.clorian_reservation_id,
+          reservation.customer_id,
+          reservation.customerId,
+          reservation.tour_id,
+          reservation.tourId,
+          getReservationDate(reservation),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
 
-      return searchable.includes(text)
-    })
+        return searchable.includes(text)
+      })
 
   return [...baseReservations].sort(compareReservationsByNearestDate)
 })
@@ -104,7 +110,13 @@ function getReservationId(reservation) {
 }
 
 function getReservationDisplayId(reservation) {
-  return reservation.clorian_reservation_id || reservation.booking_id || reservation.bookingId || reservation.id || '-'
+  return (
+    reservation.clorian_reservation_id ||
+    reservation.booking_id ||
+    reservation.bookingId ||
+    reservation.id ||
+    '-'
+  )
 }
 
 function getCustomerId(reservation) {
@@ -120,7 +132,9 @@ function getStatus(reservation) {
 }
 
 function getReservationDate(reservation) {
-  return reservation.date || reservation.event_start_datetime || reservation.eventStartDatetime || ''
+  return (
+    reservation.date || reservation.event_start_datetime || reservation.eventStartDatetime || ''
+  )
 }
 
 function parseReservationDateMs(reservation) {
@@ -221,7 +235,9 @@ function formatTimePart(dateLike) {
 }
 
 function mapLanguageToCode(language) {
-  const normalized = String(language || '').trim().toLowerCase()
+  const normalized = String(language || '')
+    .trim()
+    .toLowerCase()
   if (normalized === 'english') return 'en'
   if (normalized === 'portuguese') return 'pt'
   if (normalized === 'spanish') return 'es'
@@ -232,10 +248,10 @@ function mapLanguageToCode(language) {
 
 function getReservationLanguage(reservation) {
   return (
-    reservation?.language
-    || mapLanguageCodeToName(reservation?.language_code)
-    || mapLanguageCodeToName(reservation?.languageCode)
-    || 'English'
+    reservation?.language ||
+    mapLanguageCodeToName(reservation?.language_code) ||
+    mapLanguageCodeToName(reservation?.languageCode) ||
+    'English'
   )
 }
 
@@ -314,7 +330,9 @@ async function loadCreateSchedules() {
     }
 
     const nextSchedules = (Array.isArray(schedules) ? schedules : []).filter((schedule) => {
-      const status = String(schedule?.status || '').trim().toLowerCase()
+      const status = String(schedule?.status || '')
+        .trim()
+        .toLowerCase()
       return status !== 'cancelled' && status !== 'completed'
     })
 
@@ -337,7 +355,9 @@ function inferReservationLanguage(reservation) {
 }
 
 function inferReservationStartTime(reservation) {
-  const raw = String(reservation?.event_start_datetime || reservation?.eventStartDatetime || '').trim()
+  const raw = String(
+    reservation?.event_start_datetime || reservation?.eventStartDatetime || '',
+  ).trim()
   if (!raw) return '09:00'
 
   const parsed = new Date(raw)
@@ -504,7 +524,10 @@ async function handleRescheduleReservation(reservation) {
   const startTime = inferReservationStartTime(reservation)
   const endTime = inferReservationEndTime(reservation)
 
-  const userInput = window.prompt('New date (YYYY-MM-DD):', formatApiDate(getReservationDate(reservation)))
+  const userInput = window.prompt(
+    'New date (YYYY-MM-DD):',
+    formatApiDate(getReservationDate(reservation)),
+  )
   if (!userInput) return
 
   const newDate = userInput.trim()
@@ -515,7 +538,13 @@ async function handleRescheduleReservation(reservation) {
 
   actionState.value = { id: reservationId, type: 'reschedule' }
   try {
-    const newScheduleId = await resolveScheduleIdByCriteria(tourId, newDate, startTime, endTime, language)
+    const newScheduleId = await resolveScheduleIdByCriteria(
+      tourId,
+      newDate,
+      startTime,
+      endTime,
+      language,
+    )
     if (!newScheduleId) {
       error.value =
         'No matching schedule was found for the selected date/time. Create the schedule first, then try again.'
@@ -538,7 +567,7 @@ onMounted(async () => {
 
 <template>
   <div class="flex min-h-screen bg-gray-100 overflow-x-hidden">
-    <Sidebar />
+    <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6">
       <div class="flex items-center justify-between gap-4 mb-5">
@@ -558,11 +587,17 @@ onMounted(async () => {
           <div v-if="loading" class="p-4 text-sm text-gray-500">Loading reservations...</div>
           <div v-else-if="error" class="p-4 text-sm text-red-600">
             <div>{{ error }}</div>
-            <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs" @click="loadReservations">
+            <button
+              type="button"
+              class="mt-2 rounded border border-red-300 px-3 py-1 text-xs"
+              @click="loadReservations"
+            >
               Retry
             </button>
           </div>
-          <div v-else-if="filteredReservations.length === 0" class="p-4 text-sm text-gray-500">No reservations found.</div>
+          <div v-else-if="filteredReservations.length === 0" class="p-4 text-sm text-gray-500">
+            No reservations found.
+          </div>
           <div v-else class="overflow-hidden">
             <table class="w-full table-fixed text-sm">
               <colgroup>
@@ -591,21 +626,40 @@ onMounted(async () => {
                   :key="getRowKey(reservation, index)"
                   class="border-b border-gray-200 hover:bg-gray-50"
                 >
-                  <td class="px-5 py-4 text-left text-gray-700 wrap-break-word">{{ getReservationDisplayId(reservation) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatShortDate(getReservationDate(reservation)) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getCustomerId(reservation) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ getTourId(reservation) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getReservationLanguage(reservation) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatStatusLabel(getStatus(reservation), '-') }}</td>
+                  <td class="px-5 py-4 text-left text-gray-700 wrap-break-word">
+                    {{ getReservationDisplayId(reservation) }}
+                  </td>
+                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">
+                    {{ formatShortDate(getReservationDate(reservation)) }}
+                  </td>
+                  <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">
+                    {{ getCustomerId(reservation) }}
+                  </td>
+                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">
+                    {{ getTourId(reservation) }}
+                  </td>
+                  <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">
+                    {{ getReservationLanguage(reservation) }}
+                  </td>
+                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">
+                    {{ formatStatusLabel(getStatus(reservation), '-') }}
+                  </td>
                   <td class="px-5 py-4 text-center">
-                    <div class="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
+                    <div
+                      class="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap"
+                    >
                       <button
                         type="button"
                         class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700"
                         :disabled="actionState.id === getReservationId(reservation)"
                         @click="handleRescheduleReservation(reservation)"
                       >
-                        {{ actionState.id === getReservationId(reservation) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
+                        {{
+                          actionState.id === getReservationId(reservation) &&
+                          actionState.type === 'reschedule'
+                            ? 'Saving...'
+                            : 'Reschedule'
+                        }}
                       </button>
                       <button
                         v-if="!isCancelledStatus(reservation)"
@@ -614,7 +668,12 @@ onMounted(async () => {
                         :disabled="actionState.id === getReservationId(reservation)"
                         @click="handleCancelReservation(reservation)"
                       >
-                        {{ actionState.id === getReservationId(reservation) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
+                        {{
+                          actionState.id === getReservationId(reservation) &&
+                          actionState.type === 'cancel'
+                            ? 'Cancelling...'
+                            : 'Cancel'
+                        }}
                       </button>
                       <button
                         v-else
@@ -650,13 +709,27 @@ onMounted(async () => {
                 placeholder="Enter existing customer numeric ID"
                 class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
                 @beforeinput="handleNumericBeforeInput"
-                @paste="(event) => handleNumericPaste(event, (value) => (form.customerId = value), CUSTOMER_ID_MAX_LENGTH)"
+                @paste="
+                  (event) =>
+                    handleNumericPaste(
+                      event,
+                      (value) => (form.customerId = value),
+                      CUSTOMER_ID_MAX_LENGTH,
+                    )
+                "
                 @input="handleCustomerIdInput"
               />
               <datalist id="customer-id-options">
-                <option v-for="customerId in knownCustomerIds" :key="`customer-${customerId}`" :value="customerId" />
+                <option
+                  v-for="customerId in knownCustomerIds"
+                  :key="`customer-${customerId}`"
+                  :value="customerId"
+                />
               </datalist>
-              <p class="mt-1 text-xs text-gray-500">Use an existing customer ID from the customers table. Suggestions come from existing reservations.</p>
+              <p class="mt-1 text-xs text-gray-500">
+                Use an existing customer ID from the customers table. Suggestions come from existing
+                reservations.
+              </p>
             </div>
 
             <div>
@@ -693,25 +766,59 @@ onMounted(async () => {
                 :disabled="schedulesLoading || availableSchedules.length === 0"
               >
                 <option value="">Select a schedule</option>
-                <option v-for="schedule in availableSchedules" :key="`schedule-${schedule.id}`" :value="String(schedule.id)">
+                <option
+                  v-for="schedule in availableSchedules"
+                  :key="`schedule-${schedule.id}`"
+                  :value="String(schedule.id)"
+                >
                   {{ buildScheduleOptionLabel(schedule) }}
                 </option>
               </select>
-              <p v-if="schedulesLoading" class="mt-1 text-xs text-gray-500">Loading available schedules...</p>
-              <p v-else-if="schedulesError" class="mt-1 text-xs text-red-600">{{ schedulesError }}</p>
+              <p v-if="schedulesLoading" class="mt-1 text-xs text-gray-500">
+                Loading available schedules...
+              </p>
+              <p v-else-if="schedulesError" class="mt-1 text-xs text-red-600">
+                {{ schedulesError }}
+              </p>
               <p v-else-if="!availableSchedules.length" class="mt-1 text-xs text-amber-700">
                 No open schedules available. Create a schedule first.
               </p>
-              <p v-else class="mt-1 text-xs text-gray-500">Pick the event schedule for this reservation.</p>
+              <p v-else class="mt-1 text-xs text-gray-500">
+                Pick the event schedule for this reservation.
+              </p>
             </div>
 
-            <div v-if="selectedCreateSchedule" class="rounded border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700">
-              <div><span class="font-medium">Tour:</span> {{ selectedCreateSchedule.tour_name || `Tour ${selectedCreateSchedule.tour_id}` }}</div>
-              <div><span class="font-medium">Language:</span> {{ mapLanguageCodeToName(selectedCreateSchedule.language_code) || selectedCreateSchedule.language_code || '-' }}</div>
-              <div><span class="font-medium">Starts:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}</div>
-              <div><span class="font-medium">Ends:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_end_datetime) }}</div>
-              <div><span class="font-medium">Guide:</span> {{ selectedCreateSchedule.guide_name || 'Unassigned Guide' }}</div>
-              <div><span class="font-medium">Status:</span> {{ selectedCreateSchedule.status || '-' }}</div>
+            <div
+              v-if="selectedCreateSchedule"
+              class="rounded border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700"
+            >
+              <div>
+                <span class="font-medium">Tour:</span>
+                {{ selectedCreateSchedule.tour_name || `Tour ${selectedCreateSchedule.tour_id}` }}
+              </div>
+              <div>
+                <span class="font-medium">Language:</span>
+                {{
+                  mapLanguageCodeToName(selectedCreateSchedule.language_code) ||
+                  selectedCreateSchedule.language_code ||
+                  '-'
+                }}
+              </div>
+              <div>
+                <span class="font-medium">Starts:</span>
+                {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}
+              </div>
+              <div>
+                <span class="font-medium">Ends:</span>
+                {{ formatScheduleDateTime(selectedCreateSchedule.event_end_datetime) }}
+              </div>
+              <div>
+                <span class="font-medium">Guide:</span>
+                {{ selectedCreateSchedule.guide_name || 'Unassigned Guide' }}
+              </div>
+              <div>
+                <span class="font-medium">Status:</span> {{ selectedCreateSchedule.status || '-' }}
+              </div>
             </div>
 
             <div>
@@ -726,7 +833,14 @@ onMounted(async () => {
                 placeholder="00"
                 class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
                 @beforeinput="handleNumericBeforeInput"
-                @paste="(event) => handleNumericPaste(event, (value) => (form.adultTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
+                @paste="
+                  (event) =>
+                    handleNumericPaste(
+                      event,
+                      (value) => (form.adultTickets = value),
+                      SHORT_NUMERIC_MAX_LENGTH,
+                    )
+                "
                 @input="handleAdultTicketsInput"
               />
             </div>
@@ -743,7 +857,14 @@ onMounted(async () => {
                 placeholder="00"
                 class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
                 @beforeinput="handleNumericBeforeInput"
-                @paste="(event) => handleNumericPaste(event, (value) => (form.childTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
+                @paste="
+                  (event) =>
+                    handleNumericPaste(
+                      event,
+                      (value) => (form.childTickets = value),
+                      SHORT_NUMERIC_MAX_LENGTH,
+                    )
+                "
                 @input="handleChildTicketsInput"
               />
             </div>

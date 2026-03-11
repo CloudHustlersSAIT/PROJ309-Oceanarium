@@ -24,7 +24,11 @@ const dateRange = computed(() => {
     end.setDate(end.getDate() + 6)
 
     const startLabel = start.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
-    const endLabel = end.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+    const endLabel = end.toLocaleDateString('en-CA', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
     return `${startLabel} - ${endLabel}`
   }
 
@@ -58,21 +62,33 @@ const dateRange = computed(() => {
       <div class="flex items-center gap-2 flex-wrap">
         <button
           class="px-3 py-1.5 rounded border"
-          :class="currentView === 'month' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-[#ACBAC4]'"
+          :class="
+            currentView === 'month'
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-700 border-[#ACBAC4]'
+          "
           @click="emit('change-view', 'month')"
         >
           Month
         </button>
         <button
           class="px-3 py-1.5 rounded border"
-          :class="currentView === 'week' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-[#ACBAC4]'"
+          :class="
+            currentView === 'week'
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-700 border-[#ACBAC4]'
+          "
           @click="emit('change-view', 'week')"
         >
           Week
         </button>
         <button
           class="px-3 py-1.5 rounded border"
-          :class="currentView === 'day' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-[#ACBAC4]'"
+          :class="
+            currentView === 'day'
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-gray-700 border-[#ACBAC4]'
+          "
           @click="emit('change-view', 'day')"
         >
           Day
@@ -90,4 +106,3 @@ const dateRange = computed(() => {
     </div>
   </section>
 </template>
-

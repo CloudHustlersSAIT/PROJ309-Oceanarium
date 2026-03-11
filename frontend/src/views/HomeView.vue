@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getSchedules, getStats } from '../services/api'
 import { useAuth } from '../contexts/authContext'
-import Sidebar from '../components/Sidebar.vue'
+import AppSidebar from '../components/AppSidebar.vue'
 import { formatScheduleTimeForDisplay, formatStatusLabel } from '../utils/reservation'
 
 const router = useRouter()
@@ -24,7 +24,9 @@ const greetingByTimeOfDay = computed(() => {
 })
 
 const emailFirstName = computed(() => {
-  const email = String(user.value?.email || '').trim().toLowerCase()
+  const email = String(user.value?.email || '')
+    .trim()
+    .toLowerCase()
   if (!email || !email.includes('@')) return ''
 
   const localPart = email.split('@')[0] || ''
@@ -60,7 +62,9 @@ function getTodayUtcIsoDate() {
 }
 
 function getStatusTone(status) {
-  const normalized = String(status || '').trim().toLowerCase()
+  const normalized = String(status || '')
+    .trim()
+    .toLowerCase()
   if (normalized === 'cancelled' || normalized === 'overbooked') {
     return 'bg-red-50 text-red-700 border-red-200'
   }
@@ -82,7 +86,9 @@ function buildScheduleRowsFromApi(schedules) {
 }
 
 function isActiveScheduleStatus(status) {
-  const normalized = String(status || '').trim().toLowerCase()
+  const normalized = String(status || '')
+    .trim()
+    .toLowerCase()
   return normalized !== 'cancelled' && normalized !== 'completed'
 }
 
@@ -136,7 +142,9 @@ async function loadHomeData() {
     }
 
     const schedulesForCard = Array.isArray(todaySchedules)
-      ? todaySchedules.filter((schedule) => isActiveScheduleStatus(schedule?.status)).sort(sortByStartDateTimeAsc)
+      ? todaySchedules
+          .filter((schedule) => isActiveScheduleStatus(schedule?.status))
+          .sort(sortByStartDateTimeAsc)
       : null
 
     if (Array.isArray(schedulesForCard)) {
@@ -160,7 +168,9 @@ async function loadHomeData() {
 
       const delayedCount = Array.isArray(todaySchedules)
         ? todaySchedules.filter((schedule) => {
-            const status = String(schedule?.status || '').trim().toLowerCase()
+            const status = String(schedule?.status || '')
+              .trim()
+              .toLowerCase()
             return status === 'delay' || status === 'delayed'
           }).length
         : 0
@@ -190,7 +200,7 @@ async function loadHomeData() {
       })
 
       if (schedulesResult.status === 'rejected') {
-        scheduleLoadWarning.value = 'Unable to load today\'s schedules right now.'
+        scheduleLoadWarning.value = "Unable to load today's schedules right now."
       }
     }
   } finally {
@@ -227,7 +237,7 @@ onMounted(loadHomeData)
 
 <template>
   <div class="flex min-h-screen bg-[#F3F5F8] overflow-x-hidden">
-    <Sidebar />
+    <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 xl:p-8">
       <header class="mb-6">
@@ -236,9 +246,13 @@ onMounted(loadHomeData)
       </header>
 
       <section class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 items-start">
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2 2xl:col-span-1">
+        <article
+          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2 2xl:col-span-1"
+        >
           <h2 class="text-xl font-semibold text-slate-800 mb-2">Today's Schedule</h2>
-          <p v-if="scheduleLoadWarning" class="mb-2 text-xs text-amber-700">{{ scheduleLoadWarning }}</p>
+          <p v-if="scheduleLoadWarning" class="mb-2 text-xs text-amber-700">
+            {{ scheduleLoadWarning }}
+          </p>
           <ul class="mt-2 space-y-2">
             <li
               v-for="row in visibleScheduleRows"
@@ -246,15 +260,25 @@ onMounted(loadHomeData)
               class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
             >
               <div>
-                <p class="text-sm font-semibold text-slate-800">{{ row.time }} - Guide: {{ row.guide }}</p>
+                <p class="text-sm font-semibold text-slate-800">
+                  {{ row.time }} - Guide: {{ row.guide }}
+                </p>
                 <p class="text-sm text-slate-600">{{ row.tour }}</p>
               </div>
-              <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="row.tone">{{ row.status }}</span>
+              <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="row.tone">{{
+                row.status
+              }}</span>
             </li>
-            <li v-if="scheduleSectionLoading" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+            <li
+              v-if="scheduleSectionLoading"
+              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600"
+            >
               Loading today's schedule...
             </li>
-            <li v-else-if="!visibleScheduleRows.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+            <li
+              v-else-if="!visibleScheduleRows.length"
+              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600"
+            >
               No schedules for today.
             </li>
           </ul>
@@ -272,7 +296,10 @@ onMounted(loadHomeData)
           <h2 class="text-xl font-semibold text-slate-800 mb-2">Alerts</h2>
           <ul class="mt-2 space-y-2 text-sm text-slate-700">
             <li v-for="alert in alerts" :key="alert" class="flex items-center gap-2">
-              <span class="inline-flex items-center justify-center w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full">!</span>
+              <span
+                class="inline-flex items-center justify-center w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full"
+                >!</span
+              >
               <span>{{ alert }}</span>
             </li>
             <li v-if="!alerts.length" class="text-slate-600">No alerts available.</li>
@@ -297,7 +324,9 @@ onMounted(loadHomeData)
               <span class="text-xs uppercase tracking-wide text-gray-500">{{ item.metric }}</span>
               <span class="ml-2 text-sm font-semibold text-slate-800">{{ item.value }}</span>
             </li>
-            <li v-if="!recentActivity.length" class="text-sm text-slate-600">No recent activity available.</li>
+            <li v-if="!recentActivity.length" class="text-sm text-slate-600">
+              No recent activity available.
+            </li>
           </ul>
         </article>
       </section>
@@ -334,7 +363,9 @@ onMounted(loadHomeData)
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
         @click.self="closeScheduleModal"
       >
-        <section class="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+        <section
+          class="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl"
+        >
           <div class="mb-3 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-slate-800">All Schedules for Today</h3>
             <button
@@ -353,10 +384,14 @@ onMounted(loadHomeData)
               class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
             >
               <div>
-                <p class="text-sm font-semibold text-slate-800">{{ row.time }} - Guide: {{ row.guide }}</p>
+                <p class="text-sm font-semibold text-slate-800">
+                  {{ row.time }} - Guide: {{ row.guide }}
+                </p>
                 <p class="text-sm text-slate-600">{{ row.tour }}</p>
               </div>
-              <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="row.tone">{{ row.status }}</span>
+              <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="row.tone">{{
+                row.status
+              }}</span>
             </li>
           </ul>
         </section>

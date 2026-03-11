@@ -8,6 +8,5 @@
 </template>
 
 <script setup>
-import GuideTopbar from "@/components/guide/GuideTopbar.vue";
+import GuideTopbar from '@/components/guide/GuideTopbar.vue'
 </script>
-

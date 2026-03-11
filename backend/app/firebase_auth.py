@@ -3,14 +3,14 @@ import logging
 import os
 
 import firebase_admin
-
-from firebase_admin import credentials, auth
 from fastapi import HTTPException
+from firebase_admin import auth, credentials
 
 logger = logging.getLogger(__name__)
 
 
-_firebase_initialized = False 
+_firebase_initialized = False
+
 
 def initialize_firebase() -> None:
     """
@@ -20,7 +20,7 @@ def initialize_firebase() -> None:
 
     if _firebase_initialized:
         return  # Already initialized
-    
+
     service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
 
     # Validate the presence and correctness of the service account JSON
@@ -29,10 +29,10 @@ def initialize_firebase() -> None:
             credential_data = json.loads(service_account_json)
             cred = credentials.Certificate(credential_data)
         except Exception as e:
-            raise ValueError(f"Invalid FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
+            raise ValueError(f"Invalid FIREBASE_SERVICE_ACCOUNT_JSON: {e}") from e
     else:
         raise RuntimeError("FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set")
-    
+
     # Initialize the Firebase Admin SDK with the provided credentials
     firebase_admin.initialize_app(cred)
     _firebase_initialized = True
@@ -50,4 +50,4 @@ def verify_firebase_token(token: str) -> dict:
         return decoded_token
     except Exception as e:
         logger.warning("Firebase token verification failed: %s", e)
-        raise HTTPException(status_code=401, detail="Invalid or expired authentication token")
+        raise HTTPException(status_code=401, detail="Invalid or expired authentication token") from e

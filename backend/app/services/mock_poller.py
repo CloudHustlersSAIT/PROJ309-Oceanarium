@@ -22,15 +22,13 @@ Design notes
 
 import json
 import random
-
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Literal, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from .exceptions import ValidationError
-
 
 # =========================================================
 # Constants
@@ -42,15 +40,39 @@ STAGING_TABLE = "public.poll_staging"
 Scenario = Literal["CREATE", "UPDATE", "UNCHANGED"]
 
 FIRST_NAMES = [
-    "Emma", "Liam", "Sofia", "Noah", "Olivia",
-    "Lucas", "Mia", "Ethan", "Isabella", "James",
-    "Ana", "Miguel", "Maria", "Pedro", "Joana",
+    "Emma",
+    "Liam",
+    "Sofia",
+    "Noah",
+    "Olivia",
+    "Lucas",
+    "Mia",
+    "Ethan",
+    "Isabella",
+    "James",
+    "Ana",
+    "Miguel",
+    "Maria",
+    "Pedro",
+    "Joana",
 ]
 
 LAST_NAMES = [
-    "Silva", "Santos", "Ferreira", "Oliveira", "Costa",
-    "Rodrigues", "Martins", "Pereira", "Almeida", "Sousa",
-    "Johnson", "Williams", "Brown", "Taylor", "Anderson",
+    "Silva",
+    "Santos",
+    "Ferreira",
+    "Oliveira",
+    "Costa",
+    "Rodrigues",
+    "Martins",
+    "Pereira",
+    "Almeida",
+    "Sousa",
+    "Johnson",
+    "Williams",
+    "Brown",
+    "Taylor",
+    "Anderson",
 ]
 
 LANGUAGES = ["en", "pt", "es", "fr", "zh"]
@@ -76,25 +98,15 @@ RESERVATION_STATUSES_UPDATE = ["CONFIRMED", "PENDING", "CANCELLED"]
 # Request / Response Models
 # =========================================================
 
+
 class MockRunRequest(BaseModel):
     seed: int = Field(default=42, description="Deterministic seed for repeatable generation.")
-    batch_size: int = Field(
-        default=10,
-        ge=1,
-        le=500,
-        description="Number of reservations to generate."
-    )
+    batch_size: int = Field(default=10, ge=1, le=500, description="Number of reservations to generate.")
     update_ratio: float = Field(
-        default=0.30,
-        ge=0.0,
-        le=1.0,
-        description="Fraction of reservations that should be UPDATE."
+        default=0.30, ge=0.0, le=1.0, description="Fraction of reservations that should be UPDATE."
     )
     unchanged_ratio: float = Field(
-        default=0.20,
-        ge=0.0,
-        le=1.0,
-        description="Fraction of reservations that should be UNCHANGED."
+        default=0.20, ge=0.0, le=1.0, description="Fraction of reservations that should be UNCHANGED."
     )
 
 
@@ -110,6 +122,7 @@ class MockRunResponse(BaseModel):
 # =========================================================
 # Helper Functions - IDs / Dates / Payloads
 # =========================================================
+
 
 def _deterministic_external_id(rng: random.Random, prefix: str) -> str:
     """
@@ -130,7 +143,7 @@ def _generate_purchase_id(rng: random.Random) -> int:
     return rng.randint(100000, 999999)
 
 
-def _generate_event_window(rng: random.Random) -> Tuple[str, str]:
+def _generate_event_window(rng: random.Random) -> tuple[str, str]:
     """
     Generates realistic future event windows:
     - 1 to 14 days in the future
@@ -173,7 +186,7 @@ def _pick_reservation_status(rng: random.Random, scenario: Scenario) -> str:
     return rng.choice(RESERVATION_STATUSES_CREATE)
 
 
-def load_tours(conn) -> List[Dict[str, Any]]:
+def load_tours(conn) -> list[dict[str, Any]]:
     """
     Loads tours from the database so program_id and program_name remain consistent.
 
@@ -190,7 +203,7 @@ def load_tours(conn) -> List[Dict[str, Any]]:
     result = conn.execute(sql)
     rows = result.fetchall()
 
-    tours: List[Dict[str, Any]] = []
+    tours: list[dict[str, Any]] = []
     for row in rows:
         tours.append(
             {
@@ -217,9 +230,9 @@ def _build_ticket(
     end_datetime: str,
     buyer_type: Literal["adult", "child"],
     ticket_index: int,
-    venue: Dict[str, Any],
+    venue: dict[str, Any],
     rng: random.Random,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Builds one nested ticket object inside the reservation payload.
     This mirrors the external payload, not your internal DB row.
@@ -248,9 +261,9 @@ def _build_ticket(
 def _build_reservation_payload(
     clorian_reservation_id: str,
     rng: random.Random,
-    tours: List[Dict[str, Any]],
+    tours: list[dict[str, Any]],
     scenario: Scenario = "CREATE",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Builds a realistic reservation payload aligned with the reservations table
     and expected external/source data structure.
@@ -269,7 +282,7 @@ def _build_reservation_payload(
     child_count = rng.randint(0, 3)
     total_tickets = adult_count + child_count
 
-    tickets: List[Dict[str, Any]] = []
+    tickets: list[dict[str, Any]] = []
     ticket_counter = 1
 
     for _ in range(adult_count):
@@ -340,7 +353,7 @@ def _build_reservation_payload(
     }
 
 
-def _apply_update(payload: Dict[str, Any], rng: random.Random) -> Dict[str, Any]:
+def _apply_update(payload: dict[str, Any], rng: random.Random) -> dict[str, Any]:
     """
     Applies realistic changes to simulate UPDATE scenarios.
     Since tickets are nested, changing reservation-level ticket counts also
@@ -350,9 +363,7 @@ def _apply_update(payload: Dict[str, Any], rng: random.Random) -> Dict[str, Any]
 
     new_timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     updated["clorian_modified_at"] = new_timestamp
-    updated["notes"] = rng.choice(
-        ["Changed note", "Late arrival", "Dietary restriction", payload.get("notes", "")]
-    )
+    updated["notes"] = rng.choice(["Changed note", "Late arrival", "Dietary restriction", payload.get("notes", "")])
 
     updated["status"] = _pick_reservation_status(rng, "UPDATE")
     updated["language_code"] = rng.choice(LANGUAGES)
@@ -379,7 +390,7 @@ def _apply_update(payload: Dict[str, Any], rng: random.Random) -> Dict[str, Any]
     clorian_reservation_id = updated["clorian_reservation_id"]
     venue = updated["venue"]
 
-    tickets: List[Dict[str, Any]] = []
+    tickets: list[dict[str, Any]] = []
     ticket_counter = 1
 
     for _ in range(adult):
@@ -417,7 +428,7 @@ def _apply_update(payload: Dict[str, Any], rng: random.Random) -> Dict[str, Any]
     return updated
 
 
-def load_existing_reservations(conn) -> Dict[str, Dict[str, Any]]:
+def load_existing_reservations(conn) -> dict[str, dict[str, Any]]:
     """
     Loads the latest staged payload for each reservation external_id from
     previous successful poll executions.
@@ -440,7 +451,7 @@ def load_existing_reservations(conn) -> Dict[str, Dict[str, Any]]:
     result = conn.execute(sql)
     rows = result.fetchall()
 
-    existing: Dict[str, Dict[str, Any]] = {}
+    existing: dict[str, dict[str, Any]] = {}
     for row in rows:
         existing[row.external_id] = row.payload_json
 
@@ -451,13 +462,14 @@ def load_existing_reservations(conn) -> Dict[str, Dict[str, Any]]:
 # Record Generation
 # =========================================================
 
+
 def generate_records(
     conn,
     seed: int,
     batch_size: int,
     update_ratio: float,
     unchanged_ratio: float,
-) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """
     Generates deterministic staged reservation records.
 
@@ -484,7 +496,7 @@ def generate_records(
 
     n_create = batch_size - n_update - n_unchanged
 
-    staged: List[Dict[str, Any]] = []
+    staged: list[dict[str, Any]] = []
 
     # CREATE: always brand-new IDs
     used_ids = set(existing_ids)
@@ -529,7 +541,7 @@ def generate_records(
         )
 
     # UNCHANGED: must use existing rows
-    unchanged_ids = existing_ids[n_update:n_update + n_unchanged]
+    unchanged_ids = existing_ids[n_update : n_update + n_unchanged]
 
     for res_id in unchanged_ids:
         unchanged_payload = existing_reservations[res_id]
@@ -558,6 +570,7 @@ def generate_records(
 # =========================================================
 # Database Operations
 # =========================================================
+
 
 def create_run(conn, seed: int) -> int:
     sql = text(
@@ -590,7 +603,7 @@ def create_run(conn, seed: int) -> int:
     return conn.execute(sql, {"seed": seed}).scalar_one()
 
 
-def insert_staging_rows(conn, run_id: int, staged: List[Dict[str, Any]]) -> None:
+def insert_staging_rows(conn, run_id: int, staged: list[dict[str, Any]]) -> None:
     sql = text(
         f"""
         INSERT INTO {STAGING_TABLE} (
@@ -627,7 +640,7 @@ def insert_staging_rows(conn, run_id: int, staged: List[Dict[str, Any]]) -> None
     conn.execute(sql, params)
 
 
-def finalize_run_success(conn, run_id: int, counts: Dict[str, int]) -> None:
+def finalize_run_success(conn, run_id: int, counts: dict[str, int]) -> None:
     sql = text(
         f"""
         UPDATE {RUN_TABLE}
@@ -667,6 +680,7 @@ def finalize_run_failure(conn, run_id: int, error_message: str) -> None:
 # =========================================================
 # Main Service Entry Point
 # =========================================================
+
 
 def run_mock_poller_service(conn, req: MockRunRequest) -> MockRunResponse:
     """

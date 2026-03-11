@@ -18,10 +18,10 @@ def resolve_authenticated_user(conn, decoded_user: dict) -> dict:
     if not email:
         raise ValidationError("Decoded Firebase token must contain 'email' claim")
 
-    #Check users table for admin role
+    # Check users table for admin role
     admin_row = conn.execute(
-    text(
-        """
+        text(
+            """
         SELECT id, email, role, is_active
         FROM users
         WHERE LOWER(email) = :email
@@ -30,22 +30,19 @@ def resolve_authenticated_user(conn, decoded_user: dict) -> dict:
         ),
         {"email": email},
     ).fetchone()
-    
-    if admin_row:
-        # Confirm this row is actually an admin before applying the inactive-user check,
-        # so a non-admin inactive row doesn't block guide resolution.
-        if str(admin_row.role).strip().lower() == "admin":
-            if not admin_row.is_active:
-                raise ValidationError("User account is inactive")
-            return {
-                "uid": uid,
-                "email": email,
-                "role": "admin",
-                "user_id": admin_row.id,
-                "guide_id": None,
-            }
-        
-    #If user is not admin, check guides table for guide role
+
+    if admin_row and str(admin_row.role).strip().lower() == "admin":
+        if not admin_row.is_active:
+            raise ValidationError("User account is inactive")
+        return {
+            "uid": uid,
+            "email": email,
+            "role": "admin",
+            "user_id": admin_row.id,
+            "guide_id": None,
+        }
+
+    # If user is not admin, check guides table for guide role
     guide_row = conn.execute(
         text(
             """

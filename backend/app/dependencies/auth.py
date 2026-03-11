@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import os
 
 from fastapi import Header, HTTPException
+
 from ..firebase_auth import verify_firebase_token
 
 # Default to production to ensure the safest behavior when ENV is not explicitly set.

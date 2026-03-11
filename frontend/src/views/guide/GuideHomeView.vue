@@ -69,7 +69,9 @@
         <p class="app-subtitle">need action</p>
 
         <div v-if="stats.pendingRequests > 0" class="mt-3">
-          <span class="inline-flex rounded-full bg-[#E63946]/10 px-3 py-1 text-xs font-semibold text-[#E63946]">
+          <span
+            class="inline-flex rounded-full bg-[#E63946]/10 px-3 py-1 text-xs font-semibold text-[#E63946]"
+          >
             Action Required
           </span>
         </div>
@@ -81,7 +83,9 @@
         <p class="app-subtitle">last 30 days</p>
 
         <div class="mt-3">
-          <span class="inline-flex rounded-full bg-[#2A9D8F]/10 px-3 py-1 text-xs font-semibold text-[#2A9D8F]">
+          <span
+            class="inline-flex rounded-full bg-[#2A9D8F]/10 px-3 py-1 text-xs font-semibold text-[#2A9D8F]"
+          >
             Good Standing
           </span>
         </div>
@@ -92,7 +96,10 @@
     <section class="app-surface-card app-section-padding">
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold text-[#1C1C1C]">Today</h2>
-        <RouterLink to="/guide/schedule" class="text-sm font-semibold text-[#0077B6] hover:text-[#0097E7]">
+        <RouterLink
+          to="/guide/schedule"
+          class="text-sm font-semibold text-[#0077B6] hover:text-[#0097E7]"
+        >
           View full schedule ->
         </RouterLink>
       </div>
@@ -119,35 +126,39 @@
 </template>
 
 <script setup>
-import { useRoute } from "vue-router";
+import { useRoute } from 'vue-router'
 
-const route = useRoute();
+const route = useRoute()
 
 function tabClass(path) {
-  const active = route.path === path;
+  const active = route.path === path
   return active
-    ? "bg-[#CAF0F8] text-[#1C1C1C] ring-1 ring-[#00B4D8]/30 shadow-sm"
-    : "border border-black/15 text-[#1C1C1C] hover:text-[#005A8A] hover:bg-[#CAF0F8]/40";
+    ? 'bg-[#CAF0F8] text-[#1C1C1C] ring-1 ring-[#00B4D8]/30 shadow-sm'
+    : 'border border-black/15 text-[#1C1C1C] hover:text-[#005A8A] hover:bg-[#CAF0F8]/40'
 }
 
 const nextEvent = {
-  title: "Dolphin Feeding Experience",
-  date: "Feb 18, 2026",
-  time: "2:00 PM - 3:00 PM",
-  language: "English",
+  title: 'Dolphin Feeding Experience',
+  date: 'Feb 18, 2026',
+  time: '2:00 PM - 3:00 PM',
+  language: 'English',
   guests: 18,
-};
+}
 
 const stats = {
   weekTours: 6,
   pendingRequests: 2,
   avgRating: 4.7,
-};
+}
 
 const todayEvents = [
-  { id: 1, title: "Dolphin Feeding Experience", time: "2:00-3:00 PM", language: "EN", status: "Scheduled" },
-  { id: 2, title: "Reef Discovery", time: "4:00-5:00 PM", language: "FR", status: "Scheduled" },
-];
+  {
+    id: 1,
+    title: 'Dolphin Feeding Experience',
+    time: '2:00-3:00 PM',
+    language: 'EN',
+    status: 'Scheduled',
+  },
+  { id: 2, title: 'Reef Discovery', time: '4:00-5:00 PM', language: 'FR', status: 'Scheduled' },
+]
 </script>
-
-

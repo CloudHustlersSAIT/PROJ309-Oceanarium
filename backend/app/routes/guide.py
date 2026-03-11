@@ -16,4 +16,4 @@ def read_guides(conn=Depends(get_db)):
         return guide_service.list_guides(conn)
     except Exception:
         logger.exception("Unexpected error listing guides")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from None
