@@ -53,13 +53,17 @@ function normalizeDate(value) {
   const raw = String(value).trim()
   const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
 
-  // Build date-only values in local time to avoid UTC day shift issues.
   const d = dateOnlyMatch
     ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
     : new Date(raw)
 
   if (Number.isNaN(d.getTime())) return 'Invalid date'
-  return d.toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
+
+  return d.toLocaleDateString('en-US', {
+    month: 'long',
+    day: '2-digit',
+    year: 'numeric',
+  })
 }
 
 function getReservationId(booking) {
@@ -97,6 +101,7 @@ function getRowKey(booking, index) {
   const customerId = booking.customer_id || booking.customerId || 'unknown-customer'
   const tourId = booking.tour_id || booking.tourId || 'unknown-tour'
   const date = getBookingDate(booking) || 'unknown-date'
+
   return `${customerId}-${tourId}-${date}-${index}`
 }
 
@@ -115,12 +120,14 @@ function isIsoDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
   const [year, month, day] = value.split('-').map(Number)
   const d = new Date(year, month - 1, day)
+
   return d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day
 }
 
 async function loadBookings() {
   loading.value = true
   error.value = ''
+
   try {
     const data = await getBookings()
     bookings.value = Array.isArray(data) ? data : []
@@ -158,6 +165,7 @@ async function handleCreateBooking() {
   }
 
   saving.value = true
+
   try {
     await createBooking({
       customer_id: form.value.customerId.trim(),
@@ -180,12 +188,13 @@ async function handleCreateBooking() {
 async function handleCancelBooking(booking) {
   const reservationId = getReservationId(booking)
   if (!reservationId) return
-  const bookingIdLabel = getBookingDisplayId(booking)
 
+  const bookingIdLabel = getBookingDisplayId(booking)
   const confirmed = window.confirm(`Cancel booking ${bookingIdLabel}?`)
   if (!confirmed) return
 
   actionState.value = { id: reservationId, type: 'cancel' }
+
   try {
     await cancelBooking(reservationId)
     await loadBookings()
@@ -210,6 +219,7 @@ async function handleRescheduleBooking(booking) {
   }
 
   actionState.value = { id: reservationId, type: 'reschedule' }
+
   try {
     await rescheduleBooking(reservationId, newDate)
     await loadBookings()
@@ -224,44 +234,55 @@ onMounted(loadBookings)
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-gray-100 overflow-x-hidden">
+  <div class="flex min-h-screen overflow-x-hidden bg-gray-100">
     <Sidebar />
 
-    <main class="flex-1 min-w-0 p-4 md:p-6">
-      <div class="flex items-center justify-between gap-4 mb-5">
+    <main class="min-w-0 flex-1 p-4 md:p-6">
+      <div class="mb-5 flex items-center justify-between gap-4">
         <h1 class="text-4xl font-medium text-gray-800">Bookings</h1>
-        <div class="w-full max-w-[430px] relative">
+
+        <div class="relative w-full max-w-[430px]">
           <input
             v-model="searchText"
             type="text"
             placeholder="Search bookings"
-            class="w-full rounded-xl border border-gray-400 bg-white py-2.5 px-4 text-sm"
+            class="w-full rounded-xl border border-gray-400 bg-white px-4 py-2.5 text-sm"
           />
         </div>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-[minmax(700px,1fr)_320px] gap-6">
-        <section class="bg-white border border-gray-300 rounded-lg overflow-hidden">
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(700px,1fr)_320px]">
+        <section class="overflow-hidden rounded-lg border border-gray-300 bg-white">
           <div v-if="loading" class="p-4 text-sm text-gray-500">Loading bookings...</div>
+
           <div v-else-if="error" class="p-4 text-sm text-red-600">
             <div>{{ error }}</div>
-            <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs" @click="loadBookings">
+            <button
+              type="button"
+              class="mt-2 rounded border border-red-300 px-3 py-1 text-xs"
+              @click="loadBookings"
+            >
               Retry
             </button>
           </div>
-          <div v-else-if="filteredBookings.length === 0" class="p-4 text-sm text-gray-500">No bookings found.</div>
+
+          <div v-else-if="filteredBookings.length === 0" class="p-4 text-sm text-gray-500">
+            No bookings found.
+          </div>
+
           <div v-else class="overflow-x-auto">
-            <table class="w-full min-w-[860px] text-sm">
-              <thead class="bg-gray-50 text-gray-800 border-b border-gray-200">
+            <table class="min-w-[860px] w-full text-sm">
+              <thead class="border-b border-gray-200 bg-gray-50 text-gray-800">
                 <tr>
-                  <th class="text-left font-semibold px-5 py-3">Booking ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Date</th>
-                  <th class="text-left font-semibold px-5 py-3">Customer ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Tour ID</th>
-                  <th class="text-left font-semibold px-5 py-3">Status</th>
-                  <th class="text-left font-semibold px-5 py-3">Actions</th>
+                  <th class="px-5 py-3 text-left font-semibold">Booking ID</th>
+                  <th class="px-5 py-3 text-left font-semibold">Date</th>
+                  <th class="px-5 py-3 text-left font-semibold">Customer ID</th>
+                  <th class="px-5 py-3 text-left font-semibold">Tour ID</th>
+                  <th class="px-5 py-3 text-left font-semibold">Status</th>
+                  <th class="px-5 py-3 text-left font-semibold">Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 <tr
                   v-for="(booking, index) in filteredBookings"
@@ -272,7 +293,7 @@ onMounted(loadBookings)
                   <td class="px-5 py-4 text-gray-700">{{ normalizeDate(getBookingDate(booking)) }}</td>
                   <td class="px-5 py-4 text-gray-700">{{ getCustomerId(booking) }}</td>
                   <td class="px-5 py-4 text-gray-700">{{ getTourId(booking) }}</td>
-                  <td class="px-5 py-4 text-gray-700 capitalize">{{ getStatus(booking) }}</td>
+                  <td class="px-5 py-4 capitalize text-gray-700">{{ getStatus(booking) }}</td>
                   <td class="px-5 py-4">
                     <div class="flex flex-wrap gap-2">
                       <button
@@ -281,15 +302,28 @@ onMounted(loadBookings)
                         :disabled="actionState.id === getReservationId(booking)"
                         @click="handleRescheduleBooking(booking)"
                       >
-                        {{ actionState.id === getReservationId(booking) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
+                        {{
+                          actionState.id === getReservationId(booking) &&
+                          actionState.type === 'reschedule'
+                            ? 'Saving...'
+                            : 'Reschedule'
+                        }}
                       </button>
+
                       <button
                         type="button"
                         class="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
-                        :disabled="actionState.id === getReservationId(booking) || isCancelledStatus(booking)"
+                        :disabled="
+                          actionState.id === getReservationId(booking) || isCancelledStatus(booking)
+                        "
                         @click="handleCancelBooking(booking)"
                       >
-                        {{ actionState.id === getReservationId(booking) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
+                        {{
+                          actionState.id === getReservationId(booking) &&
+                          actionState.type === 'cancel'
+                            ? 'Cancelling...'
+                            : 'Cancel'
+                        }}
                       </button>
                     </div>
                   </td>
@@ -299,12 +333,12 @@ onMounted(loadBookings)
           </div>
         </section>
 
-        <section class="bg-gray-100 border border-gray-400 rounded-lg p-4 h-fit">
-          <h2 class="text-2xl font-medium text-gray-700 mb-4">Add New Booking</h2>
+        <section class="h-fit rounded-lg border border-gray-400 bg-gray-100 p-4">
+          <h2 class="mb-4 text-2xl font-medium text-gray-700">Add New Booking</h2>
 
           <div class="space-y-3">
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Booking ID</label>
+              <label class="mb-1 block text-sm text-gray-700">Booking ID</label>
               <input
                 v-model="form.bookingId"
                 type="text"
@@ -314,7 +348,7 @@ onMounted(loadBookings)
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Customer ID</label>
+              <label class="mb-1 block text-sm text-gray-700">Customer ID</label>
               <input
                 v-model="form.customerId"
                 type="text"
@@ -324,7 +358,7 @@ onMounted(loadBookings)
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Tour ID</label>
+              <label class="mb-1 block text-sm text-gray-700">Tour ID</label>
               <input
                 v-model="form.tourId"
                 type="number"
@@ -335,7 +369,7 @@ onMounted(loadBookings)
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Date</label>
+              <label class="mb-1 block text-sm text-gray-700">Date</label>
               <input
                 v-model="form.date"
                 type="date"
@@ -345,7 +379,7 @@ onMounted(loadBookings)
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Adult Tickets</label>
+              <label class="mb-1 block text-sm text-gray-700">Adult Tickets</label>
               <input
                 v-model.number="form.adultTickets"
                 type="number"
@@ -355,7 +389,7 @@ onMounted(loadBookings)
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Child Tickets</label>
+              <label class="mb-1 block text-sm text-gray-700">Child Tickets</label>
               <input
                 v-model.number="form.childTickets"
                 type="number"
@@ -364,15 +398,14 @@ onMounted(loadBookings)
               />
             </div>
 
-            <p v-if="createError" class="text-xs text-red-300">{{ createError }}</p>
-            <p v-if="createSuccess" class="text-xs text-green-300">{{ createSuccess }}</p>
+            <p v-if="createError" class="text-xs text-red-600">{{ createError }}</p>
+            <p v-if="createSuccess" class="text-xs text-green-600">{{ createSuccess }}</p>
 
-            <div class="pt-2 flex items-center justify-end gap-2">
-              <CancelButton @cancel="closeCreatePopup" />
+            <div class="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                class="px-5 py-2 rounded text-white font-medium"
-                :class="!saving ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-500/40 cursor-not-allowed'"
+                class="rounded px-5 py-2 font-medium text-white"
+                :class="!saving ? 'bg-blue-500 hover:bg-blue-600' : 'cursor-not-allowed bg-blue-500/40'"
                 :disabled="saving"
                 @click="handleCreateBooking"
               >
@@ -380,7 +413,7 @@ onMounted(loadBookings)
               </button>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   </div>
