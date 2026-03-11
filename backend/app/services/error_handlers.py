@@ -1,5 +1,6 @@
 from fastapi import HTTPException
-from .exceptions import ValidationError, NotFoundError, ConflictError
+
+from .exceptions import ConflictError, NotFoundError, ValidationError
 
 
 def handle_domain_exception(e: Exception):
@@ -13,4 +14,4 @@ def handle_domain_exception(e: Exception):
         raise HTTPException(status_code=409, detail=e.message)
 
     # Temporary for debugging
-    raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(status_code=500, detail="Internal server error")

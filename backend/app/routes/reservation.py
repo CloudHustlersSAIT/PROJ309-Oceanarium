@@ -1,5 +1,3 @@
-from datetime import date, time
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
@@ -7,7 +5,6 @@ from ..db import get_db
 from ..dependencies.auth import require_authenticated_user
 from ..services import reservation as reservation_service
 from ..services.error_handlers import handle_domain_exception
-
 
 
 class ReservationCreate(BaseModel):
@@ -50,7 +47,8 @@ def read_reservations(conn=Depends(get_db)):
     try:
         return _read_reservations(conn)
     except Exception as e:
-        handle_domain_exception(e)
+        return handle_domain_exception(e)
+
 
 @router.post("/reservations")
 def create_reservation(
@@ -61,7 +59,8 @@ def create_reservation(
     try:
         return _create_reservation(payload, conn)
     except Exception as e:
-        handle_domain_exception(e)
+        return handle_domain_exception(e)
+
 
 @router.patch("/reservations/{reservation_id}/reschedule")
 def reschedule_reservation(
@@ -73,7 +72,8 @@ def reschedule_reservation(
     try:
         return _reschedule_reservation(reservation_id, payload, conn)
     except Exception as e:
-        handle_domain_exception(e)
+        return handle_domain_exception(e)
+
 
 @router.patch("/reservations/{reservation_id}/cancel")
 def cancel_reservation(
@@ -84,7 +84,8 @@ def cancel_reservation(
     try:
         return _cancel_reservation(reservation_id, conn)
     except Exception as e:
-        handle_domain_exception(e)
+        return handle_domain_exception(e)
+
 
 # Backward-compatible aliases (deprecated)
 @router.get("/bookings", deprecated=True)

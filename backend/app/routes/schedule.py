@@ -4,9 +4,9 @@ import logging
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 
 from ..db import get_db
-from ..dependencies.auth import require_authenticated_user
 from ..services import schedule as schedule_service
 from ..services.error_handlers import handle_domain_exception
 
@@ -43,5 +43,13 @@ def read_schedules(
             end_date=end_date,
             status=status,
         )
+    except Exception as e:
+        return handle_domain_exception(e)
+
+
+@router.post("")
+def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
+    try:
+        return schedule_service.create_schedule(conn, payload)
     except Exception as e:
         return handle_domain_exception(e)
