@@ -38,6 +38,8 @@ def update_customer(conn, customer_id: str, fields: dict):
         """),
         params,
     )
+    conn.commit()
+
     row = result.fetchone()
     if row is None:
         return None

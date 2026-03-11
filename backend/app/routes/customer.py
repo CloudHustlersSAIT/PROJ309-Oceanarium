@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..db import get_db
+from ..dependencies.auth import require_authenticated_user
 from ..services import customer as customer_service
 from ..services.error_handlers import handle_domain_exception
 
@@ -27,7 +28,12 @@ def read_customers(conn=Depends(get_db)):
 
 
 @router.patch("/{customer_id}")
-def edit_customer(customer_id: str, payload: CustomerUpdate, conn=Depends(get_db)):
+def edit_customer(
+    customer_id: str,
+    payload: CustomerUpdate,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
     try:
         updated = customer_service.update_customer(
             conn,
