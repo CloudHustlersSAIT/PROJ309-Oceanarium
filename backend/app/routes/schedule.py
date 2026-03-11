@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from ..db import get_db
 from ..services import guide_assignment as guide_assignment_service
+from ..services import rescheduling as rescheduling_service
 from ..services import schedule as schedule_service
 from ..services.error_handlers import handle_domain_exception
 
@@ -78,5 +79,13 @@ def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(g
             payload.guide_id,
             assigned_by="admin",
         )
+    except Exception as e:
+        return handle_domain_exception(e)
+
+
+@router.delete("/{schedule_id}/guide")
+def cancel_guide(schedule_id: int, conn=Depends(get_db)):
+    try:
+        return rescheduling_service.handle_guide_cancellation(conn, schedule_id)
     except Exception as e:
         return handle_domain_exception(e)
