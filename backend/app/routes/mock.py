@@ -36,7 +36,7 @@ def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
         raise HTTPException(
             status_code=500,
             detail="Mock poller execution failed. Check server logs.",
-        )
+        ) from e
     
     except Exception as e:
         return handle_domain_exception(e)
