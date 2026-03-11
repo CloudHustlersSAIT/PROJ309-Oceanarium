@@ -23,7 +23,7 @@ Design notes
 import json
 import random
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Dict, List, Literal, Tuple
 
 from pydantic import BaseModel, Field
 from sqlalchemy import text

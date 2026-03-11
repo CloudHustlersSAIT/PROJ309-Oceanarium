@@ -219,14 +219,14 @@ def reschedule_reservation(conn, reservation_id, data):
     return dict(zip(columns, row))
 
 
-def cancel_reservation(conn, reservation_id):
+def cancel_reservation(conn, booking_id):
     existing = conn.execute(
         text("""
             SELECT status
             FROM reservations
             WHERE id = :reservation_id
         """),
-        {"reservation_id": reservation_id},
+        {"reservation_id": booking_id},
     ).fetchone()
 
     if not existing:
@@ -245,7 +245,7 @@ def cancel_reservation(conn, reservation_id):
             WHERE id = :reservation_id
             RETURNING *
         """),
-        {"reservation_id": reservation_id},
+        {"reservation_id": booking_id},
     )
     columns = result.keys()
     row = result.fetchone()
