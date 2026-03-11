@@ -49,6 +49,7 @@ def read_reservations(conn=Depends(get_db)):
     except Exception as e:
         handle_domain_exception(e)
 
+
 @router.post("/reservations")
 def create_reservation(
     payload: ReservationCreate,
@@ -59,6 +60,7 @@ def create_reservation(
         return _create_reservation(payload, conn)
     except Exception as e:
         handle_domain_exception(e)
+
 
 @router.patch("/reservations/{reservation_id}/reschedule")
 def reschedule_reservation(
@@ -72,6 +74,7 @@ def reschedule_reservation(
     except Exception as e:
         handle_domain_exception(e)
 
+
 @router.patch("/reservations/{reservation_id}/cancel")
 def cancel_reservation(
     reservation_id: int,
@@ -82,6 +85,7 @@ def cancel_reservation(
         return _cancel_reservation(reservation_id, conn)
     except Exception as e:
         handle_domain_exception(e)
+
 
 # Backward-compatible aliases (deprecated)
 @router.get("/bookings", deprecated=True)
