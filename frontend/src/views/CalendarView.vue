@@ -3,7 +3,6 @@ import { computed, onMounted, ref, watch } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import CalendarToolbar from '../components/calendar/CalendarToolbar.vue'
 import CalendarGrid from '../components/calendar/CalendarGrid.vue'
-import CancelButton from '../components/CancelButton.vue'
 import { useCalendarStore } from '../stores/calendar'
 import {
   addMinutesToTime,
@@ -15,10 +14,16 @@ import {
 } from '../utils/calendar'
 
 const calendar = useCalendarStore()
+
 const bulkMode = ref(false)
 const showCreatePopup = ref(false)
 const createType = ref('event')
 const createAllDay = ref(false)
+
+const searchText = ref('')
+const showEvents = ref(true)
+const showTask = ref(true)
+const showAppointment = ref(true)
 
 const createForm = ref({
   title: '',
@@ -30,14 +35,15 @@ const createForm = ref({
   description: '',
 })
 
-
 const startTimeOptions = computed(() => {
   const options = []
+
   for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
     const hh = String(Math.floor(minutes / 60)).padStart(2, '0')
     const mm = String(minutes % 60).padStart(2, '0')
     options.push({ value: `${hh}:${mm}`, label: formatMinutesCompact(minutes) })
   }
+
   return options
 })
 
@@ -46,15 +52,26 @@ const endTimeOptions = computed(() => {
   const startMinutes = startH * 60 + startM
   const options = []
 
-  for (let minutes = startMinutes; minutes <= Math.min(startMinutes + 12 * 60, 23 * 60 + 45); minutes += 15) {
+  for (
+    let minutes = startMinutes;
+    minutes <= Math.min(startMinutes + 12 * 60, 23 * 60 + 45);
+    minutes += 15
+  ) {
     const hh = String(Math.floor(minutes / 60)).padStart(2, '0')
     const mm = String(minutes % 60).padStart(2, '0')
     const duration = minutes - startMinutes
-    options.push({ value: `${hh}:${mm}`, label: `${formatMinutesCompact(minutes)} ${minutesToDurationLabel(duration)}` })
+
+    options.push({
+      value: `${hh}:${mm}`,
+      label: `${formatMinutesCompact(minutes)} ${minutesToDurationLabel(duration)}`,
+    })
   }
 
   if (createForm.value.startTime === '23:45') {
-    options.push({ value: '23:59', label: `${formatMinutesCompact(23 * 60 + 59)} (${minutesToDurationLabel(14)})` })
+    options.push({
+      value: '23:59',
+      label: `${formatMinutesCompact(23 * 60 + 59)} (${minutesToDurationLabel(14)})`,
+    })
   }
 
   return options
@@ -62,11 +79,12 @@ const endTimeOptions = computed(() => {
 
 const selectedDate = computed(() => new Date(calendar.selectedDate))
 const monthLabel = computed(() =>
-  selectedDate.value.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' }),
+  selectedDate.value.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })
 )
 
 function handleCreateEvent() {
   const selected = new Date(calendar.selectedDate)
+
   createForm.value = {
     title: '',
     date: `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`,
@@ -76,6 +94,7 @@ function handleCreateEvent() {
     location: '',
     description: '',
   }
+
   createAllDay.value = false
   createType.value = 'event'
   showCreatePopup.value = true
@@ -88,15 +107,20 @@ function closeCreatePopup() {
 function saveCreatedEvent() {
   if (!createForm.value.title.trim() || !createForm.value.date) return
 
-  let start = createAllDay.value
+  const start = createAllDay.value
     ? toIsoFromParts(createForm.value.date, '00:00')
     : toIsoFromParts(createForm.value.date, createForm.value.startTime)
+
   let end = createAllDay.value
     ? toIsoFromParts(createForm.value.date, '23:59')
     : toIsoFromParts(createForm.value.date, createForm.value.endTime)
 
   if (!createAllDay.value && new Date(end) <= new Date(start)) {
-    const fixedEndTime = createForm.value.startTime === '23:45' ? '23:59' : addMinutesToTime(createForm.value.startTime, 15)
+    const fixedEndTime =
+      createForm.value.startTime === '23:45'
+        ? '23:59'
+        : addMinutesToTime(createForm.value.startTime, 15)
+
     createForm.value.endTime = fixedEndTime
     end = toIsoFromParts(createForm.value.date, fixedEndTime)
   }
@@ -116,7 +140,9 @@ function saveCreatedEvent() {
     type: createType.value,
     priority: 'medium',
     conflictFlag: false,
-    notes: [createForm.value.location, createForm.value.guests, createForm.value.description].filter(Boolean).join(' • '),
+    notes: [createForm.value.location, createForm.value.guests, createForm.value.description]
+      .filter(Boolean)
+      .join(' • '),
   }
 
   calendar.events.push(draft)
@@ -175,6 +201,7 @@ function handleDeleteSelectedEvent() {
 
 function syncQuickFilters() {
   const types = []
+
   if (showEvents.value) types.push('event')
   if (showTask.value) types.push('task')
   if (showAppointment.value) types.push('appointment')
@@ -194,7 +221,7 @@ watch(
     createForm.value.endTime = endTimeOptions.value.some((option) => option.value === nextEndTime)
       ? nextEndTime
       : endTimeOptions.value[0]?.value || nextEndTime
-  },
+  }
 )
 
 onMounted(() => {
@@ -205,10 +232,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-gray-50 overflow-x-hidden">
+  <div class="flex min-h-screen overflow-x-hidden bg-gray-50">
     <Sidebar />
 
-    <main class="flex-1 min-w-0 p-3 md:p-4 xl:p-6">
+    <main class="min-w-0 flex-1 p-3 md:p-4 xl:p-6">
       <div class="space-y-4">
         <CalendarToolbar
           :current-view="calendar.currentView"
@@ -217,71 +244,112 @@ onMounted(() => {
           @export="exportVisibleEvents"
         />
 
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white rounded-xl shadow-md p-3 border-1 border-blue-500">
-          <div class="text-sm text-gray-600">{{ calendar.loading ? 'Loading events...' : `${calendar.eventsInRange.length} events in range` }}</div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <button class="px-3 py-1.5 rounded border border-gray-300 text-sm" :class="bulkMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'" @click="bulkMode = !bulkMode">
+        <div
+          class="flex flex-col gap-3 rounded-xl border border-blue-500 bg-white p-3 shadow-md md:flex-row md:items-center md:justify-between"
+        >
+          <div class="text-sm text-gray-600">
+            {{
+              calendar.loading
+                ? 'Loading events...'
+                : `${calendar.eventsInRange.length} events in range`
+            }}
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              class="rounded border px-3 py-1.5 text-sm"
+              :class="
+                bulkMode
+                  ? 'border-blue-600 bg-blue-600 text-white'
+                  : 'border-gray-300 bg-white text-gray-700'
+              "
+              @click="bulkMode = !bulkMode"
+            >
               Bulk selection
             </button>
+
             <button
               v-if="calendar.selectedEvent"
-              class="px-3 py-1.5 rounded bg-red-600 text-white text-sm"
+              class="rounded bg-red-600 px-3 py-1.5 text-sm text-white"
               @click="handleDeleteSelectedEvent"
             >
               Delete selected
             </button>
+
             <button
               v-if="bulkMode"
-              class="px-3 py-1.5 rounded bg-gray-500 text-white text-sm"
+              class="rounded bg-gray-500 px-3 py-1.5 text-sm text-white"
               @click="calendar.applyBulkStatus('cancelled')"
             >
               Cancel selected
             </button>
-            <button v-if="bulkMode" class="px-3 py-1.5 rounded border border-gray-300 text-sm" @click="calendar.clearBulkSelection()">Clear</button>
+
+            <button
+              v-if="bulkMode"
+              class="rounded border border-gray-300 px-3 py-1.5 text-sm"
+              @click="calendar.clearBulkSelection()"
+            >
+              Clear
+            </button>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-[260px_minmax(865px,1fr)] gap-4 min-h-[680px] xl:min-h-[865px]">
-          <aside class="bg-white rounded-xl shadow-md p-4 border-1 border-blue-500 h-fit xl:sticky xl:top-4 space-y-4">
+        <div class="grid min-h-[680px] grid-cols-1 gap-4 xl:min-h-[865px] xl:grid-cols-[260px_minmax(865px,1fr)]">
+          <aside
+            class="h-fit space-y-4 rounded-xl border border-blue-500 bg-white p-4 shadow-md xl:sticky xl:top-4"
+          >
             <button
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium"
+              class="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
               @click="handleCreateEvent"
             >
               + Create
             </button>
 
             <div>
-              <div class="text-sm font-semibold text-gray-800 mb-2">{{ monthLabel }}</div>
+              <div class="mb-2 text-sm font-semibold text-gray-800">{{ monthLabel }}</div>
               <div class="flex gap-2">
-                <button class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-700" @click="calendar.navigate(-1)">
+                <button
+                  class="flex-1 rounded border border-[#ACBAC4] px-2 py-1.5 text-sm text-gray-700"
+                  @click="calendar.navigate(-1)"
+                >
                   Previous
                 </button>
-                <button class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-700" @click="calendar.navigate(1)">
+                <button
+                  class="flex-1 rounded border border-[#ACBAC4] px-2 py-1.5 text-sm text-gray-700"
+                  @click="calendar.navigate(1)"
+                >
                   Next
                 </button>
               </div>
             </div>
 
             <div>
-              <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Search events</label>
+              <label class="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Search events
+              </label>
               <input
                 v-model="searchText"
                 type="text"
                 placeholder="Search by title or resource"
-                class="mt-1 w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+                class="mt-1 w-full rounded border border-[#ACBAC4] px-3 py-2 text-sm"
               />
             </div>
 
             <div class="space-y-2">
-              <div class="text-xs font-semibold text-gray-600 uppercase tracking-wide">My calendars</div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                My calendars
+              </div>
+
               <label class="flex items-center gap-2 text-sm text-gray-700">
                 <input v-model="showEvents" type="checkbox" class="accent-blue-600" />
                 Events
               </label>
+
               <label class="flex items-center gap-2 text-sm text-gray-700">
                 <input v-model="showTask" type="checkbox" class="accent-blue-600" />
                 Task
               </label>
+
               <label class="flex items-center gap-2 text-sm text-gray-700">
                 <input v-model="showAppointment" type="checkbox" class="accent-blue-600" />
                 Appointment
@@ -309,38 +377,59 @@ onMounted(() => {
       </div>
     </main>
 
-    <div v-if="showCreatePopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeCreatePopup">
-      <div class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
-        <div class="flex items-center justify-between mb-4">
+    <div
+      v-if="showCreatePopup"
+      class="fixed inset-0 z-50 bg-black/40"
+      @click.self="closeCreatePopup"
+    >
+      <div
+        class="absolute right-0 top-0 h-full w-full max-w-[420px] overflow-y-auto bg-[#1f1f1f] p-5 text-white shadow-2xl"
+      >
+        <div class="mb-4 flex items-center justify-between">
           <div class="text-sm text-gray-300">Create</div>
-          <button class="text-gray-300 hover:text-white text-xl leading-none" @click="closeCreatePopup">×</button>
+          <button
+            class="text-xl leading-none text-gray-300 hover:text-white"
+            @click="closeCreatePopup"
+          >
+            ×
+          </button>
         </div>
 
         <input
           v-model="createForm.title"
           type="text"
           placeholder="Add title"
-          class="w-full bg-transparent border-b border-[#ACBAC4] pb-2 text-3xl font-semibold outline-none placeholder:text-gray-400"
+          class="w-full border-b border-[#ACBAC4] bg-transparent pb-2 text-3xl font-semibold outline-none placeholder:text-gray-400"
         />
 
         <div class="mt-4 flex items-center gap-2">
           <button
-            class="px-3 py-1.5 rounded text-sm"
-            :class="createType === 'event' ? 'bg-blue-700 text-white' : 'bg-[#2d2d2d] text-gray-300'"
+            class="rounded px-3 py-1.5 text-sm"
+            :class="
+              createType === 'event' ? 'bg-blue-700 text-white' : 'bg-[#2d2d2d] text-gray-300'
+            "
             @click="createType = 'event'"
           >
             Event
           </button>
+
           <button
-            class="px-3 py-1.5 rounded text-sm"
-            :class="createType === 'task' ? 'bg-blue-700 text-white' : 'bg-[#2d2d2d] text-gray-300'"
+            class="rounded px-3 py-1.5 text-sm"
+            :class="
+              createType === 'task' ? 'bg-blue-700 text-white' : 'bg-[#2d2d2d] text-gray-300'
+            "
             @click="createType = 'task'"
           >
             Task
           </button>
+
           <button
-            class="px-3 py-1.5 rounded text-sm"
-            :class="createType === 'appointment' ? 'bg-blue-700 text-white' : 'bg-[#2d2d2d] text-gray-300'"
+            class="rounded px-3 py-1.5 text-sm"
+            :class="
+              createType === 'appointment'
+                ? 'bg-blue-700 text-white'
+                : 'bg-[#2d2d2d] text-gray-300'
+            "
             @click="createType = 'appointment'"
           >
             Appointment
@@ -356,21 +445,41 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="text-gray-300 block mb-1">Date</label>
-            <input v-model="createForm.date" type="date" class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2" />
+            <label class="mb-1 block text-gray-300">Date</label>
+            <input
+              v-model="createForm.date"
+              type="date"
+              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2"
+            />
           </div>
 
-          <div :class="createAllDay ? 'opacity-50 pointer-events-none' : ''">
-            <label class="text-gray-300 block mb-1">Time</label>
-            <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-              <select v-model="createForm.startTime" class="bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2">
-                <option v-for="option in startTimeOptions" :key="`start-${option.value}`" :value="option.value">
+          <div :class="createAllDay ? 'pointer-events-none opacity-50' : ''">
+            <label class="mb-1 block text-gray-300">Time</label>
+            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+              <select
+                v-model="createForm.startTime"
+                class="rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2"
+              >
+                <option
+                  v-for="option in startTimeOptions"
+                  :key="`start-${option.value}`"
+                  :value="option.value"
+                >
                   {{ option.label }}
                 </option>
               </select>
-              <span class="text-gray-400 text-center">—</span>
-              <select v-model="createForm.endTime" class="bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2">
-                <option v-for="option in endTimeOptions" :key="`end-${option.value}`" :value="option.value">
+
+              <span class="text-center text-gray-400">—</span>
+
+              <select
+                v-model="createForm.endTime"
+                class="rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2"
+              >
+                <option
+                  v-for="option in endTimeOptions"
+                  :key="`end-${option.value}`"
+                  :value="option.value"
+                >
                   {{ option.label }}
                 </option>
               </select>
@@ -378,39 +487,49 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="text-gray-300 block mb-1">Guests</label>
+            <label class="mb-1 block text-gray-300">Guests</label>
             <input
               v-model="createForm.guests"
               type="text"
               placeholder="Add guests"
-              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 placeholder:text-gray-400"
+              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 placeholder:text-gray-400"
             />
           </div>
 
           <div>
-            <label class="text-gray-300 block mb-1">Location</label>
+            <label class="mb-1 block text-gray-300">Location</label>
             <input
               v-model="createForm.location"
               type="text"
               placeholder="Add location"
-              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 placeholder:text-gray-400"
+              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 placeholder:text-gray-400"
             />
           </div>
 
           <div>
-            <label class="text-gray-300 block mb-1">Description</label>
+            <label class="mb-1 block text-gray-300">Description</label>
             <textarea
               v-model="createForm.description"
               rows="4"
               placeholder="Add description"
-              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 placeholder:text-gray-400"
+              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 placeholder:text-gray-400"
             />
           </div>
         </div>
 
         <div class="mt-6 flex items-center justify-end gap-2">
-          <button class="px-4 py-2 rounded border border-[#ACBAC4] text-gray-200" @click="closeCreatePopup">Cancel</button>
-          <button class="px-5 py-2 rounded bg-blue-500 hover:bg-blue-600 text-white font-medium" @click="saveCreatedEvent">Save</button>
+          <button
+            class="rounded border border-[#ACBAC4] px-4 py-2 text-gray-200"
+            @click="closeCreatePopup"
+          >
+            Cancel
+          </button>
+          <button
+            class="rounded bg-blue-500 px-5 py-2 font-medium text-white hover:bg-blue-600"
+            @click="saveCreatedEvent"
+          >
+            Save
+          </button>
         </div>
       </div>
     </div>
