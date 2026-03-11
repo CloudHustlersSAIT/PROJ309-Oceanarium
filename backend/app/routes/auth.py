@@ -18,13 +18,13 @@ def get_current_authenticated_user(
             return auth_service.resolve_authenticated_user(conn, decoded_user)
 
     except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message)
+        raise HTTPException(status_code=400, detail=e.message) from e
 
     except NotFoundError as e:
-        raise HTTPException(status_code=403, detail=e.message)
+        raise HTTPException(status_code=403, detail=e.message) from e
 
     except SQLAlchemyError:
         raise HTTPException(
             status_code=500,
             detail="Failed to resolve authenticated user",
-        )
+        ) from None

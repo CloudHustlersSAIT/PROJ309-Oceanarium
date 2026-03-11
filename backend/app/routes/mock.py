@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/mock", tags=["Mock Poller"])
 
 @router.post("/run", response_model=MockRunResponse)
 def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
-    run_id: Optional[int] = None
+    run_id: int | None = None
 
     try:
         with engine.begin() as conn:
@@ -26,7 +26,7 @@ def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
         return response
 
     except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message)
+        raise HTTPException(status_code=400, detail=e.message) from e
 
     except SQLAlchemyError as e:
         if run_id:
@@ -39,4 +39,4 @@ def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
         raise HTTPException(
             status_code=500,
             detail="Mock poller execution failed. Check server logs.",
-        )
+        ) from e

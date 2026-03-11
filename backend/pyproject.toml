@@ -1,0 +1,27 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+ignore = ["B008", "UP017", "B905"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/services/mock_poller.py",
+    "app/firebase_auth.py",
+    "app/routes/mock.py",
+    "app/db.py",
+    "app/dependencies/auth.py",
+]
+
+[tool.coverage.report]
+fail_under = 80

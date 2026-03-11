@@ -1,4 +1,4 @@
-﻿import { useAuth } from '../contexts/authContext'
+import { useAuth } from '../contexts/authContext'
 
 const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' // FastAPI default port
 const RESERVATION_LANGUAGE_CACHE_KEY = 'reservation-language-cache-v1'
@@ -8,20 +8,19 @@ const RESERVATION_LANGUAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 //Auth header builder helper function
 //Author Joao Santiago
 async function getAuthorizationHeader() {
-  try{
+  try {
     const { getIdToken } = useAuth()
     const token = await getIdToken()
 
     if (!token) return {} // No token available, return empty headers
-    
+
     return {
       Authorization: `Bearer ${token}`,
     }
-  } catch (err) {
+  } catch {
     return {} // On error (e.g., Firebase not configured), return empty headers to allow API to handle auth errors gracefully
   }
 }
-
 
 function normalizeReservationLanguageCacheEntry(entry) {
   if (typeof entry === 'string') {
@@ -135,54 +134,45 @@ function formatApiErrorDetail(detail) {
 
 // Generic fetch helper with authorization header support
 async function fetchAPI(endpoint, options = {}) {
-  try {
-    const {
-      requiresAuth = false,
-      headers: customHeaders = {},
-      ...fetchOptions
-    } = options
+  const { requiresAuth = false, headers: customHeaders = {}, ...fetchOptions } = options
 
-    // Build headers with optional auth
-    const authHeaders = requiresAuth ? await getAuthorizationHeader() : {}
+  // Build headers with optional auth
+  const authHeaders = requiresAuth ? await getAuthorizationHeader() : {}
 
-    // Fail early for authenticated requests when no token is available,
-    // so callers can prompt login instead of sending an unauthenticated request.
-    if (requiresAuth && !authHeaders.Authorization) {
-      throw new Error('Authentication required. Please sign in to continue.')
-    }
-    const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders,
-        ...customHeaders,
-      },
-      ...fetchOptions,
-    })
-
-    if (!response.ok) {
-      let message = `API Error: ${response.status} ${response.statusText}`
-      try {
-        const errorBody = await response.clone().json()
-        if (errorBody?.detail) {
-          const detailMessage = formatApiErrorDetail(errorBody.detail)
-          if (detailMessage) message = detailMessage
-        }
-      } catch {
-        try {
-          const errorText = await response.text()
-          if (errorText) message = errorText
-        } catch {
-          // Keep fallback message when response body cannot be parsed.
-        }
-      }
-      throw new Error(message)
-    }
-
-    return await response.json()
-  } catch (error) {
-    // API request failed - error will be handled by caller
-    throw error
+  // Fail early for authenticated requests when no token is available,
+  // so callers can prompt login instead of sending an unauthenticated request.
+  if (requiresAuth && !authHeaders.Authorization) {
+    throw new Error('Authentication required. Please sign in to continue.')
   }
+  const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+      ...customHeaders,
+    },
+    ...fetchOptions,
+  })
+
+  if (!response.ok) {
+    let message = `API Error: ${response.status} ${response.statusText}`
+    try {
+      const errorBody = await response.clone().json()
+      if (errorBody?.detail) {
+        const detailMessage = formatApiErrorDetail(errorBody.detail)
+        if (detailMessage) message = detailMessage
+      }
+    } catch {
+      try {
+        const errorText = await response.text()
+        if (errorText) message = errorText
+      } catch {
+        // Keep fallback message when response body cannot be parsed.
+      }
+    }
+    throw new Error(message)
+  }
+
+  return await response.json()
 }
 
 // Get all guides

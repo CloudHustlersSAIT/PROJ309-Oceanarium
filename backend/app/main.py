@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .firebase_auth import initialize_firebase
+from .routes.auth import router as auth_router
 from .routes.guide import router as guide_router
 from .routes.health import router as health_router
 from .routes.issue import router as issue_router
@@ -14,7 +15,6 @@ from .routes.reservation import router as reservation_router
 from .routes.schedule import router as schedule_router
 from .routes.stats import router as stats_router
 from .routes.tour import router as tour_router
-from .routes.auth import router as auth_router  
 
 app = FastAPI(title="My Project API")
 
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 # Default to production to ensure the safest behavior when ENV is not explicitly set.
 ENV = os.getenv("ENV", "production").lower()
+
 
 @app.on_event("startup")
 def startup_event() -> None:
@@ -34,6 +35,7 @@ def startup_event() -> None:
             # Allow startup to succeed in development even if Firebase initialization
             # fails (e.g. missing credentials), but log so misconfiguration is visible.
             logger.warning("Firebase initialization failed in development mode: %s", exc)
+
 
 app.include_router(health_router)
 app.include_router(reservation_router)

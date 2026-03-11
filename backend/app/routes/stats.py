@@ -16,4 +16,4 @@ def read_stats(conn=Depends(get_db)):
         return stats_service.get_stats(conn)
     except Exception:
         logger.exception("Unexpected error fetching stats")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from None

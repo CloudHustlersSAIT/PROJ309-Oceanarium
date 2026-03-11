@@ -18,7 +18,6 @@ if (!apiKey || !authDomain || !projectId || !appId) {
   // Note: In production, ensure all VITE_FIREBASE_* environment variables are set
   // Development warning removed for production builds (auto-dropped by Vite config)
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
     console.warn(
       'Firebase not initialized: missing VITE_FIREBASE_* environment variables. Authentication will be disabled.',
     )

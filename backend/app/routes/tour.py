@@ -16,4 +16,4 @@ def read_tours(conn=Depends(get_db)):
         return tour_service.list_tours(conn)
     except Exception:
         logger.exception("Unexpected error listing tours")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from None

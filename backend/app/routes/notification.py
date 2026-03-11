@@ -16,4 +16,4 @@ def read_notifications(conn=Depends(get_db)):
         return notification_service.list_notifications(conn)
     except Exception:
         logger.exception("Unexpected error listing notifications")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from None

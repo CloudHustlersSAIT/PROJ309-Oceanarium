@@ -1,0 +1,2 @@
+cd frontend && npm run lint:check && npm run test
+cd backend && ruff check app/ && ruff format --check app/ && python -m pytest tests/ --tb=short -q

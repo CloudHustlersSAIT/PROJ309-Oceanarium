@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
+import AppSidebar from '../components/AppSidebar.vue'
 import CalendarToolbar from '../components/calendar/CalendarToolbar.vue'
 import CalendarGrid from '../components/calendar/CalendarGrid.vue'
 import { useCalendarStore } from '../stores/calendar'
@@ -44,10 +44,11 @@ const selectedCreateSchedule = computed(() => {
   return availableSchedules.value.find((schedule) => Number(schedule?.id) === selectedId) || null
 })
 
-const canSaveCreatedEvent = computed(() =>
-  Boolean(createForm.value.customerId.trim())
-  && Boolean(createForm.value.selectedScheduleId)
-  && ((Number(createForm.value.adultTickets) || 0) + (Number(createForm.value.childTickets) || 0) > 0),
+const canSaveCreatedEvent = computed(
+  () =>
+    Boolean(createForm.value.customerId.trim()) &&
+    Boolean(createForm.value.selectedScheduleId) &&
+    (Number(createForm.value.adultTickets) || 0) + (Number(createForm.value.childTickets) || 0) > 0,
 )
 
 const selectedDate = computed(() => new Date(calendar.selectedDate))
@@ -72,11 +73,7 @@ const selectedDayEvents = computed(() => {
   return calendar.events
     .filter((event) => {
       const start = new Date(event.start)
-      return (
-        start.getFullYear() === year
-        && start.getMonth() === month
-        && start.getDate() === day
-      )
+      return start.getFullYear() === year && start.getMonth() === month && start.getDate() === day
     })
     .sort((a, b) => new Date(a.start) - new Date(b.start))
 })
@@ -197,16 +194,21 @@ async function loadCreateSchedules() {
 
     const nextSchedules = (Array.isArray(schedules) ? schedules : [])
       .filter((schedule) => {
-        const status = String(schedule?.status || '').trim().toLowerCase()
+        const status = String(schedule?.status || '')
+          .trim()
+          .toLowerCase()
         return status !== 'cancelled' && status !== 'completed'
       })
-      .sort((a, b) => String(a?.event_start_datetime || '').localeCompare(String(b?.event_start_datetime || '')))
+      .sort((a, b) =>
+        String(a?.event_start_datetime || '').localeCompare(String(b?.event_start_datetime || '')),
+      )
 
     availableSchedules.value = nextSchedules
 
     const selectedId = Number(createForm.value.selectedScheduleId)
     if (!nextSchedules.some((schedule) => Number(schedule?.id) === selectedId)) {
-      createForm.value.selectedScheduleId = nextSchedules.length === 1 ? String(nextSchedules[0]?.id) : ''
+      createForm.value.selectedScheduleId =
+        nextSchedules.length === 1 ? String(nextSchedules[0]?.id) : ''
     }
   } catch (err) {
     availableSchedules.value = []
@@ -253,7 +255,9 @@ function closeTourDetailsPopup() {
 }
 
 function reservationDetailsStatusClass(status) {
-  const normalized = String(status || '').trim().toLowerCase()
+  const normalized = String(status || '')
+    .trim()
+    .toLowerCase()
   if (normalized === 'confirmed') {
     return 'sharp-green-300 bg-green-50 text-green-800'
   }
@@ -299,8 +303,14 @@ function saveCreatedEvent() {
   formError.value = ''
 
   createForm.value.customerId = sanitizeNumericId(createForm.value.customerId, ID_MAX_LENGTH)
-  createForm.value.adultTickets = sanitizeNumericId(createForm.value.adultTickets, SHORT_NUMERIC_MAX_LENGTH)
-  createForm.value.childTickets = sanitizeNumericId(createForm.value.childTickets, SHORT_NUMERIC_MAX_LENGTH)
+  createForm.value.adultTickets = sanitizeNumericId(
+    createForm.value.adultTickets,
+    SHORT_NUMERIC_MAX_LENGTH,
+  )
+  createForm.value.childTickets = sanitizeNumericId(
+    createForm.value.childTickets,
+    SHORT_NUMERIC_MAX_LENGTH,
+  )
 
   const selectedScheduleId = Number(createForm.value.selectedScheduleId)
   const adultTickets = Number(createForm.value.adultTickets) || 0
@@ -321,7 +331,10 @@ function saveCreatedEvent() {
     return
   }
 
-  if (!/^\d{0,2}$/.test(createForm.value.adultTickets) || !/^\d{0,2}$/.test(createForm.value.childTickets)) {
+  if (
+    !/^\d{0,2}$/.test(createForm.value.adultTickets) ||
+    !/^\d{0,2}$/.test(createForm.value.childTickets)
+  ) {
     formError.value = 'Adult and Child Tickets must contain only numbers (up to 2 digits).'
     return
   }
@@ -447,7 +460,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex min-h-screen bg-gray-50 overflow-x-hidden">
-    <Sidebar />
+    <AppSidebar />
 
     <main class="flex-1 min-w-0 p-3 md:p-4 xl:p-6">
       <div class="space-y-4">
@@ -459,10 +472,24 @@ onBeforeUnmount(() => {
           @export="exportVisibleEvents"
         />
 
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white rounded-xl shadow-md p-3 border border-blue-500">
-          <div class="text-sm text-gray-600">{{ calendar.loading ? 'Loading tours...' : `${calendar.eventsInRange.length} tours in range` }}</div>
+        <div
+          class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white rounded-xl shadow-md p-3 border border-blue-500"
+        >
+          <div class="text-sm text-gray-600">
+            {{
+              calendar.loading
+                ? 'Loading tours...'
+                : `${calendar.eventsInRange.length} tours in range`
+            }}
+          </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <button class="px-3 py-1.5 rounded border border-gray-300 text-sm" :class="bulkMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'" @click="bulkMode = !bulkMode">
+            <button
+              class="px-3 py-1.5 rounded border border-gray-300 text-sm"
+              :class="
+                bulkMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'
+              "
+              @click="bulkMode = !bulkMode"
+            >
               Bulk selection
             </button>
             <button
@@ -479,7 +506,13 @@ onBeforeUnmount(() => {
             >
               Cancel selected
             </button>
-            <button v-if="bulkMode" class="px-3 py-1.5 rounded border border-gray-300 text-sm" @click="calendar.clearBulkSelection()">Clear</button>
+            <button
+              v-if="bulkMode"
+              class="px-3 py-1.5 rounded border border-gray-300 text-sm"
+              @click="calendar.clearBulkSelection()"
+            >
+              Clear
+            </button>
           </div>
         </div>
 
@@ -508,7 +541,9 @@ onBeforeUnmount(() => {
       class="fixed inset-0 z-50 bg-black/40"
       @click.self="closeDayEventsPopup"
     >
-      <div class="absolute left-1/2 top-1/2 w-[94%] max-w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl border border-[#ACBAC4]">
+      <div
+        class="absolute left-1/2 top-1/2 w-[94%] max-w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl border border-[#ACBAC4]"
+      >
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">Events on {{ selectedDayLabel }}</h3>
           <button
@@ -520,7 +555,10 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <div v-if="selectedDayEvents.length === 0" class="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-600">
+        <div
+          v-if="selectedDayEvents.length === 0"
+          class="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-600"
+        >
           No events scheduled for this date.
         </div>
 
@@ -574,17 +612,33 @@ onBeforeUnmount(() => {
 
         <div class="space-y-2 text-sm text-gray-700">
           <div><span class="font-semibold">guide_id:</span> {{ selectedTourDetails.guide_id }}</div>
-          <div class="rounded border px-2 py-1" :class="reservationDetailsStatusClass(selectedTourDetails.status)">
+          <div
+            class="rounded border px-2 py-1"
+            :class="reservationDetailsStatusClass(selectedTourDetails.status)"
+          >
             <span class="font-semibold">status:</span> {{ selectedTourDetails.status }}
           </div>
-          <div><span class="font-semibold">reservation_count:</span> {{ selectedTourDetails.reservation_count }}</div>
-          <div><span class="font-semibold">customer_id:</span> {{ selectedTourDetails.customer_id }}</div>
+          <div>
+            <span class="font-semibold">reservation_count:</span>
+            {{ selectedTourDetails.reservation_count }}
+          </div>
+          <div>
+            <span class="font-semibold">customer_id:</span> {{ selectedTourDetails.customer_id }}
+          </div>
           <div><span class="font-semibold">tour_id:</span> {{ selectedTourDetails.tour_id }}</div>
           <div><span class="font-semibold">date:</span> {{ selectedTourDetails.date }}</div>
-          <div><span class="font-semibold">start_time:</span> {{ selectedTourDetails.start_time }}</div>
+          <div>
+            <span class="font-semibold">start_time:</span> {{ selectedTourDetails.start_time }}
+          </div>
           <div><span class="font-semibold">end_time:</span> {{ selectedTourDetails.end_time }}</div>
-          <div><span class="font-semibold">adult_tickets:</span> {{ selectedTourDetails.adult_tickets }}</div>
-          <div><span class="font-semibold">child_tickets:</span> {{ selectedTourDetails.child_tickets }}</div>
+          <div>
+            <span class="font-semibold">adult_tickets:</span>
+            {{ selectedTourDetails.adult_tickets }}
+          </div>
+          <div>
+            <span class="font-semibold">child_tickets:</span>
+            {{ selectedTourDetails.child_tickets }}
+          </div>
           <div><span class="font-semibold">language:</span> {{ selectedTourDetails.language }}</div>
         </div>
 
@@ -599,14 +653,29 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="showCreatePopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeCreatePopup">
-      <div class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
+    <div
+      v-if="showCreatePopup"
+      class="fixed inset-0 z-50 bg-black/40"
+      @click.self="closeCreatePopup"
+    >
+      <div
+        class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto"
+      >
         <div class="flex items-center justify-between mb-4">
           <div class="text-sm text-gray-300">Create</div>
-          <button class="text-gray-300 hover:text-white text-xl leading-none" aria-label="Close create popup" @click="closeCreatePopup">×</button>
+          <button
+            class="text-gray-300 hover:text-white text-xl leading-none"
+            aria-label="Close create popup"
+            @click="closeCreatePopup"
+          >
+            ×
+          </button>
         </div>
 
-        <div v-if="formError" class="mt-3 rounded border border-red-400 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <div
+          v-if="formError"
+          class="mt-3 rounded border border-red-400 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+        >
           {{ formError }}
         </div>
 
@@ -615,17 +684,25 @@ onBeforeUnmount(() => {
             <div>
               <div class="text-sm font-semibold text-gray-200 mb-2">{{ monthLabel }}</div>
               <div class="flex gap-2">
-                <button class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200" @click="calendar.navigate(-1)">
+                <button
+                  class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200"
+                  @click="calendar.navigate(-1)"
+                >
                   Previous
                 </button>
-                <button class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200" @click="calendar.navigate(1)">
+                <button
+                  class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200"
+                  @click="calendar.navigate(1)"
+                >
                   Next
                 </button>
               </div>
             </div>
 
             <div>
-              <label class="text-xs font-semibold text-gray-300 uppercase tracking-wide">Search tours</label>
+              <label class="text-xs font-semibold text-gray-300 uppercase tracking-wide"
+                >Search tours</label
+              >
               <input
                 v-model="searchText"
                 type="text"
@@ -635,7 +712,9 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="space-y-2">
-              <div class="text-xs font-semibold text-gray-300 uppercase tracking-wide">My calendars</div>
+              <div class="text-xs font-semibold text-gray-300 uppercase tracking-wide">
+                My calendars
+              </div>
               <label class="flex items-center gap-2 text-sm text-gray-200">
                 <input v-model="showEvents" type="checkbox" class="accent-blue-600" />
                 Tours
@@ -653,8 +732,13 @@ onBeforeUnmount(() => {
 
           <div>
             <label class="text-gray-300 block mb-1">Customer ID</label>
-            <div class="flex items-stretch rounded border border-[#ACBAC4] bg-[#2d2d2d] overflow-hidden">
-              <span class="inline-flex items-center border-r border-[#ACBAC4] bg-[#252525] px-3 text-sm text-gray-300">CUST-</span>
+            <div
+              class="flex items-stretch rounded border border-[#ACBAC4] bg-[#2d2d2d] overflow-hidden"
+            >
+              <span
+                class="inline-flex items-center border-r border-[#ACBAC4] bg-[#252525] px-3 text-sm text-gray-300"
+                >CUST-</span
+              >
               <input
                 :value="createForm.customerId"
                 type="text"
@@ -665,7 +749,14 @@ onBeforeUnmount(() => {
                 placeholder="0000"
                 class="w-full px-3 py-2 text-sm bg-transparent text-white outline-none placeholder:text-gray-500"
                 @beforeinput="handleNumericBeforeInput"
-                @paste="(event) => handleNumericPaste(event, (value) => (createForm.customerId = value), ID_MAX_LENGTH)"
+                @paste="
+                  (event) =>
+                    handleNumericPaste(
+                      event,
+                      (value) => (createForm.customerId = value),
+                      ID_MAX_LENGTH,
+                    )
+                "
                 @input="handleCustomerIdInput"
               />
             </div>
@@ -705,27 +796,49 @@ onBeforeUnmount(() => {
               :disabled="schedulesLoading || availableSchedules.length === 0"
             >
               <option value="">Select a schedule</option>
-              <option v-for="schedule in availableSchedules" :key="`schedule-${schedule.id}`" :value="String(schedule.id)">
+              <option
+                v-for="schedule in availableSchedules"
+                :key="`schedule-${schedule.id}`"
+                :value="String(schedule.id)"
+              >
                 {{ buildScheduleOptionLabel(schedule) }}
               </option>
             </select>
-            <p v-if="schedulesLoading" class="mt-1 text-xs text-gray-400">Loading available schedules...</p>
+            <p v-if="schedulesLoading" class="mt-1 text-xs text-gray-400">
+              Loading available schedules...
+            </p>
             <p v-else-if="schedulesError" class="mt-1 text-xs text-red-300">{{ schedulesError }}</p>
             <p v-else-if="!availableSchedules.length" class="mt-1 text-xs text-amber-300">
               No open schedules available for this date.
             </p>
-            <p v-else class="mt-1 text-xs text-gray-400">Use a schedule from the selected calendar date.</p>
+            <p v-else class="mt-1 text-xs text-gray-400">
+              Use a schedule from the selected calendar date.
+            </p>
           </div>
 
           <div
             v-if="selectedCreateSchedule"
             class="rounded border border-[#ACBAC4] bg-[#2a2a2a] px-3 py-2 text-xs text-gray-200"
           >
-            <div><span class="font-semibold">Tour:</span> {{ selectedCreateSchedule.tour_name || `Tour ${selectedCreateSchedule.tour_id}` }}</div>
-            <div><span class="font-semibold">Starts:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}</div>
-            <div><span class="font-semibold">Ends:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_end_datetime) }}</div>
-            <div><span class="font-semibold">Guide:</span> {{ selectedCreateSchedule.guide_name || 'Unassigned Guide' }}</div>
-            <div><span class="font-semibold">Status:</span> {{ selectedCreateSchedule.status || '-' }}</div>
+            <div>
+              <span class="font-semibold">Tour:</span>
+              {{ selectedCreateSchedule.tour_name || `Tour ${selectedCreateSchedule.tour_id}` }}
+            </div>
+            <div>
+              <span class="font-semibold">Starts:</span>
+              {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}
+            </div>
+            <div>
+              <span class="font-semibold">Ends:</span>
+              {{ formatScheduleDateTime(selectedCreateSchedule.event_end_datetime) }}
+            </div>
+            <div>
+              <span class="font-semibold">Guide:</span>
+              {{ selectedCreateSchedule.guide_name || 'Unassigned Guide' }}
+            </div>
+            <div>
+              <span class="font-semibold">Status:</span> {{ selectedCreateSchedule.status || '-' }}
+            </div>
           </div>
 
           <div>
@@ -740,7 +853,14 @@ onBeforeUnmount(() => {
               placeholder="0"
               class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 placeholder:text-gray-400"
               @beforeinput="handleNumericBeforeInput"
-              @paste="(event) => handleNumericPaste(event, (value) => (createForm.adultTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
+              @paste="
+                (event) =>
+                  handleNumericPaste(
+                    event,
+                    (value) => (createForm.adultTickets = value),
+                    SHORT_NUMERIC_MAX_LENGTH,
+                  )
+              "
               @input="handleAdultTicketsInput"
             />
           </div>
@@ -757,17 +877,33 @@ onBeforeUnmount(() => {
               placeholder="0"
               class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 placeholder:text-gray-400"
               @beforeinput="handleNumericBeforeInput"
-              @paste="(event) => handleNumericPaste(event, (value) => (createForm.childTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
+              @paste="
+                (event) =>
+                  handleNumericPaste(
+                    event,
+                    (value) => (createForm.childTickets = value),
+                    SHORT_NUMERIC_MAX_LENGTH,
+                  )
+              "
               @input="handleChildTicketsInput"
             />
           </div>
         </div>
 
         <div class="mt-6 flex items-center justify-end gap-2">
-          <button class="px-4 py-2 rounded border border-[#ACBAC4] text-gray-200" @click="closeCreatePopup">Cancel</button>
+          <button
+            class="px-4 py-2 rounded border border-[#ACBAC4] text-gray-200"
+            @click="closeCreatePopup"
+          >
+            Cancel
+          </button>
           <button
             class="px-5 py-2 rounded text-white font-medium"
-            :class="canSaveCreatedEvent && !creatingReservation ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-500/40 cursor-not-allowed'"
+            :class="
+              canSaveCreatedEvent && !creatingReservation
+                ? 'bg-blue-500 hover:bg-blue-600'
+                : 'bg-blue-500/40 cursor-not-allowed'
+            "
             :disabled="!canSaveCreatedEvent || creatingReservation"
             @click="saveCreatedEvent"
           >

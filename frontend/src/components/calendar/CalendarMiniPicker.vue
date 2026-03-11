@@ -24,7 +24,13 @@ const monthDays = computed(() => {
 })
 
 function sameDate(a, b) {
-  return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  return (
+    a &&
+    b &&
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
 }
 </script>
 
@@ -32,16 +38,24 @@ function sameDate(a, b) {
   <div class="bg-white rounded-xl shadow-md p-4 border-1 border-blue-500">
     <h3 class="text-sm font-semibold text-gray-700 mb-3">{{ monthLabel }}</h3>
     <div class="grid grid-cols-7 gap-1 text-xs">
-      <div v-for="day in ['S', 'M', 'T', 'W', 'T', 'F', 'S']" :key="day" class="text-center text-gray-400">{{ day }}</div>
+      <div
+        v-for="day in ['S', 'M', 'T', 'W', 'T', 'F', 'S']"
+        :key="day"
+        class="text-center text-gray-400"
+      >
+        {{ day }}
+      </div>
       <button
         v-for="(day, index) in monthDays"
         :key="index"
         class="h-7 rounded"
-        :class="day
-          ? sameDate(day, selectedDate)
-            ? 'bg-blue-600 text-white'
-            : 'hover:bg-blue-100 text-gray-700'
-          : 'cursor-default'"
+        :class="
+          day
+            ? sameDate(day, selectedDate)
+              ? 'bg-blue-600 text-white'
+              : 'hover:bg-blue-100 text-gray-700'
+            : 'cursor-default'
+        "
         :disabled="!day"
         @click="day && emit('select-date', day)"
       >
@@ -50,4 +64,3 @@ function sameDate(a, b) {
     </div>
   </div>
 </template>
-

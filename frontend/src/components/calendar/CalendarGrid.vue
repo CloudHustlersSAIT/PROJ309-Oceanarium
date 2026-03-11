@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed } from 'vue'
 import CalendarEventCard from './CalendarEventCard.vue'
 
@@ -31,12 +31,6 @@ function keyDate(date) {
   return `${y}-${m}-${day}`
 }
 
-function formatHourLabel(hour24) {
-  const period = hour24 >= 12 ? 'pm' : 'am'
-  const hour12 = hour24 % 12 || 12
-  return `${String(hour12).padStart(2, '0')}:00 ${period}`
-}
-
 function formatSlotLabel(totalMinutes) {
   const hour24 = Math.floor(totalMinutes / 60)
   const minute = totalMinutes % 60
@@ -58,7 +52,7 @@ const weekDays = computed(() => {
 })
 
 const daySlots = computed(() =>
-  Array.from({ length: ((18 * 60 + 30) - 10 * 60) / 30 + 1 }, (_, i) => {
+  Array.from({ length: (18 * 60 + 30 - 10 * 60) / 30 + 1 }, (_, i) => {
     const minuteOfDay = 10 * 60 + i * 30
     return {
       key: String(minuteOfDay),
@@ -73,7 +67,8 @@ const monthCells = computed(() => {
   const last = new Date(props.selectedDate.getFullYear(), props.selectedDate.getMonth() + 1, 0)
   const cells = []
   for (let i = 0; i < first.getDay(); i += 1) cells.push(null)
-  for (let d = 1; d <= last.getDate(); d += 1) cells.push(new Date(first.getFullYear(), first.getMonth(), d))
+  for (let d = 1; d <= last.getDate(); d += 1)
+    cells.push(new Date(first.getFullYear(), first.getMonth(), d))
   while (cells.length % 7 !== 0) cells.push(null)
   return cells
 })
@@ -151,21 +146,23 @@ function isSelectedDate(dateLike) {
 </script>
 
 <template>
-  <section class="bg-white rounded-xl shadow-md p-4 border border-blue-500 h-full min-h-[640px] xl:min-h-[865px]">
+  <section
+    class="bg-white rounded-xl shadow-md p-4 border border-blue-500 h-full min-h-[640px] xl:min-h-[865px]"
+  >
     <div v-if="view === 'month'">
       <div class="flex items-center justify-end mb-2">
         <div class="flex items-center gap-2">
           <button
             class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
-            @click="emit('navigate-prev')"
             aria-label="Previous month"
+            @click="emit('navigate-prev')"
           >
             &lt;
           </button>
           <button
             class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
-            @click="emit('navigate-next')"
             aria-label="Next month"
+            @click="emit('navigate-next')"
           >
             &gt;
           </button>
@@ -197,7 +194,9 @@ function isSelectedDate(dateLike) {
           @dragover.prevent
           @drop.prevent="cell && dropToDate($event, cell)"
         >
-          <div v-if="cell" class="text-[11px] font-semibold text-gray-700 mb-1.5">{{ cell.getDate() }}</div>
+          <div v-if="cell" class="text-[11px] font-semibold text-gray-700 mb-1.5">
+            {{ cell.getDate() }}
+          </div>
           <div class="space-y-1">
             <CalendarEventCard
               v-for="event in visibleEventsForDate(cell)"
@@ -252,7 +251,10 @@ function isSelectedDate(dateLike) {
             <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
               {{ day.toLocaleDateString('en-CA', { weekday: 'short' }) }}
             </div>
-            <div class="text-sm font-semibold" :class="isToday(day) ? 'text-blue-700' : 'text-gray-700'">
+            <div
+              class="text-sm font-semibold"
+              :class="isToday(day) ? 'text-blue-700' : 'text-gray-700'"
+            >
               {{ day.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }) }}
             </div>
           </div>
@@ -316,4 +318,3 @@ function isSelectedDate(dateLike) {
     </div>
   </section>
 </template>
-

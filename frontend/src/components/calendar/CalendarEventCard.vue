@@ -1,7 +1,7 @@
 <script setup>
 import { formatLocalTimeLowerAmPm } from '../../utils/reservation'
 
-const props = defineProps({
+defineProps({
   event: { type: Object, required: true },
   selected: { type: Boolean, default: false },
   conflict: { type: Boolean, default: false },
@@ -28,12 +28,27 @@ function formatTime(dateLike) {
   >
     <div class="flex items-start justify-between gap-1">
       <div class="font-semibold text-gray-800 truncate leading-tight">{{ event.title }}</div>
-      <input v-if="bulkMode" type="checkbox" :checked="checked" @click.stop @change="emit('toggle-bulk', event.id)" />
+      <input
+        v-if="bulkMode"
+        type="checkbox"
+        :checked="checked"
+        @click.stop
+        @change="emit('toggle-bulk', event.id)"
+      />
     </div>
 
-    <div class="text-[11px] text-gray-600 mt-1 leading-tight">{{ formatTime(event.start) }} - {{ formatTime(event.end) }}</div>
-    <div class="text-[10px] text-gray-500 truncate mt-0.5">Guide: {{ event.resourceName || 'Unassigned Guide' }}</div>
+    <div class="text-[11px] text-gray-600 mt-1 leading-tight">
+      {{ formatTime(event.start) }} - {{ formatTime(event.end) }}
+    </div>
+    <div class="text-[10px] text-gray-500 truncate mt-0.5">
+      Guide: {{ event.resourceName || 'Unassigned Guide' }}
+    </div>
 
-    <div v-if="conflict" class="mt-1 text-[10px] font-semibold text-red-700 uppercase tracking-wide">Conflict detected</div>
+    <div
+      v-if="conflict"
+      class="mt-1 text-[10px] font-semibold text-red-700 uppercase tracking-wide"
+    >
+      Conflict detected
+    </div>
   </div>
 </template>

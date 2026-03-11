@@ -111,7 +111,6 @@ async function getIdToken() {
     authError.value = err
     throw err
   }
-
 }
 
 // Composable-style function to use in components
@@ -127,4 +126,3 @@ export function useAuth() {
     getIdToken,
   }
 }
-

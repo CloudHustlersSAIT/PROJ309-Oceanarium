@@ -1,7 +1,8 @@
-﻿<template>
+<template>
   <header class="sticky top-0 z-20 border-b border-black/10 bg-white/90 backdrop-blur">
-    <div class="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-3 overflow-hidden px-4 py-3.5 sm:px-6 lg:px-8">
-
+    <div
+      class="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-3 overflow-hidden px-4 py-3.5 sm:px-6 lg:px-8"
+    >
       <!-- Brand -->
       <div class="flex min-w-0 flex-nowrap items-center gap-3 sm:gap-3.5">
         <img
@@ -10,17 +11,15 @@
           class="h-9 w-auto shrink-0 sm:h-10"
         />
         <div class="min-w-0 leading-tight">
-          <p class="truncate text-base font-bold text-[#1C1C1C]">
-            Oceanarium Portal
-          </p>
-          <p class="truncate text-sm text-black/65">
-            Guide
-          </p>
+          <p class="truncate text-base font-bold text-[#1C1C1C]">Oceanarium Portal</p>
+          <p class="truncate text-sm text-black/65">Guide</p>
         </div>
       </div>
 
       <!-- Navigation (Desktop) -->
-      <nav class="hidden md:flex flex-nowrap items-center gap-1.5 overflow-hidden whitespace-nowrap lg:gap-2">
+      <nav
+        class="hidden md:flex flex-nowrap items-center gap-1.5 overflow-hidden whitespace-nowrap lg:gap-2"
+      >
         <RouterLink
           to="/guide/home"
           class="shrink-0 rounded-xl px-3 py-2 text-sm font-semibold transition lg:px-3.5 lg:text-[15px]"
@@ -57,7 +56,7 @@
               v-if="unreadCount > 0"
               class="inline-flex min-w-[1.35rem] items-center justify-center rounded-full bg-[#E63946] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white"
             >
-              {{ unreadCount > 99 ? "99+" : unreadCount }}
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
             </span>
           </span>
         </RouterLink>
@@ -93,8 +92,8 @@
       <button
         type="button"
         class="inline-flex md:hidden items-center justify-center rounded-xl border border-black/15 bg-white px-3 py-2 text-sm font-semibold text-[#1C1C1C] hover:bg-[#CAF0F8]/50 transition"
-        @click="toggleMenu"
         aria-label="Open menu"
+        @click="toggleMenu"
       >
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -124,7 +123,10 @@
         enter-from-class="translate-x-full"
         leave-to-class="translate-x-full"
       >
-        <aside class="absolute right-0 top-0 h-full w-[86vw] max-w-sm border-l border-black/10 bg-white shadow-2xl">
+        <aside
+          v-show="isMenuOpen"
+          class="absolute right-0 top-0 h-full w-[86vw] max-w-sm border-l border-black/10 bg-white shadow-2xl"
+        >
           <div class="flex h-full flex-col p-4">
             <div class="flex items-center justify-between">
               <p class="text-base font-bold text-[#1C1C1C]">Guide Menu</p>
@@ -176,7 +178,7 @@
                   v-if="unreadCount > 0"
                   class="inline-flex min-w-[1.35rem] items-center justify-center rounded-full bg-[#E63946] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white"
                 >
-                  {{ unreadCount > 99 ? "99+" : unreadCount }}
+                  {{ unreadCount > 99 ? '99+' : unreadCount }}
                 </span>
               </RouterLink>
 
@@ -209,83 +211,80 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useAuth } from "@/contexts/authContext";
-import { firebaseDisabled } from "@/utils/firebase";
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuth } from '@/contexts/authContext'
+import { firebaseDisabled } from '@/utils/firebase'
 
-const route = useRoute();
-const router = useRouter();
-const { user, logout } = useAuth();
-const unreadCount = ref(0);
-const isMenuOpen = ref(false);
+const route = useRoute()
+const router = useRouter()
+const { user, logout } = useAuth()
+const unreadCount = ref(0)
+const isMenuOpen = ref(false)
 
-const userEmail = firebaseDisabled
-  ? "guest@local"
-  : user?.value?.email || "Guide";
+const userEmail = firebaseDisabled ? 'guest@local' : user?.value?.email || 'Guide'
 
 function loadUnreadCountFromStorage() {
-  const raw = localStorage.getItem("guideUnreadNotifications");
-  const parsed = Number(raw);
-  unreadCount.value = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  const raw = localStorage.getItem('guideUnreadNotifications')
+  const parsed = Number(raw)
+  unreadCount.value = Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
 
 function onUnreadUpdated(event) {
-  const parsed = Number(event?.detail);
-  unreadCount.value = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  const parsed = Number(event?.detail)
+  unreadCount.value = Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
 
 function onStorage(event) {
-  if (event.key === "guideUnreadNotifications") {
-    loadUnreadCountFromStorage();
+  if (event.key === 'guideUnreadNotifications') {
+    loadUnreadCountFromStorage()
   }
 }
 
 onMounted(() => {
-  loadUnreadCountFromStorage();
-  window.addEventListener("guide-unread-updated", onUnreadUpdated);
-  window.addEventListener("storage", onStorage);
-});
+  loadUnreadCountFromStorage()
+  window.addEventListener('guide-unread-updated', onUnreadUpdated)
+  window.addEventListener('storage', onStorage)
+})
 
 onBeforeUnmount(() => {
-  window.removeEventListener("guide-unread-updated", onUnreadUpdated);
-  window.removeEventListener("storage", onStorage);
-});
+  window.removeEventListener('guide-unread-updated', onUnreadUpdated)
+  window.removeEventListener('storage', onStorage)
+})
 
 watch(
   () => route.path,
   () => {
-    isMenuOpen.value = false;
-  }
-);
+    isMenuOpen.value = false
+  },
+)
 
 function linkClass(path) {
-  const active = route.path === path;
+  const active = route.path === path
 
   return active
-    ? "bg-[#CAF0F8] text-[#0077B6] ring-1 ring-[#00B4D8]/40"
-    : "text-black hover:bg-[#CAF0F8]/60 hover:text-[#0077B6]";
+    ? 'bg-[#CAF0F8] text-[#0077B6] ring-1 ring-[#00B4D8]/40'
+    : 'text-black hover:bg-[#CAF0F8]/60 hover:text-[#0077B6]'
 }
 
 function toggleMenu() {
-  isMenuOpen.value = !isMenuOpen.value;
+  isMenuOpen.value = !isMenuOpen.value
 }
 
 function closeMenu() {
-  isMenuOpen.value = false;
+  isMenuOpen.value = false
 }
 
 async function handleLogout() {
-  closeMenu();
-  localStorage.removeItem("role");
-  localStorage.removeItem("guideUnreadNotifications");
-  unreadCount.value = 0;
+  closeMenu()
+  localStorage.removeItem('role')
+  localStorage.removeItem('guideUnreadNotifications')
+  unreadCount.value = 0
 
   if (!firebaseDisabled) {
-    await logout();
+    await logout()
   }
 
-  router.push("/login");
+  router.push('/login')
 }
 </script>
-
