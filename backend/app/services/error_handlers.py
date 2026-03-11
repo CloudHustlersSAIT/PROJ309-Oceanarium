@@ -1,5 +1,6 @@
 from fastapi import HTTPException
-from .exceptions import ValidationError, NotFoundError, ConflictError
+
+from .exceptions import ConflictError, NotFoundError, ValidationError
 
 
 def handle_domain_exception(e: Exception):

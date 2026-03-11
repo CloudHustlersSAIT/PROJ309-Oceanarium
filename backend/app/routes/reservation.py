@@ -1,5 +1,3 @@
-from datetime import date, time
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
@@ -7,7 +5,6 @@ from ..db import get_db
 from ..dependencies.auth import require_authenticated_user
 from ..services import reservation as reservation_service
 from ..services.error_handlers import handle_domain_exception
-
 
 
 class ReservationCreate(BaseModel):

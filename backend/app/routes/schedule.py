@@ -4,9 +4,9 @@ import logging
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 
 from ..db import get_db
-from ..dependencies.auth import require_authenticated_user
 from ..services import schedule as schedule_service
 from ..services.error_handlers import handle_domain_exception
 

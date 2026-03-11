@@ -1,9 +1,8 @@
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from ..db import test_connection
-
 from ..services.error_handlers import handle_domain_exception
 
 logger = logging.getLogger(__name__)
