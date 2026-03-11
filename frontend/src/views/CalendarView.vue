@@ -9,7 +9,6 @@ import { createSchedule, getTours } from '../services/api'
 import { downloadCsv } from '../utils/calendar'
 import {
   formatLocalTimeLowerAmPm,
-  formatScheduleDateTimeForDisplay,
 } from '../utils/reservation'
 
 const calendar = useCalendarStore()
@@ -126,10 +125,6 @@ function isDetailsPopupAllowedSource(source) {
 function getSelectedDateIso() {
   const selected = new Date(calendar.selectedDate)
   return `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`
-}
-
-function formatScheduleDateTime(rawValue) {
-  return formatScheduleDateTimeForDisplay(rawValue)
 }
 
 function buildTourOptionLabel(tour) {
