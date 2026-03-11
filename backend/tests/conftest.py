@@ -2,6 +2,7 @@ import os
 
 os.environ.setdefault("DATABASE_URL", "postgresql+psycopg2://oceanarium:oceanarium@localhost:5432/oceanarium_test")
 os.environ.setdefault("ENV", "development")
+os.environ.setdefault("AUTH_BYPASS", "true")
 
 from unittest.mock import MagicMock
 
