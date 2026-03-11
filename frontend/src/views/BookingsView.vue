@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
+import AppSidebar from '../components/AppSidebar.vue'
 import CancelButton from '../components/CancelButton.vue'
 import { cancelBooking, createBooking, getBookings, getSchedules, rescheduleBooking } from '../services/api'
 import {

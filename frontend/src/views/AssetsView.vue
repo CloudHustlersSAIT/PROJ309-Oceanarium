@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
+import AppSidebar from '../components/AppSidebar.vue'
 import CancelButton from '../components/CancelButton.vue'
 
 const activeTab = ref('customers')
