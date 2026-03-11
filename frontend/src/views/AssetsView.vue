@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue'
 import AppSidebar from '../components/AppSidebar.vue'
+import CancelButton from '../components/CancelButton.vue'
 
 const activeTab = ref('customers')
 const searchQuery = ref('')
@@ -521,20 +522,8 @@ function statusClasses(status) {
           </div>
 
           <div class="mt-5 flex justify-end gap-2">
-            <button
-              type="button"
-              class="px-3 py-2 rounded-lg border border-gray-300 text-sm"
-              @click="closeEdit"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="px-3 py-2 rounded-lg bg-[#0EA5E9] text-white text-sm"
-              @click="saveEdit"
-            >
-              Save
-            </button>
+            <CancelButton class="px-3 py-2 text-sm" @cancel="closeEdit" />
+            <button type="button" class="px-3 py-2 rounded-lg bg-[#0EA5E9] text-white text-sm" @click="saveEdit">Save</button>
           </div>
         </div>
       </div>
