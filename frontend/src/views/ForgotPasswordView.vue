@@ -2,15 +2,14 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
-import { getDefaultRouteForRole } from '../services/authService'
 
 const router = useRouter()
-const { role, passwordResetWithEmail } = useAuth()
+const { user, passwordResetWithEmail } = useAuth()
 
 //Watch for changes in user authentication state (used so that logged in users are redirected to home)
-watch(role, (newRole) => {
-  if (newRole) {
-    router.push(getDefaultRouteForRole(newRole))
+watch(user, (newUser) => {
+  if (newUser) {
+    router.push('/home')
   }
 })
 
