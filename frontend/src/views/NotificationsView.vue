@@ -1,10 +1,8 @@
 <script setup>
-// Import necessary modules
 import { useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 
 const router = useRouter()
-
 
 const pageTitle = 'Page under construction'
 const pageDescription =
@@ -13,43 +11,36 @@ const pageDescription =
 
 <template>
   <div class="flex min-h-screen bg-gray-50">
-    <!-- Sidebar -->
     <Sidebar />
 
-    <!-- Main content -->
-    <main class="flex-1 flex items-center justify-center px-6 py-10">
+    <main class="flex flex-1 items-center justify-center px-6 py-10">
       <div
-        class="max-w-2xl w-full bg-white rounded-3xl shadow-lg border border-[#CAF0F8] px-8 py-10 flex flex-col items-center text-center"
+        class="flex w-full max-w-2xl flex-col items-center rounded-3xl border border-[#CAF0F8] bg-white px-8 py-10 text-center shadow-lg"
       >
-        <!-- Image -->
-        <div class="w-60 h-48 mb-6">
+        <div class="mb-6 h-48 w-60">
           <img
             src="/src/assets/images/construction.jpg"
             alt="Page under construction illustration"
-            class="w-full h-full object-contain"
+            class="h-full w-full object-contain"
           />
         </div>
 
-        <!-- Title -->
-        <h1 class="text-2xl md:text-3xl font-semibold text-gray-800 mb-2">
+        <h1 class="mb-2 text-2xl font-semibold text-gray-800 md:text-3xl">
           {{ pageTitle }}
         </h1>
 
-        <!-- Subtitle -->
-        <p class="text-sm md:text-base text-gray-500 mb-6">
+        <p class="mb-6 text-sm text-gray-500 md:text-base">
           {{ pageDescription }}
         </p>
 
-        <!-- Fun little ocean-themed line -->
-        <p class="text-xs md:text-sm text-[#0077B6] font-medium mb-6">
-          Our team is swimming as fast as they can to bring this experience to life. ðŸ¬
+        <p class="mb-6 text-xs font-medium text-[#0077B6] md:text-sm">
+          Our team is swimming as fast as they can to bring this experience to life.
         </p>
 
-        <!-- Actions -->
         <div class="flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
-            class="px-5 py-2.5 rounded-full bg-[#0077B6] text-white text-sm font-medium hover:bg-[#0097e7] transition"
+            class="rounded-full bg-[#0077B6] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#0097e7]"
             @click="router.push('/home')"
           >
             Back to home
@@ -57,7 +48,7 @@ const pageDescription =
 
           <button
             type="button"
-            class="px-5 py-2.5 rounded-full border border-[#00B4D8] text-[#0077B6] text-sm font-medium bg-[#E0F7FF] hover:bg-[#CAF0F8] transition"
+            class="rounded-full border border-[#00B4D8] bg-[#E0F7FF] px-5 py-2.5 text-sm font-medium text-[#0077B6] transition hover:bg-[#CAF0F8]"
             @click="router.back()"
           >
             Go back
@@ -67,4 +58,3 @@ const pageDescription =
     </main>
   </div>
 </template>
-
