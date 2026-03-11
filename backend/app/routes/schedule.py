@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from ..db import get_db
+from ..dependencies.auth import require_authenticated_user
 from ..services import schedule as schedule_service
 from ..services.exceptions import ConflictError, NotFoundError, ValidationError
 
@@ -51,7 +52,11 @@ def read_schedules(
 
 
 @router.post("")
-def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
+def create_schedule(
+    payload: ScheduleCreate,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
     # Thin route: map domain exceptions to HTTP responses.
     try:
         return schedule_service.create_schedule(conn, payload)
