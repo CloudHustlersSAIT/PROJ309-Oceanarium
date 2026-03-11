@@ -1,6 +1,8 @@
-﻿<template>
+<template>
   <header class="sticky top-0 z-20 border-b border-black/10 bg-white/90 backdrop-blur md:hidden">
-    <div class="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-3 overflow-hidden px-4 py-3.5 sm:px-6 lg:px-8">
+    <div
+      class="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-3 overflow-hidden px-4 py-3.5 sm:px-6 lg:px-8"
+    >
       <div class="flex min-w-0 flex-nowrap items-center gap-3 sm:gap-3.5">
         <img
           src="@/assets/images/logo.svg"
@@ -16,7 +18,6 @@
       <button
         type="button"
         class="inline-flex md:hidden items-center justify-center rounded-xl border border-black/15 bg-white px-3 py-2 text-sm font-semibold text-[#1C1C1C] transition hover:bg-[#CAF0F8]/50"
-        @click="toggleMenu"
         aria-label="Open menu"
         @click="toggleMenu"
       >
@@ -146,7 +147,7 @@ const { user, logout } = useAuth()
 const unreadCount = ref(0)
 const isMenuOpen = ref(false)
 
-const userEmail = firebaseDisabled ? "guest@local" : user?.value?.email || "Guide";
+const userEmail = firebaseDisabled ? 'guest@local' : user?.value?.email || 'Guide'
 
 function loadUnreadCountFromStorage() {
   const raw = localStorage.getItem('guideUnreadNotifications')
