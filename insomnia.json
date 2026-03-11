@@ -293,6 +293,38 @@
       },
       "metaSortKey": 2
     },
+    {
+      "_id": "req_auto_assign_guide",
+      "_type": "request",
+      "name": "Auto Assign Guide",
+      "description": "Automatically assigns the best eligible guide to a schedule based on three hard constraints (language, availability, expertise) and priority ranking (fewest same-day assignments, highest rating, lowest ID).",
+      "method": "POST",
+      "url": "{{ _.base_url }}/schedules/1/assign",
+      "parentId": "fld_schedules",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_manual_assign_guide",
+      "_type": "request",
+      "name": "Manual Assign Guide",
+      "description": "Manually assigns a specific guide to a schedule (admin override). Returns warnings if any hard constraints are violated, but does not block the assignment.",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/schedules/1/assign",
+      "parentId": "fld_schedules",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"guide_id\": 1,\n  \"reason\": \"Customer requested specific guide\"\n}"
+      },
+      "metaSortKey": 4
+    },
 
     {
       "_id": "fld_notifications",

@@ -3,11 +3,11 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-002                |
-| **Version**      | 2.0                    |
-| **Status**       | Draft                  |
+| **Version**      | 2.1                    |
+| **Status**       | Implemented            |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
-| **Last Updated** | 2026-03-03             |
+| **Last Updated** | 2026-03-11             |
 
 ---
 
@@ -211,9 +211,9 @@ Manual override by admin.
 
 | # | Question | Answer | Status |
 |---|----------|--------|--------|
-| 1 | Should auto-assignment run immediately when a schedule is created, or in batch? | TBD | Open |
+| 1 | Should auto-assignment run immediately when a schedule is created, or in batch? | On-demand via `POST /schedules/{id}/assign`; batch/event triggers deferred to FDR-004 | Resolved |
 | 2 | How is guide-language association stored? | `guide_languages` junction table | Resolved |
-| 3 | Should constraint violations on manual override be warnings or soft-blocks? | Warnings (proposed) | Open |
+| 3 | Should constraint violations on manual override be warnings or soft-blocks? | Warnings — assignment proceeds, warnings returned in response | Resolved |
 | 4 | What is the maximum number of reservations per schedule? | Controlled by Clorian capacity, not us | Resolved |
 
 ## Changelog
@@ -223,3 +223,4 @@ Manual override by admin.
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial draft — three hard constraints + priority rules |
 | 1.1     | 2026-03-03 | Evandro Maciel | Language via `purchases.language_code`; linked to FDR-003/004 |
 | 2.0     | 2026-03-03 | Evandro Maciel | Renamed bookings→reservations; `language_code` now directly on `reservations` (no purchases table) |
+| 2.1     | 2026-03-11 | Evandro Maciel | Implemented: `guide_assignment.py` service (find_eligible_guides, auto_assign_guide, manual_assign_guide); `POST/PUT /schedules/{id}/assign` endpoints; `UnassignableError` (422); audit logging; all open questions resolved |
