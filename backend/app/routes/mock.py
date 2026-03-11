@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 import os
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,6 +17,7 @@ from ..services.mock_poller import (
 )
 
 ENV = os.getenv("ENV", "production").lower()
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
 router = APIRouter(prefix="/mock", tags=["Mock Poller"])
 
@@ -39,6 +41,10 @@ def _get_originating_ip(request: Request) -> str | None:
     if x_forwarded_for:
         return x_forwarded_for.split(",", 1)[0].strip()
 
+    x_real_ip = request.headers.get("x-real-ip")
+    if x_real_ip:
+        return x_real_ip.strip()
+
     forwarded = request.headers.get("forwarded")
     if forwarded:
         for part in forwarded.split(";"):
@@ -46,7 +52,22 @@ def _get_originating_ip(request: Request) -> str | None:
             if key.lower() == "for" and value:
                 return value.strip()
 
-    return request.client.host if request.client else None
+    return None
+
+
+def _get_request_host(request: Request) -> str | None:
+    host_header = request.headers.get("host")
+    if not host_header:
+        return None
+
+    parsed = urlsplit(f"//{host_header}")
+    return parsed.hostname.lower() if parsed.hostname else None
+
+
+def _is_direct_local_request(request: Request) -> bool:
+    peer_ip = request.client.host if request.client else None
+    request_host = _get_request_host(request)
+    return _is_loopback_ip(peer_ip) and request_host in _LOCAL_HOSTS
 
 
 def _require_dev_or_localhost(request: Request) -> None:
@@ -55,7 +76,16 @@ def _require_dev_or_localhost(request: Request) -> None:
         return
 
     client_ip = _get_originating_ip(request)
-    if _is_loopback_ip(client_ip):
+    if client_ip is not None:
+        if _is_loopback_ip(client_ip):
+            return
+
+        raise HTTPException(
+            status_code=403,
+            detail="Mock poller is only available in development or from localhost",
+        )
+
+    if _is_direct_local_request(request):
         return
 
     raise HTTPException(
