@@ -45,3 +45,10 @@ def read_schedules(
         )
     except Exception as e:
         return handle_domain_exception(e)
+
+@router.post("")
+def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
+    try:
+        return schedule_service.create_schedule(conn, payload)
+    except Exception as e:
+        return handle_domain_exception(e)
