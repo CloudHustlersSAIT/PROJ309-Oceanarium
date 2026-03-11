@@ -1,11 +1,10 @@
 import json
 import random
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Tuple
 
 from pydantic import BaseModel, Field
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 
 from .exceptions import ValidationError
 
