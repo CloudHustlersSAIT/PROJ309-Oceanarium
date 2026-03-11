@@ -1,5 +1,7 @@
 import logging
 import os
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,16 +18,14 @@ from .routes.schedule import router as schedule_router
 from .routes.stats import router as stats_router
 from .routes.tour import router as tour_router
 
-app = FastAPI(title="My Project API")
-
 logger = logging.getLogger(__name__)
 
 # Default to production to ensure the safest behavior when ENV is not explicitly set.
 ENV = os.getenv("ENV", "production").lower()
 
 
-@app.on_event("startup")
-def startup_event() -> None:
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     if ENV != "development":
         initialize_firebase()
     else:
@@ -35,6 +35,10 @@ def startup_event() -> None:
             # Allow startup to succeed in development even if Firebase initialization
             # fails (e.g. missing credentials), but log so misconfiguration is visible.
             logger.warning("Firebase initialization failed in development mode: %s", exc)
+    yield
+
+
+app = FastAPI(title="My Project API", lifespan=lifespan)
 
 
 app.include_router(health_router)
