@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed } from 'vue'
 import CalendarEventCard from './CalendarEventCard.vue'
 
@@ -20,6 +20,7 @@ const emit = defineEmits([
   'navigate-next',
   'navigate-prev',
   'select-date',
+  'open-day-events',
 ])
 
 function keyDate(date) {
@@ -30,10 +31,12 @@ function keyDate(date) {
   return `${y}-${m}-${day}`
 }
 
-function formatHourLabel(hour24) {
-  const period = hour24 >= 12 ? 'p.m.' : 'a.m.'
+function formatSlotLabel(totalMinutes) {
+  const hour24 = Math.floor(totalMinutes / 60)
+  const minute = totalMinutes % 60
+  const period = hour24 >= 12 ? 'pm' : 'am'
   const hour12 = hour24 % 12 || 12
-  return `${String(hour12).padStart(2, '0')}:00${period}`
+  return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`
 }
 
 const weekDays = computed(() => {
@@ -49,12 +52,12 @@ const weekDays = computed(() => {
 })
 
 const daySlots = computed(() =>
-  Array.from({ length: 24 }, (_, i) => {
-    const hour = i
+  Array.from({ length: (18 * 60 + 30 - 10 * 60) / 30 + 1 }, (_, i) => {
+    const minuteOfDay = 10 * 60 + i * 30
     return {
-      key: `${String(hour).padStart(2, '0')}:00`,
-      hour,
-      label: formatHourLabel(hour),
+      key: String(minuteOfDay),
+      minuteOfDay,
+      label: formatSlotLabel(minuteOfDay),
     }
   }),
 )
@@ -64,22 +67,36 @@ const monthCells = computed(() => {
   const last = new Date(props.selectedDate.getFullYear(), props.selectedDate.getMonth() + 1, 0)
   const cells = []
   for (let i = 0; i < first.getDay(); i += 1) cells.push(null)
-  for (let d = 1; d <= last.getDate(); d += 1) cells.push(new Date(first.getFullYear(), first.getMonth(), d))
+  for (let d = 1; d <= last.getDate(); d += 1)
+    cells.push(new Date(first.getFullYear(), first.getMonth(), d))
   while (cells.length % 7 !== 0) cells.push(null)
   return cells
 })
 
 function eventsForDate(dateLike) {
+  if (!dateLike) return []
   const key = keyDate(dateLike)
   return props.events.filter((event) => keyDate(event.start) === key)
 }
 
-function eventsForHour(dateLike, hour) {
+function visibleEventsForDate(dateLike) {
+  return eventsForDate(dateLike).slice(0, 3)
+}
+
+function hiddenEventsCountForDate(dateLike) {
+  const total = eventsForDate(dateLike).length
+  return Math.max(0, total - 3)
+}
+
+function eventsForSlot(dateLike, minuteOfDay) {
   const dayKey = keyDate(dateLike)
 
   return props.events.filter((event) => {
     const eventStart = new Date(event.start)
-    return keyDate(eventStart) === dayKey && eventStart.getHours() === hour
+    return (
+      keyDate(eventStart) === dayKey &&
+      eventStart.getHours() * 60 + eventStart.getMinutes() === minuteOfDay
+    )
   })
 }
 
@@ -96,7 +113,7 @@ function dropToDate(event, dateLike) {
   emit('move-event', { id: selected.id, start: droppedDate.toISOString() })
 }
 
-function dropToHour(event, dateLike, hour) {
+function dropToSlot(event, dateLike, minuteOfDay) {
   const raw = event.dataTransfer.getData('text/plain')
   if (!raw) return
 
@@ -104,8 +121,7 @@ function dropToHour(event, dateLike, hour) {
   const selected = props.events.find((item) => item.id === raw)
   if (!selected) return
 
-  const old = new Date(selected.start)
-  droppedDate.setHours(hour, old.getMinutes(), 0, 0)
+  droppedDate.setHours(Math.floor(minuteOfDay / 60), minuteOfDay % 60, 0, 0)
   emit('move-event', { id: selected.id, start: droppedDate.toISOString() })
 }
 
@@ -130,21 +146,23 @@ function isSelectedDate(dateLike) {
 </script>
 
 <template>
-  <section class="bg-white rounded-xl shadow-md p-4 border-1 border-blue-500 h-full min-h-[640px] xl:min-h-[865px]">
+  <section
+    class="bg-white rounded-xl shadow-md p-4 border border-blue-500 h-full min-h-[640px] xl:min-h-[865px]"
+  >
     <div v-if="view === 'month'">
       <div class="flex items-center justify-end mb-2">
         <div class="flex items-center gap-2">
           <button
             class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
-            @click="emit('navigate-prev')"
             aria-label="Previous month"
+            @click="emit('navigate-prev')"
           >
             &lt;
           </button>
           <button
             class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
-            @click="emit('navigate-next')"
             aria-label="Next month"
+            @click="emit('navigate-next')"
           >
             &gt;
           </button>
@@ -176,10 +194,12 @@ function isSelectedDate(dateLike) {
           @dragover.prevent
           @drop.prevent="cell && dropToDate($event, cell)"
         >
-          <div v-if="cell" class="text-[11px] font-semibold text-gray-700 mb-1.5">{{ cell.getDate() }}</div>
+          <div v-if="cell" class="text-[11px] font-semibold text-gray-700 mb-1.5">
+            {{ cell.getDate() }}
+          </div>
           <div class="space-y-1">
             <CalendarEventCard
-              v-for="event in eventsForDate(cell)"
+              v-for="event in visibleEventsForDate(cell)"
               :key="event.id"
               :event="event"
               :selected="selectedEvent?.id === event.id"
@@ -191,13 +211,26 @@ function isSelectedDate(dateLike) {
               @select="emit('select-event', event)"
               @toggle-bulk="emit('toggle-bulk', event.id)"
             />
+            <button
+              v-if="hiddenEventsCountForDate(cell) > 0"
+              class="w-full rounded border border-dashed border-blue-300 bg-blue-50 px-1.5 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-100"
+              @click.stop="emit('open-day-events', cell)"
+            >
+              +{{ hiddenEventsCountForDate(cell) }} more
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <div v-else-if="view === 'week'" class="h-full">
-      <div class="flex items-center justify-end mb-2">
+      <div class="flex items-center justify-end gap-2 mb-2">
+        <button
+          class="bg-white border border-[#ACBAC4] text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-50"
+          @click="emit('navigate-prev')"
+        >
+          Previous week
+        </button>
         <button
           class="bg-white border border-[#ACBAC4] text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-50"
           @click="emit('navigate-next')"
@@ -218,7 +251,10 @@ function isSelectedDate(dateLike) {
             <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
               {{ day.toLocaleDateString('en-CA', { weekday: 'short' }) }}
             </div>
-            <div class="text-sm font-semibold" :class="isToday(day) ? 'text-blue-700' : 'text-gray-700'">
+            <div
+              class="text-sm font-semibold"
+              :class="isToday(day) ? 'text-blue-700' : 'text-gray-700'"
+            >
               {{ day.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }) }}
             </div>
           </div>
@@ -259,11 +295,11 @@ function isSelectedDate(dateLike) {
             :key="`day-slot-${slot.key}`"
             class="min-h-12 xl:min-h-14 border border-[#ACBAC4] rounded p-1.5 bg-white"
             @dragover.prevent
-            @drop.prevent="dropToHour($event, selectedDate, slot.hour)"
+            @drop.prevent="dropToSlot($event, selectedDate, slot.minuteOfDay)"
           >
             <div class="space-y-1">
               <CalendarEventCard
-                v-for="event in eventsForHour(selectedDate, slot.hour)"
+                v-for="event in eventsForSlot(selectedDate, slot.minuteOfDay)"
                 :key="event.id"
                 :event="event"
                 :selected="selectedEvent?.id === event.id"
@@ -282,4 +318,3 @@ function isSelectedDate(dateLike) {
     </div>
   </section>
 </template>
-

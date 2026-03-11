@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from ..db import test_connection
+from ..services.error_handlers import handle_domain_exception
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,8 @@ def health():
 def health_db():
     try:
         value = test_connection()
+        if value is None:
+            raise HTTPException(status_code=500, detail="Database unavailable")
         return {"status": "ok", "db_check": value}
-    except Exception:
-        logger.exception("Database health check failed")
-        raise HTTPException(status_code=500, detail="Internal server error")
+    except Exception as e:
+        return handle_domain_exception(e)

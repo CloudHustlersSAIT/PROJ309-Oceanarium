@@ -1,6 +1,6 @@
-﻿<script setup>
+<script setup>
 import { computed, ref } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
+import AppSidebar from '../components/AppSidebar.vue'
 
 const selectedRange = ref('All Time')
 const selectedDate = ref('2026-03-05')
@@ -52,8 +52,12 @@ const activityLog = [
 
 const maxToursPerYear = computed(() => Math.max(...toursPerYear.map((item) => item.value), 1))
 const maxVisitorsPerTour = computed(() => Math.max(...visitorsPerTour.map((item) => item.value), 1))
-const maxBookings = computed(() => Math.max(...bookingsVsCancellations.map((item) => item.bookings), 1))
-const maxCancellations = computed(() => Math.max(...bookingsVsCancellations.map((item) => item.cancellations), 1))
+const maxBookings = computed(() =>
+  Math.max(...bookingsVsCancellations.map((item) => item.bookings), 1),
+)
+const maxCancellations = computed(() =>
+  Math.max(...bookingsVsCancellations.map((item) => item.cancellations), 1),
+)
 
 function percentage(value, max) {
   return `${Math.max(8, Math.round((value / max) * 100))}%`
@@ -62,13 +66,15 @@ function percentage(value, max) {
 
 <template>
   <div class="flex min-h-screen bg-[#F8FAFC] overflow-x-hidden">
-    <Sidebar />
+    <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
       <section class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 class="text-3xl md:text-4xl font-semibold text-gray-900">Oceanarium Dashboard</h1>
-          <p class="mt-1 text-sm text-gray-500">Prototype analytics workspace for operations visibility.</p>
+          <p class="mt-1 text-sm text-gray-500">
+            Prototype analytics workspace for operations visibility.
+          </p>
         </div>
 
         <div class="flex flex-wrap gap-2">
@@ -112,7 +118,10 @@ function percentage(value, max) {
             >
               <span class="text-xs text-gray-600">{{ item.label }}</span>
               <div class="h-3 rounded bg-gray-100 overflow-hidden">
-                <div class="h-full rounded bg-[#0EA5E9]" :style="{ width: percentage(item.value, maxToursPerYear) }" />
+                <div
+                  class="h-full rounded bg-[#0EA5E9]"
+                  :style="{ width: percentage(item.value, maxToursPerYear) }"
+                />
               </div>
               <span class="text-xs text-gray-700 text-right">{{ item.value }}</span>
             </div>
@@ -127,9 +136,14 @@ function percentage(value, max) {
               :key="item.label"
               class="grid grid-cols-[140px_1fr_52px] items-center gap-3"
             >
-              <span class="text-xs text-gray-600 truncate" :title="item.label">{{ item.label }}</span>
+              <span class="text-xs text-gray-600 truncate" :title="item.label">{{
+                item.label
+              }}</span>
               <div class="h-3 rounded bg-gray-100 overflow-hidden">
-                <div class="h-full rounded bg-[#2563EB]" :style="{ width: percentage(item.value, maxVisitorsPerTour) }" />
+                <div
+                  class="h-full rounded bg-[#2563EB]"
+                  :style="{ width: percentage(item.value, maxVisitorsPerTour) }"
+                />
               </div>
               <span class="text-xs text-gray-700 text-right">{{ item.value }}</span>
             </div>
@@ -150,20 +164,30 @@ function percentage(value, max) {
               <span class="text-xs text-gray-600">{{ row.month }}</span>
 
               <div class="flex items-center gap-2">
-                <span class="h-2.5 rounded bg-[#0284C7]" :style="{ width: percentage(row.bookings, maxBookings) }" />
+                <span
+                  class="h-2.5 rounded bg-[#0284C7]"
+                  :style="{ width: percentage(row.bookings, maxBookings) }"
+                />
                 <span class="text-xs text-gray-700">{{ row.bookings }}</span>
               </div>
 
               <div class="flex items-center gap-2">
-                <span class="h-2.5 rounded bg-[#F97316]" :style="{ width: percentage(row.cancellations, maxCancellations) }" />
+                <span
+                  class="h-2.5 rounded bg-[#F97316]"
+                  :style="{ width: percentage(row.cancellations, maxCancellations) }"
+                />
                 <span class="text-xs text-gray-700">{{ row.cancellations }}</span>
               </div>
             </div>
           </div>
 
           <div class="mt-4 flex gap-6 text-xs text-gray-600">
-            <div class="flex items-center gap-2"><span class="h-2.5 w-4 rounded bg-[#0284C7]" /> Bookings</div>
-            <div class="flex items-center gap-2"><span class="h-2.5 w-4 rounded bg-[#F97316]" /> Cancellations</div>
+            <div class="flex items-center gap-2">
+              <span class="h-2.5 w-4 rounded bg-[#0284C7]" /> Bookings
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="h-2.5 w-4 rounded bg-[#F97316]" /> Cancellations
+            </div>
           </div>
         </article>
 
