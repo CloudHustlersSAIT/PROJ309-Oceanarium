@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
+import AppSidebar from '../components/AppSidebar.vue'
+import CancelButton from '../components/CancelButton.vue'
 
 const activeTab = ref('customers')
 const searchQuery = ref('')
@@ -8,27 +9,137 @@ const resourceTypeFilter = ref('all')
 const feedbackMessage = ref('')
 
 const customers = ref([
-  { id: 1, name: 'Marie Schrader', email: 'Marie@DEA.com', phone: 'Not Provided', visits: 11, dateAdded: '12/22/2020' },
-  { id: 2, name: 'Marla Singer', email: 'Marla@1strule.com', phone: '+1 (587) 822-9090', visits: 3, dateAdded: '08/18/2025' },
-  { id: 3, name: 'Obi Wan Kenobi', email: 'BenKenobi@general.com', phone: 'Not Provided', visits: 5, dateAdded: '05/09/2023' },
-  { id: 4, name: 'Mike Ehrmantraut', email: 'Mike@polloshermanos.com', phone: '+1 (598) 766-5544', visits: 12, dateAdded: '03/17/2021' },
-  { id: 5, name: 'Vicenta Benito', email: 'Vicenta@show.com.es', phone: '+34 (91)123-4567', visits: 2, dateAdded: '07/30/2024' },
+  {
+    id: 1,
+    name: 'Marie Schrader',
+    email: 'Marie@DEA.com',
+    phone: 'Not Provided',
+    visits: 11,
+    dateAdded: '12/22/2020',
+  },
+  {
+    id: 2,
+    name: 'Marla Singer',
+    email: 'Marla@1strule.com',
+    phone: '+1 (587) 822-9090',
+    visits: 3,
+    dateAdded: '08/18/2025',
+  },
+  {
+    id: 3,
+    name: 'Obi Wan Kenobi',
+    email: 'BenKenobi@general.com',
+    phone: 'Not Provided',
+    visits: 5,
+    dateAdded: '05/09/2023',
+  },
+  {
+    id: 4,
+    name: 'Mike Ehrmantraut',
+    email: 'Mike@polloshermanos.com',
+    phone: '+1 (598) 766-5544',
+    visits: 12,
+    dateAdded: '03/17/2021',
+  },
+  {
+    id: 5,
+    name: 'Vicenta Benito',
+    email: 'Vicenta@show.com.es',
+    phone: '+34 (91)123-4567',
+    visits: 2,
+    dateAdded: '07/30/2024',
+  },
 ])
 
 const guides = ref([
-  { id: 101, name: 'Edward Elric', email: 'Edward@amestris.com', phone: 'Not Provided', startDate: '12/22/2020', endDate: 'Still Active' },
-  { id: 102, name: 'Jonathan Wick', email: 'John@hightable.com', phone: '+1 (587) 822-9090', startDate: '12/01/2018', endDate: '08/18/2025' },
-  { id: 103, name: 'Ignacio Varga', email: 'Nacho@salamanca.com', phone: '+1 (598) 766-5544', startDate: '07/30/2002', endDate: '03/17/2004' },
-  { id: 104, name: 'Lucas Lucas', email: 'Lucas@oceanarium.com', phone: '+49 69 1234 5678', startDate: '10/20/2025', endDate: 'Still Active' },
-  { id: 105, name: 'Lauren Ipsum', email: 'Lauren@oceanarium.com', phone: 'Not Provided', startDate: '06/09/2025', endDate: 'Still Active' },
+  {
+    id: 101,
+    name: 'Edward Elric',
+    email: 'Edward@amestris.com',
+    phone: 'Not Provided',
+    startDate: '12/22/2020',
+    endDate: 'Still Active',
+  },
+  {
+    id: 102,
+    name: 'Jonathan Wick',
+    email: 'John@hightable.com',
+    phone: '+1 (587) 822-9090',
+    startDate: '12/01/2018',
+    endDate: '08/18/2025',
+  },
+  {
+    id: 103,
+    name: 'Ignacio Varga',
+    email: 'Nacho@salamanca.com',
+    phone: '+1 (598) 766-5544',
+    startDate: '07/30/2002',
+    endDate: '03/17/2004',
+  },
+  {
+    id: 104,
+    name: 'Lucas Lucas',
+    email: 'Lucas@oceanarium.com',
+    phone: '+49 69 1234 5678',
+    startDate: '10/20/2025',
+    endDate: 'Still Active',
+  },
+  {
+    id: 105,
+    name: 'Lauren Ipsum',
+    email: 'Lauren@oceanarium.com',
+    phone: 'Not Provided',
+    startDate: '06/09/2025',
+    endDate: 'Still Active',
+  },
 ])
 
 const resources = ref([
-  { id: 201, name: 'Room Anchovy', type: 'Room', availableQuantity: '-', totalQuantity: 1, status: 'Available', notes: 'Check AC unit' },
-  { id: 202, name: 'Headphones', type: 'Audio Guides', availableQuantity: 30, totalQuantity: 50, status: 'Low Stock', notes: 'Order more' },
-  { id: 203, name: 'Maps', type: 'Material', availableQuantity: 100, totalQuantity: 150, status: 'Available', notes: 'None' },
-  { id: 204, name: 'Black Boards', type: 'Material', availableQuantity: 15, totalQuantity: 20, status: 'Available', notes: 'None' },
-  { id: 205, name: 'Televisions', type: 'Digital Equipment', availableQuantity: 10, totalQuantity: 12, status: 'Available', notes: 'Fix unit #3' },
+  {
+    id: 201,
+    name: 'Room Anchovy',
+    type: 'Room',
+    availableQuantity: '-',
+    totalQuantity: 1,
+    status: 'Available',
+    notes: 'Check AC unit',
+  },
+  {
+    id: 202,
+    name: 'Headphones',
+    type: 'Audio Guides',
+    availableQuantity: 30,
+    totalQuantity: 50,
+    status: 'Low Stock',
+    notes: 'Order more',
+  },
+  {
+    id: 203,
+    name: 'Maps',
+    type: 'Material',
+    availableQuantity: 100,
+    totalQuantity: 150,
+    status: 'Available',
+    notes: 'None',
+  },
+  {
+    id: 204,
+    name: 'Black Boards',
+    type: 'Material',
+    availableQuantity: 15,
+    totalQuantity: 20,
+    status: 'Available',
+    notes: 'None',
+  },
+  {
+    id: 205,
+    name: 'Televisions',
+    type: 'Digital Equipment',
+    availableQuantity: 10,
+    totalQuantity: 12,
+    status: 'Available',
+    notes: 'Fix unit #3',
+  },
 ])
 
 const editDialogOpen = ref(false)
@@ -87,7 +198,8 @@ const filteredRows = computed(() => {
   return resources.value.filter((item) => {
     const target = `${item.name} ${item.type} ${item.notes} ${item.status}`.toLowerCase()
     const matchesSearch = target.includes(query)
-    const matchesType = resourceTypeFilter.value === 'all' || item.type.toLowerCase() === resourceTypeFilter.value
+    const matchesType =
+      resourceTypeFilter.value === 'all' || item.type.toLowerCase() === resourceTypeFilter.value
     return matchesSearch && matchesType
   })
 })
@@ -155,7 +267,7 @@ function statusClasses(status) {
 
 <template>
   <div class="flex min-h-screen bg-[#F4F7FA] overflow-x-hidden">
-    <Sidebar />
+    <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
       <section class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -168,7 +280,11 @@ function statusClasses(status) {
           <button
             type="button"
             class="px-3 py-2 rounded-lg text-sm font-medium border transition"
-            :class="activeTab === 'customers' ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'"
+            :class="
+              activeTab === 'customers'
+                ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+            "
             @click="switchTab('customers')"
           >
             Customers
@@ -176,7 +292,11 @@ function statusClasses(status) {
           <button
             type="button"
             class="px-3 py-2 rounded-lg text-sm font-medium border transition"
-            :class="activeTab === 'guides' ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'"
+            :class="
+              activeTab === 'guides'
+                ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+            "
             @click="switchTab('guides')"
           >
             Guides
@@ -184,7 +304,11 @@ function statusClasses(status) {
           <button
             type="button"
             class="px-3 py-2 rounded-lg text-sm font-medium border transition"
-            :class="activeTab === 'resources' ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'"
+            :class="
+              activeTab === 'resources'
+                ? 'bg-[#0EA5E9] text-white border-[#0EA5E9]'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+            "
             @click="switchTab('resources')"
           >
             Resources
@@ -218,7 +342,9 @@ function statusClasses(status) {
       <section class="rounded-xl border border-gray-200 bg-[#E9EEF2] shadow-sm overflow-hidden">
         <header class="px-4 md:px-5 py-4 border-b border-gray-300">
           <h2 class="text-3xl font-semibold text-gray-900 leading-tight">{{ listTitle }}</h2>
-          <p class="text-sm text-gray-600">Total <span class="font-semibold text-gray-900">{{ totalCount }}</span></p>
+          <p class="text-sm text-gray-600">
+            Total <span class="font-semibold text-gray-900">{{ totalCount }}</span>
+          </p>
         </header>
 
         <div class="overflow-x-auto">
@@ -242,7 +368,11 @@ function statusClasses(status) {
                 </td>
               </tr>
 
-              <tr v-for="row in filteredRows" :key="row.id" class="hover:bg-[#DEE7EE] transition-colors">
+              <tr
+                v-for="row in filteredRows"
+                :key="row.id"
+                class="hover:bg-[#DEE7EE] transition-colors"
+              >
                 <template v-if="activeTab === 'customers'">
                   <td class="px-4 py-3">{{ row.name }}</td>
                   <td class="px-4 py-3">{{ row.email }}</td>
@@ -252,8 +382,20 @@ function statusClasses(status) {
                   <td class="px-4 py-3 text-gray-500">-</td>
                   <td class="px-4 py-3">
                     <div class="flex items-center justify-end gap-2">
-                      <button type="button" class="px-2.5 py-1.5 rounded border border-gray-300 text-xs" @click="openEdit(row)">Edit</button>
-                      <button type="button" class="px-2.5 py-1.5 rounded border border-red-300 text-red-700 text-xs" @click="removeRow(row.id)">Delete</button>
+                      <button
+                        type="button"
+                        class="px-2.5 py-1.5 rounded border border-gray-300 text-xs"
+                        @click="openEdit(row)"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="px-2.5 py-1.5 rounded border border-red-300 text-red-700 text-xs"
+                        @click="removeRow(row.id)"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </template>
@@ -267,8 +409,20 @@ function statusClasses(status) {
                   <td class="px-4 py-3 text-gray-500">-</td>
                   <td class="px-4 py-3">
                     <div class="flex items-center justify-end gap-2">
-                      <button type="button" class="px-2.5 py-1.5 rounded border border-gray-300 text-xs" @click="openEdit(row)">Edit</button>
-                      <button type="button" class="px-2.5 py-1.5 rounded border border-red-300 text-red-700 text-xs" @click="removeRow(row.id)">Delete</button>
+                      <button
+                        type="button"
+                        class="px-2.5 py-1.5 rounded border border-gray-300 text-xs"
+                        @click="openEdit(row)"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="px-2.5 py-1.5 rounded border border-red-300 text-red-700 text-xs"
+                        @click="removeRow(row.id)"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </template>
@@ -279,14 +433,23 @@ function statusClasses(status) {
                   <td class="px-4 py-3">{{ row.availableQuantity }}</td>
                   <td class="px-4 py-3">{{ row.totalQuantity }}</td>
                   <td class="px-4 py-3">
-                    <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium" :class="statusClasses(row.status)">
+                    <span
+                      class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
+                      :class="statusClasses(row.status)"
+                    >
                       {{ row.status }}
                     </span>
                   </td>
                   <td class="px-4 py-3">{{ row.notes }}</td>
                   <td class="px-4 py-3">
                     <div class="flex items-center justify-end gap-2">
-                      <button type="button" class="px-2.5 py-1.5 rounded border border-gray-300 text-xs" @click="openEdit(row)">Edit</button>
+                      <button
+                        type="button"
+                        class="px-2.5 py-1.5 rounded border border-gray-300 text-xs"
+                        @click="openEdit(row)"
+                      >
+                        Edit
+                      </button>
                     </div>
                   </td>
                 </template>
@@ -313,8 +476,12 @@ function statusClasses(status) {
           tabindex="-1"
           @keydown.esc.prevent="closeEdit"
         >
-          <h3 id="edit-dialog-title" class="text-lg font-semibold text-gray-900 mb-1">Edit Record</h3>
-          <p class="text-sm text-gray-500 mb-4">Prototype dialog. Changes are local to this page state.</p>
+          <h3 id="edit-dialog-title" class="text-lg font-semibold text-gray-900 mb-1">
+            Edit Record
+          </h3>
+          <p class="text-sm text-gray-500 mb-4">
+            Prototype dialog. Changes are local to this page state.
+          </p>
 
           <div class="grid grid-cols-1 gap-3">
             <label class="text-sm text-gray-700">
@@ -328,22 +495,34 @@ function statusClasses(status) {
 
             <label v-if="activeTab !== 'resources'" class="text-sm text-gray-700">
               Email
-              <input v-model="editingDraft.email" type="email" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+              <input
+                v-model="editingDraft.email"
+                type="email"
+                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
             </label>
 
             <label v-if="activeTab !== 'resources'" class="text-sm text-gray-700">
               Phone
-              <input v-model="editingDraft.phone" type="text" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+              <input
+                v-model="editingDraft.phone"
+                type="text"
+                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
             </label>
 
             <label v-if="activeTab === 'resources'" class="text-sm text-gray-700">
               Notes
-              <input v-model="editingDraft.notes" type="text" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+              <input
+                v-model="editingDraft.notes"
+                type="text"
+                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
             </label>
           </div>
 
           <div class="mt-5 flex justify-end gap-2">
-            <button type="button" class="px-3 py-2 rounded-lg border border-gray-300 text-sm" @click="closeEdit">Cancel</button>
+            <CancelButton class="px-3 py-2 text-sm" @cancel="closeEdit" />
             <button type="button" class="px-3 py-2 rounded-lg bg-[#0EA5E9] text-white text-sm" @click="saveEdit">Save</button>
           </div>
         </div>
