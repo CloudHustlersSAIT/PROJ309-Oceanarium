@@ -1,7 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuth } from '../contexts/authContext'
+import { onMounted, ref } from 'vue'
 import {
   getGuides,
   getTours,
@@ -15,9 +13,6 @@ import {
 
 import Sidebar from '../components/Sidebar.vue'
 
-const router = useRouter()
-const { user, logout } = useAuth()
-
 const notifications = ref([
   {
     time: '2 Minutes Ago',
@@ -30,15 +25,12 @@ const notifications = ref([
   },
 ])
 
-// Reactive state for modals
 const showGuidesModal = ref(false)
 const showAddBookingModal = ref(false)
 const showRescheduleModal = ref(false)
 const showReportIssueModal = ref(false)
 const showCancelBookingModal = ref(false)
 
-
-// Form data
 const addBookingForm = ref({
   customerId: '',
   tourId: '',
@@ -60,7 +52,6 @@ const cancelBookingForm = ref({
   bookingId: '',
 })
 
-// Data from database
 const guidesWorking = ref([])
 const tours = ref([])
 const stats = ref({
@@ -87,7 +78,6 @@ const recentActivity = [
   { time: 'Yesterday at 18:00', text: 'Cancellation for Whales!' },
 ]
 
-// Close all modals
 const closeAllModals = () => {
   showGuidesModal.value = false
   showAddBookingModal.value = false
@@ -96,13 +86,12 @@ const closeAllModals = () => {
   showCancelBookingModal.value = false
 }
 
-// Load data from database
 async function loadData() {
   try {
     guidesWorking.value = await getGuides()
     tours.value = await getTours()
+
     const raw = await getNotifications()
-    // API returns { id, message, timestamp }; template expects { time, text }
     notifications.value = Array.isArray(raw)
       ? raw.map((n, i) => ({
           id: n.id ?? i,
@@ -110,15 +99,13 @@ async function loadData() {
           text: n.message || n.text || '—',
         }))
       : notifications.value
+
     stats.value = await getStats()
-    // Data loaded successfully
-  } catch (error) {
-    // Failed to load data - Make sure backend is running on http://localhost:8000
-    // Don't alert() to avoid blocking UI; page renders with default data
+  } catch {
+    // Failed to load data - page will render with default values
   }
 }
 
-// Handle add booking
 async function handleAddBooking() {
   try {
     await createBooking({
@@ -131,9 +118,8 @@ async function handleAddBooking() {
 
     alert('Booking created successfully!')
     closeAllModals()
-    await loadData() // Reload stats
+    await loadData()
 
-    // Reset form
     addBookingForm.value = {
       customer_id: '',
       tour_id: '',
@@ -141,13 +127,11 @@ async function handleAddBooking() {
       adult_tickets: 0,
       child_tickets: 0,
     }
-  } catch (error) {
-    // Failed to create booking
+  } catch {
     alert('Failed to create booking')
   }
 }
 
-// Handle reschedule
 async function handleReschedule() {
   try {
     await rescheduleBooking(rescheduleForm.value.bookingId, rescheduleForm.value.newDate)
@@ -155,37 +139,31 @@ async function handleReschedule() {
     alert('Booking rescheduled successfully!')
     closeAllModals()
 
-    // Reset form
     rescheduleForm.value = {
       bookingId: '',
       newDate: '',
     }
-  } catch (error) {
-    // Failed to reschedule booking
+  } catch {
     alert('Failed to reschedule booking')
   }
 }
 
-// Handle cancel booking
 async function handleCancelBooking() {
   try {
     await cancelBooking(cancelBookingForm.value.bookingId)
 
     alert('Booking cancelled successfully!')
     closeAllModals()
-    await loadData() // Reload stats
+    await loadData()
 
-    // Reset form
     cancelBookingForm.value = {
       bookingId: '',
     }
-  } catch (error) {
-    // Failed to cancel booking
+  } catch {
     alert('Failed to cancel booking')
   }
 }
 
-// Handle report issue
 async function handleReportIssue() {
   try {
     await reportIssue(reportIssueForm.value.description)
@@ -193,60 +171,46 @@ async function handleReportIssue() {
     alert('Issue reported successfully!')
     closeAllModals()
 
-    // Reset form
     reportIssueForm.value = {
       description: '',
     }
-  } catch (error) {
-    // Failed to report issue
+  } catch {
     alert('Failed to report issue')
   }
 }
 
-// Greeting based on time
 const greeting = ref('')
+
 onMounted(async () => {
   const hour = new Date().getHours()
+
   if (hour < 12) greeting.value = 'Good Morning'
   else if (hour < 18) greeting.value = 'Good Afternoon'
   else greeting.value = 'Good Evening'
 
-  // Load all data from database (with error handling to not block page render)
   try {
     await loadData()
-  } catch (err) {
-    // onMounted: Failed to load data
-    // Page still renders with default data; no alert to avoid blocking UI
+  } catch {
+    // Page still renders with default data
   }
 })
-
-// Function to handle user logout
-async function handleLogout() {
-  try {
-    await logout()
-    router.push('/login')
-  } catch (err) {
-    // Error logging out - silently handled
-  }
-}
 </script>
 
-<!--Template for the home page-->
 <template>
   <div class="flex min-h-screen">
     <Sidebar />
-    <!-- Main Content -->
+
     <main class="flex-1">
       <div class="p-8">
         <h1 class="text-3xl font-bold text-gray-800">{{ greeting }}, Lucas!</h1>
-        <p class="text-lg text-gray-600 mt-1">Here's what's happening at the Oceanarium Today</p>
+        <p class="mt-1 text-lg text-gray-600">Here's what's happening at the Oceanarium Today</p>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-          <!-- Column 1: Today's Schedule -->
-          <div class="bg-white rounded-xl shadow-md p-6 border-1 border-blue-500">
-            <h2 class="text-xl font-semibold flex items-center">
+        <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div class="rounded-xl border border-blue-500 bg-white p-6 shadow-md">
+            <h2 class="flex items-center text-xl font-semibold">
               <span class="mr-2">📅</span> Today's schedule
             </h2>
+
             <ul class="mt-4 space-y-3 text-sm">
               <li
                 v-for="item in todaySchedule"
@@ -259,50 +223,50 @@ async function handleLogout() {
             </ul>
           </div>
 
-          <!-- Column 2: Quick KPIs and Quick Actions -->
           <div class="space-y-6">
-            <!-- KPIs -->
-            <div class="bg-white rounded-xl shadow-md p-6 border-1 border-blue-500">
-              <h3 class="text-lg font-semibold mb-4">Quick KPIs</h3>
+            <div class="rounded-xl border border-blue-500 bg-white p-6 shadow-md">
+              <h3 class="mb-4 text-lg font-semibold">Quick KPIs</h3>
+
               <div class="grid grid-cols-3 gap-4">
-                <!-- Top row: 3 equal columns -->
-                <div class="bg-blue-100 rounded-lg p-4 text-center">
+                <div class="rounded-lg bg-blue-100 p-4 text-center">
                   <p class="text-sm text-gray-600">Tours Today</p>
                   <p class="text-3xl font-bold text-blue-800">14</p>
                 </div>
-                <div class="bg-blue-100 rounded-lg p-4 text-center">
+
+                <div class="rounded-lg bg-blue-100 p-4 text-center">
                   <p class="text-sm text-gray-600">Customers Today</p>
                   <p class="text-3xl font-bold text-blue-800">84</p>
                 </div>
-                <div class="bg-blue-100 rounded-lg p-4 text-center">
+
+                <div class="rounded-lg bg-blue-100 p-4 text-center">
                   <p class="text-sm text-gray-600">Cancellations</p>
                   <p class="text-3xl font-bold text-blue-800">2</p>
                 </div>
-                <!-- Bottom row: full width single column -->
-                <div class="bg-blue-100 rounded-lg p-4 text-center col-span-3">
+
+                <div class="col-span-3 rounded-lg bg-blue-100 p-4 text-center">
                   <p class="text-sm text-gray-600">Avg Guide Rating</p>
                   <p class="text-3xl font-bold text-blue-800">5.0</p>
                 </div>
               </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="bg-white rounded-xl shadow-md p-6 border-1 border-blue-500">
-              <h3 class="text-lg font-semibold mb-4">Your Quick Actions</h3>
+            <div class="rounded-xl border border-blue-500 bg-white p-6 shadow-md">
+              <h3 class="mb-4 text-lg font-semibold">Your Quick Actions</h3>
+
               <div class="grid grid-cols-3 gap-4 text-center">
                 <button
+                  class="flex flex-col items-center rounded-lg bg-yellow-400 p-4 text-white hover:bg-yellow-500"
                   @click="showAddBookingModal = true"
-                  class="bg-yellow-400 hover:bg-yellow-500 text-white rounded-lg p-4 flex flex-col items-center"
                 >
                   <span class="text-2xl">+</span>
-                  <span class="text-xs mt-1">Add Booking</span>
+                  <span class="mt-1 text-xs">Add Booking</span>
                 </button>
 
                 <button
+                  class="flex flex-col items-center rounded-lg bg-blue-600 p-4 text-white hover:bg-blue-700"
                   @click="showGuidesModal = true"
-                  class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-4 flex flex-col items-center"
                 >
-                  <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
@@ -310,51 +274,49 @@ async function handleLogout() {
                       d="M12 4.354a4 4 0 110 5.292M15 21H9v-1c0-2.21 1.79-4 4-4h2c2.21 0 4 1.79 4 4v1z"
                     />
                   </svg>
-                  <span class="text-xs mt-1">View Guides</span>
+                  <span class="mt-1 text-xs">View Guides</span>
                 </button>
 
                 <button
+                  class="flex flex-col items-center rounded-lg bg-green-500 p-4 text-white hover:bg-green-600"
                   @click="showRescheduleModal = true"
-                  class="bg-green-500 hover:bg-green-600 text-white rounded-lg p-4 flex flex-col items-center"
                 >
                   <span class="text-2xl">↻</span>
-                  <span class="text-xs mt-1">Reschedule</span>
+                  <span class="mt-1 text-xs">Reschedule</span>
                 </button>
 
                 <button
+                  class="flex flex-col items-center rounded-lg bg-red-500 p-4 text-white hover:bg-red-600"
                   @click="showCancelBookingModal = true"
-                  class="bg-red-500 hover:bg-red-600 text-white rounded-lg p-4 flex flex-col items-center"
                 >
                   <span class="text-2xl">✕</span>
-                  <span class="text-xs mt-1">Cancel Booking</span>
+                  <span class="mt-1 text-xs">Cancel Booking</span>
                 </button>
 
                 <button
+                  class="flex flex-col items-center rounded-lg bg-orange-500 p-4 text-white hover:bg-orange-600"
                   @click="showReportIssueModal = true"
-                  class="bg-orange-500 hover:bg-orange-600 text-white rounded-lg p-4 flex flex-col items-center"
                 >
                   <span class="text-2xl">!</span>
-                  <span class="text-xs mt-1">Report Issue</span>
+                  <span class="mt-1 text-xs">Report Issue</span>
                 </button>
 
                 <button
-                  class="bg-gray-600 hover:bg-gray-700 text-white rounded-lg p-4 flex flex-col items-center"
+                  class="flex flex-col items-center rounded-lg bg-gray-600 p-4 text-white hover:bg-gray-700"
                 >
                   <span class="text-2xl">↓</span>
-                  <span class="text-xs mt-1">Export</span>
+                  <span class="mt-1 text-xs">Export</span>
                 </button>
               </div>
             </div>
           </div>
-          <!-- End of Column 2 -->
 
-          <!-- Column 3: Notifications and Recent Activity -->
           <div class="space-y-6">
-            <!-- Notifications -->
-            <div class="bg-white rounded-xl shadow-md p-6 border-1 border-blue-500">
-              <h3 class="text-lg font-semibold flex items-center mb-4">
+            <div class="rounded-xl border border-blue-500 bg-white p-6 shadow-md">
+              <h3 class="mb-4 flex items-center text-lg font-semibold">
                 <span class="mr-2">🔔</span> Your recent notifications
               </h3>
+
               <ul class="space-y-3 text-sm">
                 <li v-for="n in notifications" :key="n.id ?? n.time" class="border-b pb-2">
                   <span class="text-gray-500">{{ n.time }}:</span> {{ n.text }}
@@ -362,110 +324,115 @@ async function handleLogout() {
               </ul>
             </div>
 
-            <!-- Recent Activity -->
-            <div class="bg-white rounded-xl shadow-md p-6 border-1 border-blue-500">
-              <h3 class="text-lg font-semibold flex items-center mb-4">
+            <div class="rounded-xl border border-blue-500 bg-white p-6 shadow-md">
+              <h3 class="mb-4 flex items-center text-lg font-semibold">
                 <span class="mr-2">↑</span> Recent Activity
               </h3>
+
               <ul class="space-y-3 text-sm">
                 <li v-for="a in recentActivity" :key="a.time" class="border-b pb-2">
-                  <span class="text-gray-500">{{ a.time }}</span
-                  ><br />
+                  <span class="text-gray-500">{{ a.time }}</span><br />
                   {{ a.text }}
                 </li>
               </ul>
             </div>
           </div>
-          <!-- End of Column 3 -->
         </div>
-        <!-- End of grid -->
       </div>
     </main>
 
-    <!-- Modals -->
-    <!-- View Guides Modal-->
     <div
       v-if="showGuidesModal"
-      class="fixed inset-0 flex items-center justify-center z-50"
+      class="fixed inset-0 z-50 flex items-center justify-center"
       @click.self="closeAllModals"
     >
-      <div class="bg-white rounded-xl shadow-xl p-6 w-96">
-        <h3 class="text-xl font-bold mb-4">Guides Working Today</h3>
+      <div class="w-96 rounded-xl bg-white p-6 shadow-xl">
+        <h3 class="mb-4 text-xl font-bold">Guides Working Today</h3>
+
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-blue-600 text-white">
-              <th class="py-2 px-4 text-left">Guide Name</th>
-              <th class="py-2 px-4">Working Hours</th>
-              <th class="py-2 px-4">Available now?</th>
+              <th class="px-4 py-2 text-left">Guide Name</th>
+              <th class="px-4 py-2">Working Hours</th>
+              <th class="px-4 py-2">Available now?</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="g in guidesWorking" :key="g.name" class="border-b">
-              <td class="py-2 px-4">{{ g.name }}</td>
-              <td class="py-2 px-4 text-center">{{ g.working_hours }}</td>
-              <td class="py-2 px-4 text-center">
-                <span :class="g.is_available ? 'text-green-600' : 'text-red-600'">{{
-                  g.is_available ? 'Yes' : 'No'
-                }}</span>
+              <td class="px-4 py-2">{{ g.name }}</td>
+              <td class="px-4 py-2 text-center">{{ g.working_hours }}</td>
+              <td class="px-4 py-2 text-center">
+                <span :class="g.is_available ? 'text-green-600' : 'text-red-600'">
+                  {{ g.is_available ? 'Yes' : 'No' }}
+                </span>
               </td>
             </tr>
           </tbody>
         </table>
+
         <button
+          class="mt-4 rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
           @click="closeAllModals"
-          class="mt-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
         >
           Close
         </button>
       </div>
     </div>
 
-    <!-- Add Booking Modal -->
     <div
       v-if="showAddBookingModal"
-      class="fixed inset-0 flex items-center justify-center z-50"
+      class="fixed inset-0 z-50 flex items-center justify-center"
       @click.self="closeAllModals"
     >
-      <div class="bg-white rounded-xl shadow-xl p-6 w-96">
-        <h3 class="text-xl font-bold mb-4">Add new booking</h3>
+      <div class="w-96 rounded-xl bg-white p-6 shadow-xl">
+        <h3 class="mb-4 text-xl font-bold">Add new booking</h3>
+
         <input
           v-model="addBookingForm.customerId"
           placeholder="Customer ID"
-          class="w-full border p-2 mb-3 rounded"
+          class="mb-3 w-full rounded border p-2"
         />
         <input
           v-model="addBookingForm.tourId"
           placeholder="Tour ID"
-          class="w-full border p-2 mb-3 rounded"
+          class="mb-3 w-full rounded border p-2"
         />
-        <input type="date" v-model="addBookingForm.date" class="w-full border p-2 mb-3 rounded" />
+        <input
+          v-model="addBookingForm.date"
+          type="date"
+          class="mb-3 w-full rounded border p-2"
+        />
+
         <div class="flex space-x-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1"> Adult Tickets </label>
+          <label class="mb-1 block text-sm font-medium text-gray-700"> Adult Tickets </label>
 
           <input
-            type="number"
             v-model="addBookingForm.adultTickets"
-            placeholder="Adult Tickets"
-            class="w-full border p-2 rounded"
-          />
-          <label class="block text-sm font-medium text-gray-700 mb-1"> Child Tickets </label>
-          <input
             type="number"
+            placeholder="Adult Tickets"
+            class="w-full rounded border p-2"
+          />
+
+          <label class="mb-1 block text-sm font-medium text-gray-700"> Child Tickets </label>
+
+          <input
             v-model="addBookingForm.childTickets"
+            type="number"
             placeholder="Child Tickets"
-            class="w-full border p-2 rounded"
+            class="w-full rounded border p-2"
           />
         </div>
+
         <div class="mt-4 flex justify-end space-x-3">
           <button
+            class="rounded bg-gray-400 px-4 py-2 text-white hover:bg-gray-500"
             @click="closeAllModals"
-            class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
           >
             Cancel
           </button>
           <button
+            class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
             @click="handleAddBooking"
-            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Create
           </button>
@@ -473,34 +440,35 @@ async function handleLogout() {
       </div>
     </div>
 
-    <!-- Reschedule Modal -->
     <div
       v-if="showRescheduleModal"
-      class="fixed inset-0 flex items-center justify-center z-50"
+      class="fixed inset-0 z-50 flex items-center justify-center"
       @click.self="closeAllModals"
     >
-      <div class="bg-white rounded-xl shadow-xl p-6 w-96">
-        <h3 class="text-xl font-bold mb-4">Reschedule Booking</h3>
+      <div class="w-96 rounded-xl bg-white p-6 shadow-xl">
+        <h3 class="mb-4 text-xl font-bold">Reschedule Booking</h3>
+
         <input
           v-model="rescheduleForm.bookingId"
           placeholder="Enter ID"
-          class="w-full border p-2 mb-3 rounded"
+          class="mb-3 w-full rounded border p-2"
         />
         <input
-          type="date"
           v-model="rescheduleForm.newDate"
-          class="w-full border p-2 mb-3 rounded"
+          type="date"
+          class="mb-3 w-full rounded border p-2"
         />
+
         <div class="mt-4 flex justify-end space-x-3">
           <button
+            class="rounded bg-gray-400 px-4 py-2 text-white hover:bg-gray-500"
             @click="closeAllModals"
-            class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
           >
             Cancel
           </button>
           <button
+            class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
             @click="handleReschedule"
-            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Done
           </button>
@@ -508,53 +476,55 @@ async function handleLogout() {
       </div>
     </div>
 
-    <!-- Report Issue Modal -->
     <div
       v-if="showReportIssueModal"
-      class="fixed inset-0 flex items-center justify-center z-50"
+      class="fixed inset-0 z-50 flex items-center justify-center"
       @click.self="closeAllModals"
     >
-      <div class="bg-white rounded-xl shadow-xl p-6 w-96">
-        <h3 class="text-xl font-bold mb-4">Report Issue</h3>
+      <div class="w-96 rounded-xl bg-white p-6 shadow-xl">
+        <h3 class="mb-4 text-xl font-bold">Report Issue</h3>
+
         <textarea
           v-model="reportIssueForm.description"
           placeholder="Enter Description"
-          class="w-full border p-2 h-32 rounded"
+          class="h-32 w-full rounded border p-2"
         ></textarea>
+
         <div class="mt-4 flex justify-end space-x-3">
-          <button @click="closeAllModals" class="bg-gray-400 text-white px-4 py-2 rounded">
+          <button class="rounded bg-gray-400 px-4 py-2 text-white" @click="closeAllModals">
             Go back
           </button>
-          <button @click="handleReportIssue" class="bg-blue-600 text-white px-4 py-2 rounded">
+          <button class="rounded bg-blue-600 px-4 py-2 text-white" @click="handleReportIssue">
             Submit
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Cancel Booking Modal -->
     <div
       v-if="showCancelBookingModal"
-      class="fixed inset-0 flex items-center justify-center z-50"
+      class="fixed inset-0 z-50 flex items-center justify-center"
       @click.self="closeAllModals"
     >
-      <div class="bg-white rounded-xl shadow-xl p-6 w-96">
-        <h3 class="text-xl font-bold mb-4">Cancel a booking</h3>
+      <div class="w-96 rounded-xl bg-white p-6 shadow-xl">
+        <h3 class="mb-4 text-xl font-bold">Cancel a booking</h3>
+
         <input
           v-model="cancelBookingForm.bookingId"
           placeholder="Booking ID"
-          class="w-full border p-2 mb-3 rounded"
+          class="mb-3 w-full rounded border p-2"
         />
+
         <div class="mt-4 flex justify-end space-x-3">
           <button
+            class="rounded bg-gray-400 px-4 py-2 text-white hover:bg-gray-500"
             @click="closeAllModals"
-            class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
           >
             Go back
           </button>
           <button
+            class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
             @click="handleCancelBooking"
-            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
           >
             Cancel
           </button>
