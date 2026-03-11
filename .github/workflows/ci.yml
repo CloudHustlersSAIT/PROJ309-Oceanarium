@@ -98,6 +98,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg2://oceanarium:oceanarium@localhost:5432/oceanarium
       ENV: development
+      AUTH_BYPASS: "true"
 
     steps:
       - name: Checkout code
@@ -145,6 +146,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg2://oceanarium:oceanarium@localhost:5432/oceanarium
       ENV: development
+      AUTH_BYPASS: "true"
 
     steps:
       - name: Checkout code

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..db import get_db
+from ..dependencies.auth import require_authenticated_user
 from ..services import reservation as reservation_service
 from ..services.exceptions import ConflictError, NotFoundError, ValidationError
 
@@ -57,7 +58,11 @@ def read_reservations(conn=Depends(get_db)):
 
 
 @router.post("/reservations")
-def create_reservation(payload: ReservationCreate, conn=Depends(get_db)):
+def create_reservation(
+    payload: ReservationCreate,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
     try:
         return _create_reservation(payload, conn)
     except ValidationError as e:
@@ -72,7 +77,12 @@ def create_reservation(payload: ReservationCreate, conn=Depends(get_db)):
 
 
 @router.patch("/reservations/{reservation_id}/reschedule")
-def reschedule_reservation(reservation_id: int, payload: ReservationReschedule, conn=Depends(get_db)):
+def reschedule_reservation(
+    reservation_id: int,
+    payload: ReservationReschedule,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
     try:
         return _reschedule_reservation(reservation_id, payload, conn)
     except ValidationError as e:
@@ -87,7 +97,11 @@ def reschedule_reservation(reservation_id: int, payload: ReservationReschedule, 
 
 
 @router.patch("/reservations/{reservation_id}/cancel")
-def cancel_reservation(reservation_id: int, conn=Depends(get_db)):
+def cancel_reservation(
+    reservation_id: int,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
     try:
         return _cancel_reservation(reservation_id, conn)
     except ValidationError as e:
@@ -106,15 +120,28 @@ def read_bookings_legacy(conn=Depends(get_db)):
 
 
 @router.post("/bookings", deprecated=True)
-def create_booking_legacy(payload: ReservationCreate, conn=Depends(get_db)):
+def create_booking_legacy(
+    payload: ReservationCreate,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
     return create_reservation(payload, conn)
 
 
 @router.patch("/bookings/{reservation_id}/reschedule", deprecated=True)
-def reschedule_booking_legacy(reservation_id: int, payload: ReservationReschedule, conn=Depends(get_db)):
+def reschedule_booking_legacy(
+    reservation_id: int,
+    payload: ReservationReschedule,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
     return reschedule_reservation(reservation_id, payload, conn)
 
 
 @router.patch("/bookings/{reservation_id}/cancel", deprecated=True)
-def cancel_booking_legacy(reservation_id: int, conn=Depends(get_db)):
+def cancel_booking_legacy(
+    reservation_id: int,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
     return cancel_reservation(reservation_id, conn)
