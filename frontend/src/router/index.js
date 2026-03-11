@@ -1,6 +1,7 @@
 ﻿import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
 import { firebaseDisabled } from '../utils/firebase'
+import { getDefaultRouteForRole } from '../services/authService'
 
 // Admin views
 import LoginView from '../views/LoginView.vue'
@@ -94,13 +95,13 @@ const router = createRouter({
     // Default route
     {
       path: '/',
-      redirect: () => (firebaseDisabled ? '/home' : '/login'),
+      redirect: '/login',
     },
 
     // Catch-all route
     {
       path: '/:pathMatch(.*)*',
-      redirect: () => (firebaseDisabled ? '/home' : '/login'),
+      redirect: '/login',
     },
   ],
 })
@@ -108,17 +109,21 @@ const router = createRouter({
 // -----------------------
 // Global Route Guard
 // -----------------------
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // Allow everything in dev mode if Firebase disabled
   if (firebaseDisabled) return next()
 
-  const { user } = useAuth()
+  const { user, role, ensureAuthReady } = useAuth()
+  try {
+    await ensureAuthReady()
+  } catch {
+    // Let invalid sessions fall through to the auth checks below.
+  }
   const publicRoutes = ['login', 'forgot-password']
 
   // If logged in user tries to access login/forgot-password
-  if (to.name && publicRoutes.includes(to.name) && user.value) {
-    const role = localStorage.getItem('role') || 'admin'
-    return next(role === 'guide' ? '/guide/home' : '/home')
+  if (to.name && publicRoutes.includes(to.name) && user.value && role.value) {
+    return next(getDefaultRouteForRole(role.value))
   }
 
   // If route requires authentication and user not logged in
@@ -126,12 +131,15 @@ router.beforeEach((to, from, next) => {
     return next('/login')
   }
 
+  if (to.meta?.requiresAuth && user.value && !role.value) {
+    return next('/login')
+  }
+
   // Role-based access control
   const requiredRole = to.meta?.role
   if (requiredRole) {
-    const role = localStorage.getItem('role') || 'admin'
-    if (role !== requiredRole) {
-      return next(role === 'guide' ? '/guide/home' : '/home')
+    if (role.value !== requiredRole) {
+      return next(getDefaultRouteForRole(role.value))
     }
   }
 
