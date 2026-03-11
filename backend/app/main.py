@@ -3,8 +3,13 @@ import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+# for poller_listener
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.db import engine
+from app.services.poller_listener import process_staging_rows
 
 from .firebase_auth import initialize_firebase
 from .routes.auth import router as auth_router
@@ -67,3 +72,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Set up background scheduler for poller listener
+scheduler = BackgroundScheduler()
+
+
+def run_listener():
+
+    with engine.begin() as conn:
+        processed = process_staging_rows(conn)
+
+        if processed > 0:
+            print(f"Processed {processed} staging rows")
+
+
+scheduler.add_job(run_listener, "interval", seconds=5)
+
+scheduler.start()
