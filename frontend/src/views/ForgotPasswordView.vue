@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
@@ -38,101 +38,107 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <!-- I am using some conditional rendering, refer to: https://vuejs.org/guide/essentials/conditional-->
-  <div class="min-h-screen flex bg-white text-gray-500">
-    <!-- Left side: video + logo -->
-    <div class="relative hidden md:block md:w-[35%] lg:w-[30%] overflow-hidden">
-      <video
-        autoplay
-        muted
-        loop
-        playsinline
-        class="h-full w-full object-cover"
-        src="/src/assets/videos/Oceanarium_clip2.mp4"
-      >
-        Your browser does not support the video tag.
-      </video>
+  <div class="fixed inset-0 overflow-hidden bg-white text-black">
+    <div class="h-full grid grid-cols-1 md:grid-cols-[35%_1fr] lg:grid-cols-[30%_1fr]">
+      <!-- Left media panel -->
+      <aside class="relative hidden md:block overflow-hidden">
+        <video
+          autoplay
+          muted
+          loop
+          playsinline
+          class="h-full w-full object-cover"
+          src="/src/assets/videos/Oceanarium_clip2.mp4"
+        >
+          Your browser does not support the video tag.
+        </video>
 
-      <!-- Centered logo -->
-      <div class="absolute inset-0 flex items-center justify-center">
-        <img
-          src="/src/assets/images/logo.svg"
-          alt="Company logo"
-          class="h-50 w-auto drop-shadow-lg"
-        />
-      </div>
-    </div>
+        <div class="absolute inset-0 bg-black/25"></div>
 
-    <!-- Right side: auth form -->
-    <div class="flex-1 flex items-center justify-center px-4 py-8">
-      <div class="w-full max-w-md space-y-6">
-        <header class="space-y-2">
-          <h1 class="text-2xl font-semibold tracking-tight text-black">
-            <img
-              src="/src/assets/images/logo-text.svg"
-              alt="Company logo"
-              class="h-12 mb-4 w-auto drop-shadow-lg"
-            />
-            Forgot your password?
-          </h1>
-          <p class="text-gray-400">Enter your registered email.</p>
-        </header>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <img
+            src="/src/assets/images/logo.svg"
+            alt="Oceanarium logo"
+            class="h-40 lg:h-44 w-auto drop-shadow-xl"
+          />
+        </div>
+      </aside>
 
-        <!-- Form for email input and submission -->
-        <form @submit.prevent="handleSubmit" class="space-y-4">
-          <div class="space-y-4">
-            <div class="relative">
-              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <img
-                  src="/src/assets/icons/envelope.svg"
-                  class="h-8 w-8 text-gray-400"
-                  alt="Email icon"
-                />
+      <!-- Right form panel -->
+      <main class="flex items-center justify-center px-4 py-3 md:py-4 overflow-hidden">
+        <div class="w-full max-w-[500px]">
+          <div
+            class="bg-white shadow-xl rounded-none border border-black/5 p-6 sm:p-7 min-h-[620px]"
+          >
+            <header class="mb-5">
+              <img
+                src="/src/assets/images/logo-text.svg"
+                alt="Oceanarium"
+                class="h-7 sm:h-8 w-auto mb-3"
+              />
+              <h1 class="text-3xl sm:text-3xl font-bold leading-[1.15] tracking-tight text-black">
+                Forgot your password?
+              </h1>
+              <p class="mt-1.5 text-sm text-black/70">
+                Enter your registered email to receive a reset link.
+              </p>
+            </header>
+
+            <form class="space-y-4" @submit.prevent="handleSubmit">
+              <div class="space-y-1.5">
+                <label class="text-sm font-semibold text-black">Email address</label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                    <img
+                      src="/src/assets/icons/envelope.svg"
+                      class="h-5 w-5 opacity-70"
+                      alt="Email icon"
+                    />
+                  </div>
+                  <input
+                    v-model="email"
+                    type="email"
+                    required
+                    class="w-full rounded-2xl border border-black/15 pl-12 pr-4 py-2.5 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+                    placeholder="you@example.com"
+                    autocomplete="email"
+                  />
+                </div>
               </div>
 
-              <input
-                v-model="email"
-                type="email"
-                required
-                class="w-full text-lg rounded-md border pl-14 px-4 py-5 text-base outline-none focus:border-[#0077B6] focus:ring-1 focus:ring-[#0077B6]"
-                placeholder="you@example.com"
-              />
-            </div>
+              <button
+                type="submit"
+                :disabled="submitting"
+                class="w-full rounded-2xl bg-[#0077B6] py-3.5 text-base font-bold text-white shadow-md hover:bg-[#0097E7] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30"
+              >
+                {{ submitting ? 'Sending...' : 'Send reset link' }}
+              </button>
+
+              <p
+                v-if="successMessage"
+                class="text-sm text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-2xl px-4 py-3"
+              >
+                {{ successMessage }}
+              </p>
+
+              <p
+                v-if="localError"
+                class="text-sm text-red-900 bg-red-50 border border-red-300 rounded-2xl px-4 py-3"
+              >
+                {{ localError }}
+              </p>
+
+              <button
+                type="button"
+                class="w-full rounded-2xl border border-[#0077B6]/35 bg-white py-2.5 text-sm font-semibold text-[#0077B6] hover:bg-[#0077B6]/10 transition focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25"
+                @click="router.push('/login')"
+              >
+                Back to login
+              </button>
+            </form>
           </div>
-
-          <button
-            type="submit"
-            :disabled="submitting"
-            class="w-full rounded-md bg-[#0077B6] py-3 text-xl font-medium text-white hover:bg-[#0097e7] disabled:opacity-60 disabled:cursor-not-allowed transition"
-          >
-            {{ submitting ? 'Sending...' : 'Send reset link' }}
-          </button>
-        </form>
-
-        <!-- Success and error messages -->
-        <p
-          v-if="successMessage"
-          class="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2"
-        >
-          {{ successMessage }}
-        </p>
-
-        <p
-          v-if="localError"
-          class="text-sm text-red-500 bg-red-50 border border-red-200 rounded-md px-3 py-2"
-        >
-          {{ localError }}
-        </p>
-
-        <!-- Back to login button -->
-        <button
-          type="button"
-          class="text-xs text-neutral-400 underline hover:text-neutral-600"
-          @click="router.push('/login')"
-        >
-          Back to login
-        </button>
-      </div>
+        </div>
+      </main>
     </div>
   </div>
 </template>

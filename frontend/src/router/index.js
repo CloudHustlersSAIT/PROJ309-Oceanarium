@@ -1,9 +1,8 @@
-// Import necessary modules
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
 import { firebaseDisabled } from '../utils/firebase'
 
-//Import views
+// Admin views
 import LoginView from '../views/LoginView.vue'
 import HomeView from '../views/HomeView.vue'
 import ForgotPasswordView from '../views/ForgotPasswordView.vue'
@@ -14,44 +13,128 @@ import BookingsView from '../views/BookingsView.vue'
 import CalendarView from '../views/CalendarView.vue'
 import SettingsView from '../views/SettingsView.vue'
 
+// Guide layout + views
+import GuideLayout from '../layouts/GuideLayout.vue'
+import GuideHomeView from '../views/guide/GuideHomeView.vue'
+import GuideScheduleView from '../views/guide/GuideScheduleView.vue'
+import GuideRequestsView from '../views/guide/GuideRequestsView.vue'
+import GuideNotificationsView from '../views/guide/GuideNotificationsView.vue'
+import GuideProfileView from '../views/guide/GuideProfileView.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // Public routes
     { path: '/login', name: 'login', component: LoginView },
-    { path: '/home', name: 'home', component: HomeView },
     { path: '/forgot-password', name: 'forgot-password', component: ForgotPasswordView },
-    { path: '/dashboard', name: 'dashboard', component: DashboardView },
-    { path: '/notifications', name: 'notifications', component: NotificationsView },
-    { path: '/assets', name: 'assets', component: AssetsView },
-    { path: '/bookings', name: 'bookings', component: BookingsView },
-    { path: '/calendar', name: 'calendar', component: CalendarView },
-    { path: '/settings', name: 'settings', component: SettingsView },
-    // Default route: when Firebase is disabled, go to /home; otherwise go to /login
-    { path: '/', redirect: () => (firebaseDisabled ? '/home' : '/login') },
+
+    // -----------------------
+    // Admin routes
+    // -----------------------
+    {
+      path: '/home',
+      name: 'home',
+      component: HomeView,
+      meta: { requiresAuth: true, role: 'admin' },
+    },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: DashboardView,
+      meta: { requiresAuth: true, role: 'admin' },
+    },
+    {
+      path: '/notifications',
+      name: 'notifications',
+      component: NotificationsView,
+      meta: { requiresAuth: true, role: 'admin' },
+    },
+    {
+      path: '/assets',
+      name: 'assets',
+      component: AssetsView,
+      meta: { requiresAuth: true, role: 'admin' },
+    },
+    {
+      path: '/bookings',
+      name: 'bookings',
+      component: BookingsView,
+      meta: { requiresAuth: true, role: 'admin' },
+    },
+    {
+      path: '/calendar',
+      name: 'calendar',
+      component: CalendarView,
+      meta: { requiresAuth: true, role: 'admin' },
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: SettingsView,
+      meta: { requiresAuth: true, role: 'admin' },
+    },
+
+    // -----------------------
+    // Guide Portal (Nested)
+    // -----------------------
+    {
+      path: '/guide',
+      component: GuideLayout,
+      meta: { requiresAuth: true, role: 'guide' },
+      children: [
+        { path: '', redirect: { name: 'guide-home' } },
+        { path: 'home', name: 'guide-home', component: GuideHomeView },
+        { path: 'schedule', name: 'guide-schedule', component: GuideScheduleView },
+        { path: 'requests', name: 'guide-requests', component: GuideRequestsView },
+        { path: 'notifications', name: 'guide-notifications', component: GuideNotificationsView },
+        { path: 'profile', name: 'guide-profile', component: GuideProfileView },
+      ],
+    },
+
+    // Default route
+    {
+      path: '/',
+      redirect: () => (firebaseDisabled ? '/home' : '/login'),
+    },
+
+    // Catch-all route
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: () => (firebaseDisabled ? '/home' : '/login'),
+    },
   ],
 })
 
-//Protect routes that require authentication
+// -----------------------
+// Global Route Guard
+// -----------------------
 router.beforeEach((to, from, next) => {
-  // If Firebase is not configured, skip auth checks so the app is usable in local/dev.
+  // Allow everything in dev mode if Firebase disabled
   if (firebaseDisabled) return next()
 
   const { user } = useAuth()
-
-  // Public routes (no auth required)
   const publicRoutes = ['login', 'forgot-password']
 
-  // If user is logged in and goes to login or forgot-password, send them to home
-  if (publicRoutes.includes(to.name) && user.value) {
-    return next('/home')
+  // If logged in user tries to access login/forgot-password
+  if (to.name && publicRoutes.includes(to.name) && user.value) {
+    const role = localStorage.getItem('role') || 'admin'
+    return next(role === 'guide' ? '/guide/home' : '/home')
   }
 
-  // If route is not public and user is not logged in, send them to login
-  if (!publicRoutes.includes(to.name) && !user.value) {
+  // If route requires authentication and user not logged in
+  if (to.meta?.requiresAuth && !user.value) {
     return next('/login')
   }
 
-  // Otherwise, allow navigation
+  // Role-based access control
+  const requiredRole = to.meta?.role
+  if (requiredRole) {
+    const role = localStorage.getItem('role') || 'admin'
+    if (role !== requiredRole) {
+      return next(role === 'guide' ? '/guide/home' : '/home')
+    }
+  }
+
   return next()
 })
 

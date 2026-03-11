@@ -11,7 +11,7 @@ def get_stats(conn):
             SELECT COUNT(*) as count
             FROM reservations
             WHERE event_start_datetime::date = :today
-              AND status != 'cancelled'
+              AND status != 'CANCELLED'
         """),
         {"today": today},
     )
@@ -22,7 +22,7 @@ def get_stats(conn):
             SELECT COALESCE(SUM(current_ticket_num), 0) as total
             FROM reservations
             WHERE event_start_datetime::date = :today
-              AND status != 'cancelled'
+              AND status != 'CANCELLED'
         """),
         {"today": today},
     )
@@ -33,7 +33,7 @@ def get_stats(conn):
             SELECT COUNT(*) as count
             FROM reservations
             WHERE event_start_datetime::date = :today
-              AND status = 'cancelled'
+              AND status = 'CANCELLED'
         """),
         {"today": today},
     )

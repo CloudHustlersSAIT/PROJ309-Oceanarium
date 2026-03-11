@@ -1,4 +1,4 @@
-export function addMinutesToTime(time, minutesToAdd) {
+﻿export function addMinutesToTime(time, minutesToAdd) {
   const [hour, minute] = time.split(':').map(Number)
   const totalMinutes = hour * 60 + minute + minutesToAdd
   const clampedMinutes = Math.min(totalMinutes, 23 * 60 + 59)

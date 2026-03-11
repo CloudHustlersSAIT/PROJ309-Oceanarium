@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
+import AppSidebar from '../components/AppSidebar.vue'
 
 const profile = reactive({
   name: 'David Guerrero',
@@ -40,12 +40,14 @@ function openPrototypeLink(label) {
 
 <template>
   <div class="flex min-h-screen bg-[#F8F9FB] overflow-x-hidden">
-    <Sidebar />
+    <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
       <div class="mb-5">
         <h1 class="text-3xl md:text-4xl font-semibold text-gray-800">Settings</h1>
-        <p class="mt-1 text-sm text-gray-500">Prototype screen for layout and interaction validation.</p>
+        <p class="mt-1 text-sm text-gray-500">
+          Prototype screen for layout and interaction validation.
+        </p>
       </div>
 
       <p
@@ -55,7 +57,9 @@ function openPrototypeLink(label) {
         {{ infoMessage }}
       </p>
 
-      <div class="grid grid-cols-1 xl:grid-cols-[minmax(640px,1fr)_minmax(360px,420px)] gap-4 items-start">
+      <div
+        class="grid grid-cols-1 xl:grid-cols-[minmax(640px,1fr)_minmax(360px,420px)] gap-4 items-start"
+      >
         <section class="space-y-4">
           <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
             <h2 class="text-2xl font-semibold text-gray-900 mb-4">Profile Information</h2>
@@ -78,23 +82,50 @@ function openPrototypeLink(label) {
 
               <div class="space-y-3">
                 <div>
-                  <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">Name</label>
-                  <input v-model="profile.name" type="text" class="w-full rounded border border-gray-300 px-3 py-2 text-base" />
+                  <label
+                    class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+                    >Name</label
+                  >
+                  <input
+                    v-model="profile.name"
+                    type="text"
+                    class="w-full rounded border border-gray-300 px-3 py-2 text-base"
+                  />
                 </div>
 
                 <div>
-                  <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">Email Address</label>
-                  <input v-model="profile.email" type="email" class="w-full rounded border border-gray-300 px-3 py-2 text-base" />
+                  <label
+                    class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+                    >Email Address</label
+                  >
+                  <input
+                    v-model="profile.email"
+                    type="email"
+                    class="w-full rounded border border-gray-300 px-3 py-2 text-base"
+                  />
                 </div>
 
                 <div>
-                  <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">Phone Number</label>
-                  <input v-model="profile.phone" type="text" class="w-full rounded border border-gray-300 px-3 py-2 text-base" />
+                  <label
+                    class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+                    >Phone Number</label
+                  >
+                  <input
+                    v-model="profile.phone"
+                    type="text"
+                    class="w-full rounded border border-gray-300 px-3 py-2 text-base"
+                  />
                 </div>
 
                 <div>
-                  <label class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">Language</label>
-                  <select v-model="profile.language" class="w-full rounded border border-gray-300 px-3 py-2 text-base bg-white">
+                  <label
+                    class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
+                    >Language</label
+                  >
+                  <select
+                    v-model="profile.language"
+                    class="w-full rounded border border-gray-300 px-3 py-2 text-base bg-white"
+                  >
                     <option>English (US)</option>
                     <option>English (UK)</option>
                     <option>Portuguese (BR)</option>
@@ -103,7 +134,11 @@ function openPrototypeLink(label) {
                 </div>
 
                 <div class="pt-1">
-                  <button type="button" class="rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium hover:bg-sky-600" @click="saveProfile">
+                  <button
+                    type="button"
+                    class="rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium hover:bg-sky-600"
+                    @click="saveProfile"
+                  >
                     Save Profile
                   </button>
                 </div>
@@ -114,30 +149,64 @@ function openPrototypeLink(label) {
           <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
             <h2 class="text-2xl font-semibold text-gray-900 mb-3">User Management</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <button type="button" class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100" @click="openPrototypeLink('Add New Guide')">Add New Guide</button>
-              <button type="button" class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100" @click="openPrototypeLink('View Guides')">View Guides</button>
-              <button type="button" class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100" @click="openPrototypeLink('Guide Password Reset')">Guide Password Reset</button>
-              <button type="button" class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100" @click="openPrototypeLink('Assign Guide')">Assign Guide</button>
+              <button
+                type="button"
+                class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100"
+                @click="openPrototypeLink('Add New Guide')"
+              >
+                Add New Guide
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100"
+                @click="openPrototypeLink('View Guides')"
+              >
+                View Guides
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100"
+                @click="openPrototypeLink('Guide Password Reset')"
+              >
+                Guide Password Reset
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100"
+                @click="openPrototypeLink('Assign Guide')"
+              >
+                Assign Guide
+              </button>
             </div>
           </div>
 
           <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
             <h2 class="text-2xl font-semibold text-gray-900 mb-3">Notifications</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <label class="flex items-center gap-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-base">
+              <label
+                class="flex items-center gap-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-base"
+              >
                 <input v-model="notificationChannels.email" type="checkbox" class="h-5 w-5" />
                 Email
               </label>
-              <label class="flex items-center gap-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-base">
+              <label
+                class="flex items-center gap-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-base"
+              >
                 <input v-model="notificationChannels.sms" type="checkbox" class="h-5 w-5" />
                 SMS
               </label>
-              <label class="flex items-center gap-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-base md:col-span-1">
+              <label
+                class="flex items-center gap-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-base md:col-span-1"
+              >
                 <input v-model="notificationChannels.whatsapp" type="checkbox" class="h-5 w-5" />
                 WhatsApp
               </label>
             </div>
-            <button type="button" class="mt-3 rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium hover:bg-sky-600" @click="saveProfile">
+            <button
+              type="button"
+              class="mt-3 rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium hover:bg-sky-600"
+              @click="saveProfile"
+            >
               Save Notification Preferences
             </button>
           </div>
@@ -145,11 +214,41 @@ function openPrototypeLink(label) {
           <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
             <h2 class="text-2xl font-semibold text-gray-900 mb-3">Help &amp; Support</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-1 text-base text-gray-700">
-              <button type="button" class="text-left hover:underline" @click="openPrototypeLink('API Status')">API Status</button>
-              <button type="button" class="text-left hover:underline" @click="openPrototypeLink('Report a Problem')">Report a Problem</button>
-              <button type="button" class="text-left hover:underline" @click="openPrototypeLink('Terms & Conditions')">Terms &amp; Conditions</button>
-              <button type="button" class="text-left hover:underline" @click="openPrototypeLink('Version Information')">Version Information</button>
-              <button type="button" class="text-left hover:underline" @click="openPrototypeLink('Privacy Policy')">Privacy Policy</button>
+              <button
+                type="button"
+                class="text-left hover:underline"
+                @click="openPrototypeLink('API Status')"
+              >
+                API Status
+              </button>
+              <button
+                type="button"
+                class="text-left hover:underline"
+                @click="openPrototypeLink('Report a Problem')"
+              >
+                Report a Problem
+              </button>
+              <button
+                type="button"
+                class="text-left hover:underline"
+                @click="openPrototypeLink('Terms & Conditions')"
+              >
+                Terms &amp; Conditions
+              </button>
+              <button
+                type="button"
+                class="text-left hover:underline"
+                @click="openPrototypeLink('Version Information')"
+              >
+                Version Information
+              </button>
+              <button
+                type="button"
+                class="text-left hover:underline"
+                @click="openPrototypeLink('Privacy Policy')"
+              >
+                Privacy Policy
+              </button>
             </div>
           </div>
         </section>
@@ -174,14 +273,34 @@ function openPrototypeLink(label) {
 
             <p class="text-base font-medium mb-2">Password Reset Link</p>
             <div class="flex flex-wrap gap-3 mb-5">
-              <button type="button" class="rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium" @click="sendResetLink('Email')">Send Via Email</button>
-              <button type="button" class="rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium" @click="sendResetLink('SMS')">Send Via SMS</button>
+              <button
+                type="button"
+                class="rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium"
+                @click="sendResetLink('Email')"
+              >
+                Send Via Email
+              </button>
+              <button
+                type="button"
+                class="rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium"
+                @click="sendResetLink('SMS')"
+              >
+                Send Via SMS
+              </button>
             </div>
 
-            <p class="text-sm text-gray-700 mb-1">Recovery Phone: <span class="text-[#8D97FF]">+55 12345678</span></p>
-            <p class="text-sm text-gray-700">Recovery Email: <span class="text-[#8D97FF]">+55 12345678</span></p>
+            <p class="text-sm text-gray-700 mb-1">
+              Recovery Phone: <span class="text-[#8D97FF]">+55 12345678</span>
+            </p>
+            <p class="text-sm text-gray-700">
+              Recovery Email: <span class="text-[#8D97FF]">+55 12345678</span>
+            </p>
 
-            <button type="button" class="mt-4 rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium" @click="saveProfile">
+            <button
+              type="button"
+              class="mt-4 rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium"
+              @click="saveProfile"
+            >
               Save Security Settings
             </button>
           </div>
