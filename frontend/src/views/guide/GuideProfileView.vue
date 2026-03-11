@@ -173,20 +173,14 @@
 
           <!-- Actions -->
           <div class="flex items-center gap-3 pt-2">
+            <CancelButton @cancel="loadProfile" />
+
             <button
               type="submit"
               :disabled="saving"
               class="rounded-xl bg-[#0077B6] px-5 py-3 text-sm font-semibold text-white hover:bg-[#0097E7] disabled:opacity-60 disabled:cursor-not-allowed transition"
             >
               {{ saving ? 'Saving...' : 'Save Changes' }}
-            </button>
-
-            <button
-              type="button"
-              class="rounded-xl border border-black/10 px-5 py-3 text-sm font-semibold text-black/70 hover:bg-[#CAF0F8]/50 transition"
-              @click="loadProfile"
-            >
-              Cancel
             </button>
           </div>
 
@@ -205,9 +199,10 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
-import { useAuth } from '@/contexts/authContext'
-import { firebaseDisabled } from '@/utils/firebase'
+import { computed, reactive, ref } from "vue";
+import { useAuth } from "@/contexts/authContext";
+import { firebaseDisabled } from "@/utils/firebase";
+import CancelButton from "@/components/CancelButton.vue";
 
 const { user } = useAuth()
 

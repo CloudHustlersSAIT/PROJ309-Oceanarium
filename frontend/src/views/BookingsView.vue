@@ -364,28 +364,23 @@ onMounted(loadBookings)
               />
             </div>
 
-            <p v-if="createError" class="text-xs text-red-600">{{ createError }}</p>
-            <p v-if="createSuccess" class="text-xs text-green-700">{{ createSuccess }}</p>
+            <p v-if="createError" class="text-xs text-red-300">{{ createError }}</p>
+            <p v-if="createSuccess" class="text-xs text-green-300">{{ createSuccess }}</p>
 
-            <div class="pt-2 flex gap-3">
+            <div class="pt-2 flex items-center justify-end gap-2">
+              <CancelButton @cancel="closeCreatePopup" />
               <button
                 type="button"
-                class="flex-1 rounded bg-cyan-500 hover:bg-cyan-600 text-gray-900 py-2 text-sm font-medium disabled:opacity-60"
+                class="px-5 py-2 rounded text-white font-medium"
+                :class="!saving ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-500/40 cursor-not-allowed'"
                 :disabled="saving"
                 @click="handleCreateBooking"
               >
                 {{ saving ? 'Creating...' : 'Create' }}
               </button>
-              <button
-                type="button"
-                class="flex-1 rounded border border-gray-500 bg-white py-2 text-sm font-medium text-gray-700"
-                @click="resetForm"
-              >
-                Cancel
-              </button>
             </div>
           </div>
-        </section>
+        </div>
       </div>
     </main>
   </div>

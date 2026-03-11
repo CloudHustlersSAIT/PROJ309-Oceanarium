@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import CalendarToolbar from '../components/calendar/CalendarToolbar.vue'
 import CalendarGrid from '../components/calendar/CalendarGrid.vue'
+import CancelButton from '../components/CancelButton.vue'
 import { useCalendarStore } from '../stores/calendar'
 import {
   addMinutesToTime,
@@ -15,10 +16,6 @@ import {
 
 const calendar = useCalendarStore()
 const bulkMode = ref(false)
-const searchText = ref('')
-const showEvents = ref(false)
-const showTask = ref(false)
-const showAppointment = ref(false)
 const showCreatePopup = ref(false)
 const createType = ref('event')
 const createAllDay = ref(false)

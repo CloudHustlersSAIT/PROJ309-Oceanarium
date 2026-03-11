@@ -1,0 +1,425 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-03-11T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app",
+  "resources": [
+    {
+      "_id": "wrk_oceanarium",
+      "_type": "workspace",
+      "name": "Oceanarium API",
+      "description": "Oceanarium FastAPI Backend",
+      "scope": "collection",
+      "parentId": null
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "parentId": "wrk_oceanarium",
+      "data": {
+        "base_url": "http://localhost:8000",
+        "firebase_api_key": "",
+        "auth_token": ""
+      }
+    },
+    {
+      "_id": "env_dev",
+      "_type": "environment",
+      "name": "Development (localhost)",
+      "parentId": "env_base",
+      "data": {
+        "base_url": "http://localhost:8000",
+        "firebase_api_key": "<your-firebase-web-api-key>",
+        "auth_token": "dev-bypass"
+      }
+    },
+    {
+      "_id": "env_prod",
+      "_type": "environment",
+      "name": "Production",
+      "parentId": "env_base",
+      "data": {
+        "base_url": "https://oceanarium.duckdns.org",
+        "firebase_api_key": "<your-firebase-web-api-key>",
+        "auth_token": "<paste-idToken-from-sign-in-response>"
+      }
+    },
+
+    {
+      "_id": "fld_health",
+      "_type": "request_group",
+      "name": "Health",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_health",
+      "_type": "request",
+      "name": "Liveness Check",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health",
+      "parentId": "fld_health",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_health_db",
+      "_type": "request",
+      "name": "Database Check",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health/db",
+      "parentId": "fld_health",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 2
+    },
+
+    {
+      "_id": "fld_auth",
+      "_type": "request_group",
+      "name": "Authentication",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_firebase_signin",
+      "_type": "request",
+      "name": "Sign In (Get Token)",
+      "description": "Calls Firebase Auth REST API. Copy the idToken from the response and paste it into the auth_token environment variable.",
+      "method": "POST",
+      "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{ _.firebase_api_key }}",
+      "parentId": "fld_auth",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"your-email@example.com\",\n  \"password\": \"your-password\",\n  \"returnSecureToken\": true\n}"
+      },
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_auth_me",
+      "_type": "request",
+      "name": "Get Current User",
+      "method": "GET",
+      "url": "{{ _.base_url }}/auth/me",
+      "parentId": "fld_auth",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 2
+    },
+
+    {
+      "_id": "fld_reservations",
+      "_type": "request_group",
+      "name": "Reservations",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_list_reservations",
+      "_type": "request",
+      "name": "List Reservations",
+      "method": "GET",
+      "url": "{{ _.base_url }}/reservations",
+      "parentId": "fld_reservations",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_create_reservation",
+      "_type": "request",
+      "name": "Create Reservation",
+      "method": "POST",
+      "url": "{{ _.base_url }}/reservations",
+      "parentId": "fld_reservations",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"customer_id\": 1,\n  \"schedule_id\": 1,\n  \"adult_tickets\": 2,\n  \"child_tickets\": 1,\n  \"status\": \"CONFIRMED\"\n}"
+      },
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_reschedule_reservation",
+      "_type": "request",
+      "name": "Reschedule Reservation",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/reservations/1/reschedule",
+      "parentId": "fld_reservations",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"new_schedule_id\": 2\n}"
+      },
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_cancel_reservation",
+      "_type": "request",
+      "name": "Cancel Reservation",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/reservations/1/cancel",
+      "parentId": "fld_reservations",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 4
+    },
+
+    {
+      "_id": "fld_guides",
+      "_type": "request_group",
+      "name": "Guides",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_list_guides",
+      "_type": "request",
+      "name": "List Guides",
+      "method": "GET",
+      "url": "{{ _.base_url }}/guides",
+      "parentId": "fld_guides",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+
+    {
+      "_id": "fld_tours",
+      "_type": "request_group",
+      "name": "Tours",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 5
+    },
+    {
+      "_id": "req_list_tours",
+      "_type": "request",
+      "name": "List Tours",
+      "method": "GET",
+      "url": "{{ _.base_url }}/tours",
+      "parentId": "fld_tours",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+
+    {
+      "_id": "fld_schedules",
+      "_type": "request_group",
+      "name": "Schedules",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 6
+    },
+    {
+      "_id": "req_list_schedules",
+      "_type": "request",
+      "name": "List Schedules",
+      "method": "GET",
+      "url": "{{ _.base_url }}/schedules",
+      "parentId": "fld_schedules",
+      "headers": [],
+      "parameters": [
+        {
+          "name": "start_date",
+          "value": "2026-03-01",
+          "disabled": true
+        },
+        {
+          "name": "end_date",
+          "value": "2026-03-31",
+          "disabled": true
+        },
+        {
+          "name": "status",
+          "value": "CONFIRMED",
+          "disabled": true
+        }
+      ],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_create_schedule",
+      "_type": "request",
+      "name": "Create Schedule",
+      "method": "POST",
+      "url": "{{ _.base_url }}/schedules",
+      "parentId": "fld_schedules",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tour_id\": 1,\n  \"guide_id\": 1,\n  \"language_code\": \"en\",\n  \"event_start_datetime\": \"2026-03-15T10:00:00\",\n  \"event_end_datetime\": \"2026-03-15T12:00:00\",\n  \"status\": \"CONFIRMED\"\n}"
+      },
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_auto_assign_guide",
+      "_type": "request",
+      "name": "Auto Assign Guide",
+      "description": "Automatically assigns the best eligible guide to a schedule based on three hard constraints (language, availability, expertise) and priority ranking (fewest same-day assignments, highest rating, lowest ID).",
+      "method": "POST",
+      "url": "{{ _.base_url }}/schedules/1/assign",
+      "parentId": "fld_schedules",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_manual_assign_guide",
+      "_type": "request",
+      "name": "Manual Assign Guide",
+      "description": "Manually assigns a specific guide to a schedule (admin override). Returns warnings if any hard constraints are violated, but does not block the assignment.",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/schedules/1/assign",
+      "parentId": "fld_schedules",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"guide_id\": 1,\n  \"reason\": \"Customer requested specific guide\"\n}"
+      },
+      "metaSortKey": 4
+    },
+
+    {
+      "_id": "fld_notifications",
+      "_type": "request_group",
+      "name": "Notifications",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 7
+    },
+    {
+      "_id": "req_list_notifications",
+      "_type": "request",
+      "name": "List Notifications",
+      "method": "GET",
+      "url": "{{ _.base_url }}/notifications",
+      "parentId": "fld_notifications",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+
+    {
+      "_id": "fld_issues",
+      "_type": "request_group",
+      "name": "Issues",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 8
+    },
+    {
+      "_id": "req_create_issue",
+      "_type": "request",
+      "name": "Create Issue",
+      "method": "POST",
+      "url": "{{ _.base_url }}/issues",
+      "parentId": "fld_issues",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"description\": \"Example issue description\"\n}"
+      },
+      "metaSortKey": 1
+    },
+
+    {
+      "_id": "fld_stats",
+      "_type": "request_group",
+      "name": "Stats",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 9
+    },
+    {
+      "_id": "req_get_stats",
+      "_type": "request",
+      "name": "Dashboard Stats",
+      "method": "GET",
+      "url": "{{ _.base_url }}/stats",
+      "parentId": "fld_stats",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+
+    {
+      "_id": "fld_mock",
+      "_type": "request_group",
+      "name": "Mock Poller (Dev Only)",
+      "parentId": "wrk_oceanarium",
+      "metaSortKey": 10
+    },
+    {
+      "_id": "req_mock_run",
+      "_type": "request",
+      "name": "Run Mock Poller",
+      "method": "POST",
+      "url": "{{ _.base_url }}/mock/run",
+      "parentId": "fld_mock",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"seed\": 42,\n  \"batch_size\": 10,\n  \"update_ratio\": 0.30,\n  \"unchanged_ratio\": 0.20\n}"
+      },
+      "metaSortKey": 1
+    }
+  ]
+}
