@@ -1,12 +1,14 @@
 ﻿<template>
   <div class="min-h-screen bg-[#F5F7FA] text-[#1C1C1C]">
-    <GuideTopbar />
-    <main class="mx-auto max-w-6xl px-4 py-6">
-      <RouterView />
-    </main>
+    <div class="w-full md:flex">
+      <GuideSidebar />
+      <main class="w-full px-4 pt-20 pb-6 sm:px-6 md:pt-6 lg:px-8">
+        <RouterView />
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup>
-import GuideTopbar from '@/components/guide/GuideTopbar.vue'
+import GuideSidebar from "@/components/guide/GuideSidebar.vue";
 </script>
