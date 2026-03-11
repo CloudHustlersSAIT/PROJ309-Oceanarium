@@ -67,7 +67,9 @@ async function handleSubmit() {
       <!-- Right form panel -->
       <main class="flex items-center justify-center px-4 py-3 md:py-4 overflow-hidden">
         <div class="w-full max-w-[500px]">
-          <div class="bg-white shadow-xl rounded-none border border-black/5 p-6 sm:p-7 min-h-[620px]">
+          <div
+            class="bg-white shadow-xl rounded-none border border-black/5 p-6 sm:p-7 min-h-[620px]"
+          >
             <header class="mb-5">
               <img
                 src="/src/assets/images/logo-text.svg"
@@ -82,7 +84,7 @@ async function handleSubmit() {
               </p>
             </header>
 
-            <form @submit.prevent="handleSubmit" class="space-y-4">
+            <form class="space-y-4" @submit.prevent="handleSubmit">
               <div class="space-y-1.5">
                 <label class="text-sm font-semibold text-black">Email address</label>
                 <div class="relative">
@@ -109,7 +111,7 @@ async function handleSubmit() {
                 :disabled="submitting"
                 class="w-full rounded-2xl bg-[#0077B6] py-3.5 text-base font-bold text-white shadow-md hover:bg-[#0097E7] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30"
               >
-                {{ submitting ? "Sending..." : "Send reset link" }}
+                {{ submitting ? 'Sending...' : 'Send reset link' }}
               </button>
 
               <p
@@ -140,4 +142,3 @@ async function handleSubmit() {
     </div>
   </div>
 </template>
-

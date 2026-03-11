@@ -1,7 +1,26 @@
-﻿const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' // FastAPI default port
+import { useAuth } from '../contexts/authContext'
+
+const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' // FastAPI default port
 const RESERVATION_LANGUAGE_CACHE_KEY = 'reservation-language-cache-v1'
 const RESERVATION_LANGUAGE_CACHE_MAX_ENTRIES = 500
 const RESERVATION_LANGUAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+//Auth header builder helper function
+//Author Joao Santiago
+async function getAuthorizationHeader() {
+  try {
+    const { getIdToken } = useAuth()
+    const token = await getIdToken()
+
+    if (!token) return {} // No token available, return empty headers
+
+    return {
+      Authorization: `Bearer ${token}`,
+    }
+  } catch {
+    return {} // On error (e.g., Firebase not configured), return empty headers to allow API to handle auth errors gracefully
+  }
+}
 
 function normalizeReservationLanguageCacheEntry(entry) {
   if (typeof entry === 'string') {
@@ -113,41 +132,47 @@ function formatApiErrorDetail(detail) {
   return ''
 }
 
-// Generic fetch helper
+// Generic fetch helper with authorization header support
 async function fetchAPI(endpoint, options = {}) {
-  try {
-    const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    })
+  const { requiresAuth = false, headers: customHeaders = {}, ...fetchOptions } = options
 
-    if (!response.ok) {
-      let message = `API Error: ${response.status} ${response.statusText}`
-      try {
-        const errorBody = await response.clone().json()
-        if (errorBody?.detail) {
-          const detailMessage = formatApiErrorDetail(errorBody.detail)
-          if (detailMessage) message = detailMessage
-        }
-      } catch {
-        try {
-          const errorText = await response.text()
-          if (errorText) message = errorText
-        } catch {
-          // Keep fallback message when response body cannot be parsed.
-        }
-      }
-      throw new Error(message)
-    }
+  // Build headers with optional auth
+  const authHeaders = requiresAuth ? await getAuthorizationHeader() : {}
 
-    return await response.json()
-  } catch (error) {
-    // API request failed - error will be handled by caller
-    throw error
+  // Fail early for authenticated requests when no token is available,
+  // so callers can prompt login instead of sending an unauthenticated request.
+  if (requiresAuth && !authHeaders.Authorization) {
+    throw new Error('Authentication required. Please sign in to continue.')
   }
+  const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+      ...customHeaders,
+    },
+    ...fetchOptions,
+  })
+
+  if (!response.ok) {
+    let message = `API Error: ${response.status} ${response.statusText}`
+    try {
+      const errorBody = await response.clone().json()
+      if (errorBody?.detail) {
+        const detailMessage = formatApiErrorDetail(errorBody.detail)
+        if (detailMessage) message = detailMessage
+      }
+    } catch {
+      try {
+        const errorText = await response.text()
+        if (errorText) message = errorText
+      } catch {
+        // Keep fallback message when response body cannot be parsed.
+      }
+    }
+    throw new Error(message)
+  }
+
+  return await response.json()
 }
 
 // Get all guides
@@ -280,6 +305,7 @@ export async function createBooking(bookingData) {
 
   return fetchAPI('/reservations', {
     method: 'POST',
+    requiresAuth: true,
     body: JSON.stringify(normalizedPayload),
   })
 }
@@ -294,6 +320,7 @@ export async function rescheduleBooking(
   if (typeof newDate === 'number') {
     return fetchAPI(`/reservations/${bookingId}/reschedule`, {
       method: 'PATCH',
+      requiresAuth: true,
       body: JSON.stringify({
         new_schedule_id: newDate,
       }),
@@ -303,6 +330,7 @@ export async function rescheduleBooking(
   if (newDate && typeof newDate === 'object' && newDate.new_schedule_id != null) {
     return fetchAPI(`/reservations/${bookingId}/reschedule`, {
       method: 'PATCH',
+      requiresAuth: true,
       body: JSON.stringify({
         new_schedule_id: Number(newDate.new_schedule_id),
       }),
@@ -311,6 +339,7 @@ export async function rescheduleBooking(
 
   return fetchAPI(`/reservations/${bookingId}/reschedule`, {
     method: 'PATCH',
+    requiresAuth: true,
     body: JSON.stringify({
       new_date: newDate,
       start_time: startTime,
@@ -323,6 +352,7 @@ export async function rescheduleBooking(
 export async function cancelBooking(bookingId) {
   return fetchAPI(`/reservations/${bookingId}/cancel`, {
     method: 'PATCH',
+    requiresAuth: true,
   })
 }
 
@@ -330,6 +360,7 @@ export async function cancelBooking(bookingId) {
 export async function reportIssue(description) {
   return fetchAPI('/issues', {
     method: 'POST',
+    requiresAuth: true,
     body: JSON.stringify({ description }),
   })
 }

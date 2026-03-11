@@ -1,9 +1,6 @@
-﻿import { defineStore } from 'pinia'
+import { defineStore } from 'pinia'
 import { getSchedules, rescheduleBooking } from '../services/api'
 
-const OPERATING_START_MINUTES = 10 * 60
-const OPERATING_END_MINUTES = 18 * 60 + 30
-const CALENDAR_SLOT_MINUTES = 30
 const DEFAULT_EVENT_DURATION_MINUTES = 60
 
 function toIso(date) {
@@ -26,10 +23,6 @@ function addMinutes(dateLike, minutes) {
   const d = new Date(dateLike)
   d.setMinutes(d.getMinutes() + minutes)
   return d
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value))
 }
 
 function safeId(prefix) {
@@ -71,69 +64,6 @@ function getDateField(record) {
   if (!raw) return null
 
   return parseDateTimeKeepingWallClock(raw)
-}
-
-function hasExplicitTime(record) {
-  const raw = ['start', 'datetime', 'time', 'date', 'booking_date', 'start_date']
-    .map((field) => record?.[field])
-    .find(Boolean)
-
-  if (!raw) return false
-  return /[T\s]\d{1,2}:\d{2}/.test(String(raw))
-}
-
-function alignToCalendarWindow(baseDate, explicitTime = false) {
-  const date = new Date(baseDate)
-
-  // Date-only records from reservations are placed at opening time.
-  if (!explicitTime) {
-    date.setHours(10, 0, 0, 0)
-    return date
-  }
-
-  const totalMinutes = date.getHours() * 60 + date.getMinutes()
-  const clamped = clamp(totalMinutes, OPERATING_START_MINUTES, OPERATING_END_MINUTES)
-  const roundedToSlot = Math.floor(clamped / CALENDAR_SLOT_MINUTES) * CALENDAR_SLOT_MINUTES
-
-  date.setHours(Math.floor(roundedToSlot / 60), roundedToSlot % 60, 0, 0)
-  return date
-}
-
-function normalizeBooking(booking) {
-  const start = alignToCalendarWindow(getDateField(booking) || new Date(), hasExplicitTime(booking))
-  const durationMinutes = Number(booking.duration) || DEFAULT_EVENT_DURATION_MINUTES
-  const end = addMinutes(start, durationMinutes)
-  const sourceId = booking.id ?? booking.booking_id ?? booking.bookingId ?? null
-  const guideId = booking.guide_id ?? booking.guideId ?? null
-  const productId =
-    booking.clorian_product_id ?? booking.product_id ?? booking.tour_id ?? booking.tourId ?? null
-
-  const rawType = String(booking.type || 'booking').toLowerCase()
-  const normalizedType = rawType === 'event' ? 'tour' : rawType
-
-  return {
-    id: `booking-${sourceId ?? safeId('booking')}`,
-    source: 'booking',
-    sourceId,
-    title: booking.tour || booking.tour_name || booking.title || 'Booking',
-    start: toIso(start),
-    end: toIso(end),
-    resourceId: `guide-${guideId ?? 'unassigned'}`,
-    resourceName: booking.guide || booking.guide_name || 'Unassigned Guide',
-    guideId,
-    productId,
-    durationMinutes,
-    status: booking.status || 'pending',
-    type: normalizedType,
-    priority: booking.priority || 'medium',
-    conflictFlag: false,
-    notes: booking.notes || '',
-    customerId: Number(booking.customer_id ?? booking.customerId ?? 0),
-    tourId: Number(booking.tour_id ?? booking.tourId ?? 0),
-    adultTickets: Number(booking.adult_tickets ?? booking.adultTickets ?? 0),
-    childTickets: Number(booking.child_tickets ?? booking.childTickets ?? 0),
-    language: booking.language || 'English',
-  }
 }
 
 function mapLanguage(languageCode) {

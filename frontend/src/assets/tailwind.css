@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+﻿@import 'tailwindcss';
 
 @layer components {
   .app-page-wrap {
@@ -41,4 +41,3 @@
     @apply rounded-xl border border-[#00B4D8]/35 bg-[#CAF0F8]/50 transition hover:bg-[#BFEAF5]/60;
   }
 }
-

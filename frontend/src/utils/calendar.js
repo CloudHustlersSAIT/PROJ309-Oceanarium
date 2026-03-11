@@ -59,4 +59,3 @@ export function downloadCsv({ filename, headers, rows }) {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 }
-

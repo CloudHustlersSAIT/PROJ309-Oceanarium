@@ -23,7 +23,7 @@ watch(
   () => route.path,
   () => {
     closeMobile()
-  }
+  },
 )
 
 //Import icons
@@ -58,9 +58,6 @@ const avatarInitial = computed(() => {
   return name ? name.charAt(0).toUpperCase() : '?'
 })
 
-// Determine if a nav item is active
-const isActive = (path) => route.path === path
-
 async function handleLogout() {
   await logout()
   router.push('/login')
@@ -68,50 +65,56 @@ async function handleLogout() {
 </script>
 
 <template>
+  <button
+    type="button"
+    aria-label="Open menu"
+    class="fixed left-4 top-4 z-30 flex md:hidden h-10 w-10 items-center justify-center rounded-lg bg-[#0077B6] text-white shadow-lg hover:bg-[#0097e7] transition"
+    @click="openMobile"
+  >
+    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M4 6h16M4 12h16M4 18h16"
+      />
+    </svg>
+  </button>
+
+  <!-- Backdrop when sidebar open on mobile: tap to close -->
+  <div
+    v-show="mobileOpen"
+    aria-hidden="true"
+    class="fixed inset-0 z-40 bg-black/50 md:hidden"
+    @click="closeMobile"
+  />
+
+  <!-- Sidebar: drawer on mobile (fixed, slide-in), normal on md+ -->
+  <aside
+    class="w-80 max-w-[85vw] min-h-dvh md:min-h-screen md:h-auto md:max-w-none flex flex-col p-4 bg-linear-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg fixed md:relative inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-out -translate-x-full md:translate-x-0 overflow-y-auto"
+    :class="{ 'translate-x-0': mobileOpen }"
+  >
+    <!-- Close button for mobile (visible only when drawer is open) -->
     <button
       type="button"
-      aria-label="Open menu"
-      class="fixed left-4 top-4 z-30 flex md:hidden h-10 w-10 items-center justify-center rounded-lg bg-[#0077B6] text-white shadow-lg hover:bg-[#0097e7] transition"
-      @click="openMobile"
+      aria-label="Close menu"
+      class="absolute right-3 top-3 p-2 rounded-lg md:hidden text-white/90 hover:bg-white/10"
+      @click="closeMobile"
     >
-      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        />
       </svg>
     </button>
-
-    <!-- Backdrop when sidebar open on mobile: tap to close -->
-    <div
-      v-show="mobileOpen"
-      aria-hidden="true"
-      class="fixed inset-0 z-40 bg-black/50 md:hidden"
-      @click="closeMobile"
-    />
-
-    <!-- Sidebar: drawer on mobile (fixed, slide-in), normal on md+ -->
-    <aside
-      class="w-80 max-w-[85vw] min-h-dvh md:min-h-screen md:h-auto md:max-w-none flex flex-col p-4 bg-linear-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg fixed md:relative inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-out -translate-x-full md:translate-x-0 overflow-y-auto"
-      :class="{ 'translate-x-0': mobileOpen }"
-    >
-      <!-- Close button for mobile (visible only when drawer is open) -->
-      <button
-        type="button"
-        aria-label="Close menu"
-        class="absolute right-3 top-3 p-2 rounded-lg md:hidden text-white/90 hover:bg-white/10"
-        @click="closeMobile"
-      >
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-      <div class="mb-6 md:mb-8">
+    <div class="mb-6 md:mb-8">
       <div
         class="items-center bg-white rounded-xl px-10 py-4 drop-shadow-xl/25 flex justify-center"
       >
-        <img
-          src="/src/assets/images/logo-text.svg"
-          alt="Company logo text"
-          class="h-10 w-auto"
-        />
+        <img src="/src/assets/images/logo-text.svg" alt="Company logo text" class="h-10 w-auto" />
       </div>
     </div>
 
@@ -148,8 +151,8 @@ async function handleLogout() {
         <!-- Logout button -->
         <button
           type="button"
-          @click="handleLogout"
           class="w-full py-2.5 rounded-xl text-sm font-semibold bg-white text-[#0077B6] hover:bg-[#CAF0F8] hover:text-[#0077B6] transition shadow-sm"
+          @click="handleLogout"
         >
           Log out
         </button>

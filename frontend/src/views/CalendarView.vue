@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
+import AppSidebar from '../components/AppSidebar.vue'
 import CalendarToolbar from '../components/calendar/CalendarToolbar.vue'
 import CalendarGrid from '../components/calendar/CalendarGrid.vue'
 import CancelButton from '../components/CancelButton.vue'
@@ -76,11 +76,7 @@ const selectedDayEvents = computed(() => {
   return calendar.events
     .filter((event) => {
       const start = new Date(event.start)
-      return (
-        start.getFullYear() === year
-        && start.getMonth() === month
-        && start.getDate() === day
-      )
+      return start.getFullYear() === year && start.getMonth() === month && start.getDate() === day
     })
     .sort((a, b) => new Date(a.start) - new Date(b.start))
 })
@@ -208,7 +204,9 @@ function closeTourDetailsPopup() {
 }
 
 function reservationDetailsStatusClass(status) {
-  const normalized = String(status || '').trim().toLowerCase()
+  const normalized = String(status || '')
+    .trim()
+    .toLowerCase()
   if (normalized === 'confirmed') {
     return 'sharp-green-300 bg-green-50 text-green-800'
   }
@@ -383,7 +381,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex min-h-screen bg-gray-50 overflow-x-hidden">
-    <Sidebar />
+    <AppSidebar />
 
     <main class="flex-1 min-w-0 p-3 md:p-4 xl:p-6">
       <div class="space-y-4">
@@ -395,10 +393,24 @@ onBeforeUnmount(() => {
           @export="exportVisibleEvents"
         />
 
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white rounded-xl shadow-md p-3 border border-blue-500">
-          <div class="text-sm text-gray-600">{{ calendar.loading ? 'Loading tours...' : `${calendar.eventsInRange.length} tours in range` }}</div>
+        <div
+          class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white rounded-xl shadow-md p-3 border border-blue-500"
+        >
+          <div class="text-sm text-gray-600">
+            {{
+              calendar.loading
+                ? 'Loading tours...'
+                : `${calendar.eventsInRange.length} tours in range`
+            }}
+          </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <button class="px-3 py-1.5 rounded border border-gray-300 text-sm" :class="bulkMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'" @click="bulkMode = !bulkMode">
+            <button
+              class="px-3 py-1.5 rounded border border-gray-300 text-sm"
+              :class="
+                bulkMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'
+              "
+              @click="bulkMode = !bulkMode"
+            >
               Bulk selection
             </button>
             <button
@@ -442,7 +454,9 @@ onBeforeUnmount(() => {
       class="fixed inset-0 z-50 bg-black/40"
       @click.self="closeDayEventsPopup"
     >
-      <div class="absolute left-1/2 top-1/2 w-[94%] max-w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl border border-[#ACBAC4]">
+      <div
+        class="absolute left-1/2 top-1/2 w-[94%] max-w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl border border-[#ACBAC4]"
+      >
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">Events on {{ selectedDayLabel }}</h3>
           <button
@@ -454,7 +468,10 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <div v-if="selectedDayEvents.length === 0" class="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-600">
+        <div
+          v-if="selectedDayEvents.length === 0"
+          class="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-600"
+        >
           No events scheduled for this date.
         </div>
 
@@ -508,17 +525,33 @@ onBeforeUnmount(() => {
 
         <div class="space-y-2 text-sm text-gray-700">
           <div><span class="font-semibold">guide_id:</span> {{ selectedTourDetails.guide_id }}</div>
-          <div class="rounded border px-2 py-1" :class="reservationDetailsStatusClass(selectedTourDetails.status)">
+          <div
+            class="rounded border px-2 py-1"
+            :class="reservationDetailsStatusClass(selectedTourDetails.status)"
+          >
             <span class="font-semibold">status:</span> {{ selectedTourDetails.status }}
           </div>
-          <div><span class="font-semibold">reservation_count:</span> {{ selectedTourDetails.reservation_count }}</div>
-          <div><span class="font-semibold">customer_id:</span> {{ selectedTourDetails.customer_id }}</div>
+          <div>
+            <span class="font-semibold">reservation_count:</span>
+            {{ selectedTourDetails.reservation_count }}
+          </div>
+          <div>
+            <span class="font-semibold">customer_id:</span> {{ selectedTourDetails.customer_id }}
+          </div>
           <div><span class="font-semibold">tour_id:</span> {{ selectedTourDetails.tour_id }}</div>
           <div><span class="font-semibold">date:</span> {{ selectedTourDetails.date }}</div>
-          <div><span class="font-semibold">start_time:</span> {{ selectedTourDetails.start_time }}</div>
+          <div>
+            <span class="font-semibold">start_time:</span> {{ selectedTourDetails.start_time }}
+          </div>
           <div><span class="font-semibold">end_time:</span> {{ selectedTourDetails.end_time }}</div>
-          <div><span class="font-semibold">adult_tickets:</span> {{ selectedTourDetails.adult_tickets }}</div>
-          <div><span class="font-semibold">child_tickets:</span> {{ selectedTourDetails.child_tickets }}</div>
+          <div>
+            <span class="font-semibold">adult_tickets:</span>
+            {{ selectedTourDetails.adult_tickets }}
+          </div>
+          <div>
+            <span class="font-semibold">child_tickets:</span>
+            {{ selectedTourDetails.child_tickets }}
+          </div>
           <div><span class="font-semibold">language:</span> {{ selectedTourDetails.language }}</div>
         </div>
 
@@ -533,14 +566,29 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="showCreatePopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeCreatePopup">
-      <div class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
+    <div
+      v-if="showCreatePopup"
+      class="fixed inset-0 z-50 bg-black/40"
+      @click.self="closeCreatePopup"
+    >
+      <div
+        class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto"
+      >
         <div class="flex items-center justify-between mb-4">
           <div class="text-sm text-gray-300">Create</div>
-          <button class="text-gray-300 hover:text-white text-xl leading-none" aria-label="Close create popup" @click="closeCreatePopup">×</button>
+          <button
+            class="text-gray-300 hover:text-white text-xl leading-none"
+            aria-label="Close create popup"
+            @click="closeCreatePopup"
+          >
+            ×
+          </button>
         </div>
 
-        <div v-if="formError" class="mt-3 rounded border border-red-400 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <div
+          v-if="formError"
+          class="mt-3 rounded border border-red-400 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+        >
           {{ formError }}
         </div>
 
@@ -549,10 +597,16 @@ onBeforeUnmount(() => {
             <div>
               <div class="text-sm font-semibold text-gray-200 mb-2">{{ monthLabel }}</div>
               <div class="flex gap-2">
-                <button class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200" @click="calendar.navigate(-1)">
+                <button
+                  class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200"
+                  @click="calendar.navigate(-1)"
+                >
                   Previous
                 </button>
-                <button class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200" @click="calendar.navigate(1)">
+                <button
+                  class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200"
+                  @click="calendar.navigate(1)"
+                >
                   Next
                 </button>
               </div>

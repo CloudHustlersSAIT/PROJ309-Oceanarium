@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
+import AppSidebar from '../components/AppSidebar.vue'
 
 const selectedRange = ref('All Time')
 const activeTab = ref('all')
@@ -12,7 +12,8 @@ const notifications = ref([
     id: 1,
     category: 'all',
     icon: 'swap',
-    message: 'Guide Ana Costa swapped tour Dolphin Feeding with guide Hermes Costello on November 12th at 08:00',
+    message:
+      'Guide Ana Costa swapped tour Dolphin Feeding with guide Hermes Costello on November 12th at 08:00',
     timeAgo: '2 Minutes Ago',
     status: 'all',
   },
@@ -28,7 +29,8 @@ const notifications = ref([
     id: 3,
     category: 'all',
     icon: 'cancel',
-    message: 'Guide Liam Brown has cancelled the tour Molluscs on November 11th, Guide David Martinez assigned instead',
+    message:
+      'Guide Liam Brown has cancelled the tour Molluscs on November 11th, Guide David Martinez assigned instead',
     timeAgo: '2 Days Ago',
     status: 'all',
   },
@@ -36,7 +38,8 @@ const notifications = ref([
     id: 4,
     category: 'archived',
     icon: 'assign',
-    message: 'Admin Kim Wexler assigned Guide James McGill to the tour Underwater Dining on November 11th',
+    message:
+      'Admin Kim Wexler assigned Guide James McGill to the tour Underwater Dining on November 11th',
     timeAgo: '2 Days Ago',
     status: 'archived',
   },
@@ -44,7 +47,8 @@ const notifications = ref([
     id: 5,
     category: 'archived',
     icon: 'warning',
-    message: 'System is unable to assign a guide to the tour Underwater Dining on November 11th, please review manually',
+    message:
+      'System is unable to assign a guide to the tour Underwater Dining on November 11th, please review manually',
     timeAgo: '2 Days Ago',
     status: 'archived',
   },
@@ -52,7 +56,8 @@ const notifications = ref([
     id: 6,
     category: 'archived',
     icon: 'assign',
-    message: 'Admin Gus Fring assigned Guide Walter White to the tour Blue Sea Cooking on November 10th',
+    message:
+      'Admin Gus Fring assigned Guide Walter White to the tour Blue Sea Cooking on November 10th',
     timeAgo: '3 Days Ago',
     status: 'archived',
   },
@@ -60,7 +65,8 @@ const notifications = ref([
     id: 7,
     category: 'archived',
     icon: 'warning',
-    message: 'System is unable to assign a guide to the tour Blue Sea Cooking on November 10th, please review manually',
+    message:
+      'System is unable to assign a guide to the tour Blue Sea Cooking on November 10th, please review manually',
     timeAgo: '3 Days Ago',
     status: 'archived',
   },
@@ -68,7 +74,8 @@ const notifications = ref([
     id: 8,
     category: 'trash',
     icon: 'swap',
-    message: 'Guide Tyler Durden swapped tour Shark Diving with guide Aldo Raine on November 7th at 12:00',
+    message:
+      'Guide Tyler Durden swapped tour Shark Diving with guide Aldo Raine on November 7th at 12:00',
     timeAgo: '28 Days Ago',
     status: 'trash',
   },
@@ -76,7 +83,8 @@ const notifications = ref([
     id: 9,
     category: 'trash',
     icon: 'swap',
-    message: 'Guide Ana Costa swapped tour Dolphin Feeding with guide Hermes Costello on November 12th at 08:00',
+    message:
+      'Guide Ana Costa swapped tour Dolphin Feeding with guide Hermes Costello on November 12th at 08:00',
     timeAgo: '22 Days Ago',
     status: 'trash',
   },
@@ -96,7 +104,8 @@ const visibleRows = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
 
   return notifications.value.filter((item) => {
-    const byTab = activeTab.value === 'all' ? item.status === 'all' : item.status === activeTab.value
+    const byTab =
+      activeTab.value === 'all' ? item.status === 'all' : item.status === activeTab.value
     const bySearch = item.message.toLowerCase().includes(query)
     return byTab && bySearch
   })
@@ -143,7 +152,7 @@ function iconGlyph(type) {
 
 <template>
   <div class="flex min-h-screen bg-[#F4F7FA] overflow-x-hidden">
-    <Sidebar />
+    <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
       <section class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -175,7 +184,10 @@ function iconGlyph(type) {
         <div class="border-b border-gray-300 px-4 md:px-5 py-4 bg-[#E1E8ED]">
           <p class="text-4xl font-medium text-gray-900">
             Hey, <span class="font-semibold">Lucas!</span>
-            <span class="text-2xl font-normal text-gray-700"> You have a total of <span class="font-semibold">{{ totalCount }}</span> notifications</span>
+            <span class="text-2xl font-normal text-gray-700">
+              You have a total of
+              <span class="font-semibold">{{ totalCount }}</span> notifications</span
+            >
           </p>
         </div>
 
@@ -188,30 +200,51 @@ function iconGlyph(type) {
             <button
               type="button"
               class="inline-flex items-center gap-2 rounded-full px-3 py-1 border"
-              :class="activeTab === 'all' ? 'bg-[#5AB2D8] text-white border-[#5AB2D8]' : 'bg-white text-gray-700 border-gray-300'"
+              :class="
+                activeTab === 'all'
+                  ? 'bg-[#5AB2D8] text-white border-[#5AB2D8]'
+                  : 'bg-white text-gray-700 border-gray-300'
+              "
               @click="setTab('all')"
             >
-              <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-current px-1 text-xs">{{ counts.all }}</span>
+              <span
+                class="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-current px-1 text-xs"
+                >{{ counts.all }}</span
+              >
               All
             </button>
 
             <button
               type="button"
               class="inline-flex items-center gap-2 rounded-full px-3 py-1 border"
-              :class="activeTab === 'archived' ? 'bg-[#5AB2D8] text-white border-[#5AB2D8]' : 'bg-white text-gray-700 border-gray-300'"
+              :class="
+                activeTab === 'archived'
+                  ? 'bg-[#5AB2D8] text-white border-[#5AB2D8]'
+                  : 'bg-white text-gray-700 border-gray-300'
+              "
               @click="setTab('archived')"
             >
-              <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-current px-1 text-xs">{{ counts.archived }}</span>
+              <span
+                class="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-current px-1 text-xs"
+                >{{ counts.archived }}</span
+              >
               Archived
             </button>
 
             <button
               type="button"
               class="inline-flex items-center gap-2 rounded-full px-3 py-1 border"
-              :class="activeTab === 'trash' ? 'bg-[#5AB2D8] text-white border-[#5AB2D8]' : 'bg-white text-gray-700 border-gray-300'"
+              :class="
+                activeTab === 'trash'
+                  ? 'bg-[#5AB2D8] text-white border-[#5AB2D8]'
+                  : 'bg-white text-gray-700 border-gray-300'
+              "
               @click="setTab('trash')"
             >
-              <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-current px-1 text-xs">{{ counts.trash }}</span>
+              <span
+                class="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-current px-1 text-xs"
+                >{{ counts.trash }}</span
+              >
               Delete
             </button>
           </div>
@@ -269,9 +302,10 @@ function iconGlyph(type) {
         </ul>
       </section>
 
-      <p class="mt-3 text-sm text-gray-500">Prototype mode: all actions are local to the current frontend session.</p>
+      <p class="mt-3 text-sm text-gray-500">
+        Prototype mode: all actions are local to the current frontend session.
+      </p>
       <p v-if="feedbackMessage" class="mt-1 text-sm text-emerald-700">{{ feedbackMessage }}</p>
     </main>
   </div>
 </template>
-

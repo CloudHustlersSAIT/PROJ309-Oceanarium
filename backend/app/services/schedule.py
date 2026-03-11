@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import date, timezone
 
 from sqlalchemy import text
@@ -56,8 +58,7 @@ def list_schedules(conn, start_date: date | None = None, end_date: date | None =
                 g.last_name
             ORDER BY s.event_start_datetime
             """
-        )
-        ,
+        ),
         {
             "start_date": start_date,
             "end_date": end_date,

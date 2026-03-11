@@ -1,10 +1,14 @@
-from typing import Optional
+from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+import ipaddress
+import os
+from urllib.parse import urlsplit
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..db import engine
-from ..services.exceptions import ValidationError
+from ..services.error_handlers import handle_domain_exception
 from ..services.mock_poller import (
     MockRunRequest,
     MockRunResponse,
@@ -12,21 +16,96 @@ from ..services.mock_poller import (
     run_mock_poller_service,
 )
 
+ENV = os.getenv("ENV", "production").lower()
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
 router = APIRouter(prefix="/mock", tags=["Mock Poller"])
 
 
+def _is_loopback_ip(ip_value: str | None) -> bool:
+    if not ip_value:
+        return False
+
+    candidate = ip_value.strip().strip('"').strip("[]")
+    if not candidate:
+        return False
+
+    try:
+        return ipaddress.ip_address(candidate).is_loopback
+    except ValueError:
+        return False
+
+
+def _get_originating_ip(request: Request) -> str | None:
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",", 1)[0].strip()
+
+    x_real_ip = request.headers.get("x-real-ip")
+    if x_real_ip:
+        return x_real_ip.strip()
+
+    forwarded = request.headers.get("forwarded")
+    if forwarded:
+        for part in forwarded.split(";"):
+            key, _, value = part.strip().partition("=")
+            if key.lower() == "for" and value:
+                return value.strip()
+
+    return None
+
+
+def _get_request_host(request: Request) -> str | None:
+    host_header = request.headers.get("host")
+    if not host_header:
+        return None
+
+    parsed = urlsplit(f"//{host_header}")
+    return parsed.hostname.lower() if parsed.hostname else None
+
+
+def _is_direct_local_request(request: Request) -> bool:
+    peer_ip = request.client.host if request.client else None
+    request_host = _get_request_host(request)
+    return _is_loopback_ip(peer_ip) and request_host in _LOCAL_HOSTS
+
+
+def _require_dev_or_localhost(request: Request) -> None:
+    """Allow the mock poller in development mode or from localhost (EC2 cronjob)."""
+    if ENV == "development":
+        return
+
+    client_ip = _get_originating_ip(request)
+    if client_ip is not None:
+        if _is_loopback_ip(client_ip):
+            return
+
+        raise HTTPException(
+            status_code=403,
+            detail="Mock poller is only available in development or from localhost",
+        )
+
+    if _is_direct_local_request(request):
+        return
+
+    raise HTTPException(
+        status_code=403,
+        detail="Mock poller is only available in development or from localhost",
+    )
+
+
 @router.post("/run", response_model=MockRunResponse)
-def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
-    run_id: Optional[int] = None
+def run_mock_poller(
+    req: MockRunRequest,
+    _guard: None = Depends(_require_dev_or_localhost),
+) -> MockRunResponse:
+    run_id: int | None = None
 
     try:
         with engine.begin() as conn:
             response = run_mock_poller_service(conn, req)
             run_id = response.run_id
         return response
-
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message)
 
     except SQLAlchemyError as e:
         if run_id:
@@ -39,4 +118,7 @@ def run_mock_poller(req: MockRunRequest) -> MockRunResponse:
         raise HTTPException(
             status_code=500,
             detail="Mock poller execution failed. Check server logs.",
-        )
+        ) from e
+
+    except Exception as e:
+        return handle_domain_exception(e)
