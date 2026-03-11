@@ -2,17 +2,24 @@
 
 | Field            | Value                  |
 |------------------|------------------------|
-| **Version**      | 4.0                    |
-| **Status**       | Draft                  |
+| **Version**      | 5.0                    |
+| **Status**       | Active                 |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
-| **Last Updated** | 2026-03-03             |
+| **Last Updated** | 2026-03-11             |
 
 > Clorian hierarchy: **Purchase → Reservation → Ticket** maps to our **customers → reservations → tickets**.
 >
 > `purchases` table dropped — `language_code`, `customer_id`, and `clorian_purchase_id` denormalized onto `reservations`.
 >
 > Excluded: ~~cost~~, ~~resources~~, ~~tour_resources~~, ~~issues~~, ~~purchases~~.
+
+## Visual ERD
+
+![Oceanarium ERD v5.0](oceanarium-erd-v5.0.png)
+
+> **Source files:** The editable diagram is [`oceanarium-erd-v5.0.drawio`](oceanarium-erd-v5.0.drawio) (open with [draw.io](https://app.diagrams.net)).
+> To regenerate from code, run `python3 generate_erd.py` then `drawio --export --format png --scale 2 --output oceanarium-erd-v5.0.png oceanarium-erd-v5.0.drawio`.
 
 ## Diagram
 
@@ -22,7 +29,7 @@ erDiagram
 
     customers {
         int id PK
-        int clorian_client_id UK
+        varchar clorian_client_id UK
         varchar first_name
         varchar last_name
         varchar email
@@ -30,7 +37,7 @@ erDiagram
 
     reservations {
         int id PK
-        int clorian_reservation_id UK
+        varchar clorian_reservation_id UK
         int clorian_purchase_id
         int customer_id FK
         int tour_id FK
@@ -59,7 +66,7 @@ erDiagram
 
     tickets {
         int id PK
-        int clorian_ticket_id UK
+        varchar clorian_ticket_id UK
         int reservation_id FK
         int buyer_type_id
         varchar buyer_type_name
@@ -180,7 +187,27 @@ erDiagram
         timestamptz window_start
         timestamptz window_end
         timestamptz executed_at
+        timestamptz finished_at
         varchar status
+        int seed
+        int generated_total
+        int generated_created
+        int generated_updated
+        int generated_unchanged
+        text error_message
+    }
+
+    poll_staging {
+        int id PK
+        int poll_execution_id FK
+        varchar entity_type
+        varchar external_id
+        varchar scenario
+        jsonb payload_json
+        timestamptz created_at
+        timestamptz processed_at
+        varchar processed_status
+        text processed_error
     }
 
     sync_logs {
@@ -227,6 +254,7 @@ erDiagram
     schedule ||--o{ reservations : "groups"
     schedule ||--o{ notifications : "triggers"
     poll_execution ||--o{ reservation_versions : "produced in"
+    poll_execution ||--o{ poll_staging : "stages into"
     poll_execution ||--o{ sync_logs : "tracked by"
     guides ||--o{ schedule : "assigned to"
     guides ||--o{ guide_languages : "speaks"
@@ -264,10 +292,10 @@ erDiagram
 
 | Table | Columns | Notes |
 |-------|---------|-------|
-| **customers** | `id` PK, `clorian_client_id` UK, `first_name`, `last_name`, `email` | Upserted from Clorian purchase `clientId` |
-| **reservations** | `id` PK, `clorian_reservation_id` UK, `clorian_purchase_id`, `customer_id` FK→customers, `tour_id` FK→tours, `schedule_id` FK→schedule (nullable), `language_code`, `event_start_datetime`, `status`, `current_ticket_num`, `clorian_created_at`, `clorian_modified_at`, `created_at` | Maps to Clorian Reservation; `language_code` and `customer_id` denormalized from Purchase |
+| **customers** | `id` PK, `clorian_client_id` UK (VARCHAR 100), `first_name`, `last_name`, `email` | Upserted from Clorian purchase `clientId` |
+| **reservations** | `id` PK, `clorian_reservation_id` UK (VARCHAR 100), `clorian_purchase_id`, `customer_id` FK→customers, `tour_id` FK→tours, `schedule_id` FK→schedule (nullable), `language_code`, `event_start_datetime`, `status`, `current_ticket_num`, `clorian_created_at`, `clorian_modified_at`, `created_at` | Maps to Clorian Reservation; `language_code` and `customer_id` denormalized from Purchase |
 | **reservation_versions** | `id` PK, `reservation_id` FK→reservations, `hash`, `status`, `current_ticket_num`, `language_code`, `event_start_datetime`, `received_at`, `valid_from`, `poll_execution_id` FK→poll_execution | Immutable snapshot per ingestion; `hash` for change detection |
-| **tickets** | `id` PK, `clorian_ticket_id` UK, `reservation_id` FK→reservations, `buyer_type_id`, `buyer_type_name`, `start_datetime`, `end_datetime`, `ticket_status`, `price`, `venue_id`, `venue_name`, `clorian_created_at`, `clorian_modified_at`, `created_at` | Individual attendees (adult, child, etc.) |
+| **tickets** | `id` PK, `clorian_ticket_id` UK (VARCHAR 100), `reservation_id` FK→reservations, `buyer_type_id`, `buyer_type_name`, `start_datetime`, `end_datetime`, `ticket_status`, `price`, `venue_id`, `venue_name`, `clorian_created_at`, `clorian_modified_at`, `created_at` | Individual attendees (adult, child, etc.) |
 
 ### 2. Tour & Scheduling Domain
 
@@ -309,7 +337,8 @@ erDiagram
 
 | Table | Columns | Notes |
 |-------|---------|-------|
-| **poll_execution** | `id` PK, `window_start`, `window_end`, `executed_at`, `status` | Tracks each Clorian polling cycle |
+| **poll_execution** | `id` PK, `window_start`, `window_end`, `executed_at`, `finished_at`, `status`, `seed`, `generated_total`, `generated_created`, `generated_updated`, `generated_unchanged`, `error_message` (TEXT) | Tracks each Clorian polling cycle with generation metrics |
+| **poll_staging** | `id` PK, `poll_execution_id` FK→poll_execution, `entity_type`, `external_id`, `scenario`, `payload_json` (JSONB), `created_at`, `processed_at`, `processed_status`, `processed_error` (TEXT) | Staging/inbox for raw Clorian payloads before processing |
 | **sync_logs** | `id` PK, `poll_execution_id` FK→poll_execution, `started_at`, `finished_at`, `new_count`, `changed_count`, `cancelled_count`, `status`, `errors` (TEXT) | Aggregated sync run metrics |
 | **tour_assignment_logs** | `id` PK, `schedule_id` FK→schedule, `guide_id` FK→guides, `assigned_at`, `assigned_by`, `assignment_type`, `action` | Audit trail for guide assignments |
 
@@ -353,3 +382,5 @@ erDiagram
 | 2.0     | 2026-03-03 | Evandro Maciel | Target schema: dropped reservation table, added `schedule_id` FK on bookings, added `guide_languages` junction table |
 | 3.0     | 2026-03-03 | Evandro Maciel | Clorian 3-level model: added `purchases`, `tickets`, `notifications`; reshaped bookings |
 | 4.0     | 2026-03-03 | Evandro Maciel | Renamed `bookings`→`reservations`, `booking_versions`→`reservation_versions`; dropped `purchases` table (denormalized onto reservations); added `clorian_client_id` to customers |
+| 4.1     | 2026-03-11 | Evandro Maciel | Status promoted to Active; aligned with [DB-001](DB-001-initial-schema-migration.md) deployed schema |
+| 5.0     | 2026-03-11 | Evandro Maciel | Aligned with production: added `poll_staging` table; added `seed`, `finished_at`, `generated_*`, `error_message` to `poll_execution`; changed `clorian_client_id`, `clorian_reservation_id`, `clorian_ticket_id` from INTEGER to VARCHAR(100) |

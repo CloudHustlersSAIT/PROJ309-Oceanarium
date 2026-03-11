@@ -3,17 +3,17 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | DB-001                 |
-| **Version**      | 1.0                    |
+| **Version**      | 1.1                    |
 | **Status**       | Active                 |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-04             |
-| **Last Updated** | 2026-03-04             |
+| **Last Updated** | 2026-03-11             |
 
 ---
 
 ## Overview
 
-Greenfield migration that creates all 19 user-defined tables defined in the [ERD v4.0](ERD.md). Uses raw SQL via Alembic `op.execute()` — no ORM models. Tables are created in foreign-key dependency order so that every `REFERENCES` clause points to an already-existing table.
+Greenfield migration that creates all 20 user-defined tables defined in the [ERD v5.0](ERD.md). Uses raw SQL via Alembic `op.execute()` — no ORM models. Tables are created in foreign-key dependency order so that every `REFERENCES` clause points to an already-existing table.
 
 ## Schema
 
@@ -22,7 +22,7 @@ Greenfield migration that creates all 19 user-defined tables defined in the [ERD
 
 CREATE TABLE customers (
     id              SERIAL PRIMARY KEY,
-    clorian_client_id INTEGER NOT NULL UNIQUE,
+    clorian_client_id VARCHAR(100) NOT NULL UNIQUE,
     first_name      VARCHAR(255) NOT NULL,
     last_name       VARCHAR(255) NOT NULL,
     email           VARCHAR(255)
@@ -72,11 +72,31 @@ CREATE TABLE availability_patterns (
 );
 
 CREATE TABLE poll_execution (
-    id           SERIAL PRIMARY KEY,
-    window_start TIMESTAMPTZ NOT NULL,
-    window_end   TIMESTAMPTZ NOT NULL,
-    executed_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    status       VARCHAR(50) NOT NULL
+    id                  SERIAL PRIMARY KEY,
+    window_start        TIMESTAMPTZ NOT NULL,
+    window_end          TIMESTAMPTZ NOT NULL,
+    executed_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at         TIMESTAMPTZ,
+    status              VARCHAR(50) NOT NULL,
+    seed                INTEGER,
+    generated_total     INTEGER NOT NULL DEFAULT 0,
+    generated_created   INTEGER NOT NULL DEFAULT 0,
+    generated_updated   INTEGER NOT NULL DEFAULT 0,
+    generated_unchanged INTEGER NOT NULL DEFAULT 0,
+    error_message       TEXT
+);
+
+CREATE TABLE poll_staging (
+    id                SERIAL PRIMARY KEY,
+    poll_execution_id INTEGER NOT NULL REFERENCES poll_execution(id) ON DELETE CASCADE,
+    entity_type       VARCHAR(50) NOT NULL,
+    external_id       VARCHAR(100) NOT NULL,
+    scenario          VARCHAR(20) NOT NULL,
+    payload_json      JSONB NOT NULL,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    processed_at      TIMESTAMPTZ,
+    processed_status  VARCHAR(50),
+    processed_error   TEXT
 );
 
 -- ── Phase C: FKs to Phase A+B ──
@@ -136,7 +156,7 @@ CREATE TABLE schedule (
 
 CREATE TABLE reservations (
     id                      SERIAL PRIMARY KEY,
-    clorian_reservation_id  INTEGER NOT NULL UNIQUE,
+    clorian_reservation_id  VARCHAR(100) NOT NULL UNIQUE,
     clorian_purchase_id     INTEGER,
     customer_id             INTEGER NOT NULL REFERENCES customers(id),
     tour_id                 INTEGER NOT NULL REFERENCES tours(id),
@@ -165,7 +185,7 @@ CREATE TABLE reservation_versions (
 
 CREATE TABLE tickets (
     id                  SERIAL PRIMARY KEY,
-    clorian_ticket_id   INTEGER NOT NULL UNIQUE,
+    clorian_ticket_id   VARCHAR(100) NOT NULL UNIQUE,
     reservation_id      INTEGER NOT NULL REFERENCES reservations(id),
     buyer_type_id       INTEGER,
     buyer_type_name     VARCHAR(255),
@@ -235,6 +255,10 @@ CREATE INDEX ix_surveys_guide_id ON surveys (guide_id);
 CREATE INDEX ix_surveys_reservation_id ON surveys (reservation_id);
 CREATE INDEX ix_tour_assignment_logs_schedule_id ON tour_assignment_logs (schedule_id);
 CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id);
+CREATE INDEX idx_poll_staging_execution_id ON poll_staging (poll_execution_id);
+CREATE INDEX idx_poll_staging_external_id ON poll_staging (external_id);
+CREATE INDEX idx_poll_staging_processed_at ON poll_staging (processed_at);
+CREATE INDEX idx_poll_staging_entity_type_external_id ON poll_staging (entity_type, external_id);
 ```
 
 ## Tables
@@ -251,7 +275,8 @@ CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id)
 | availability_exceptions | One-off overrides (holidays, sick days) |
 | guide_languages | Junction: which languages a guide speaks |
 | guide_tour_types | Junction: which tours a guide can lead |
-| poll_execution | Tracks each Clorian polling cycle |
+| poll_execution | Tracks each Clorian polling cycle with generation metrics |
+| poll_staging | Staging/inbox for raw Clorian payloads before processing |
 | sync_logs | Aggregated metrics per sync run |
 | schedule | Groups reservations by tour + language + timeslot |
 | reservations | Core bookable unit mapped from Clorian Reservation |
@@ -261,7 +286,7 @@ CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id)
 | notifications | Portal and email notifications |
 | tour_assignment_logs | Audit trail for guide assignments |
 
-**Total: 19 user tables + `alembic_version` (auto-managed).**
+**Total: 20 user tables + `alembic_version` (auto-managed).**
 
 > Note: `guide_languages` and `guide_tour_types` are junction tables with composite primary keys and no surrogate `id` column.
 
@@ -290,6 +315,7 @@ CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id)
 | languages | guide_languages | language_id | N:M (junction) |
 | guides | guide_tour_types | guide_id | N:M (junction) |
 | tours | guide_tour_types | tour_id | N:M (junction) |
+| poll_execution | poll_staging | poll_execution_id | 1:N |
 | poll_execution | sync_logs | poll_execution_id | 1:N |
 | schedule | tour_assignment_logs | schedule_id | 1:N |
 | guides | tour_assignment_logs | guide_id | 1:N |
@@ -335,6 +361,11 @@ CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id)
 | tour_assignment_logs | ix_tour_assignment_logs_schedule_id | schedule_id | INDEX |
 | tour_assignment_logs | ix_tour_assignment_logs_guide_id | guide_id | INDEX |
 | guide_languages | guide_languages_pkey | (guide_id, language_id) | PK (composite) |
+| poll_staging | poll_staging_pkey | id | PK |
+| poll_staging | idx_poll_staging_execution_id | poll_execution_id | INDEX |
+| poll_staging | idx_poll_staging_external_id | external_id | INDEX |
+| poll_staging | idx_poll_staging_processed_at | processed_at | INDEX |
+| poll_staging | idx_poll_staging_entity_type_external_id | (entity_type, external_id) | INDEX (composite) |
 | guide_tour_types | guide_tour_types_pkey | (guide_id, tour_id) | PK (composite) |
 
 ## Migration Notes
@@ -343,7 +374,7 @@ CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id)
 - **Type:** Greenfield — no existing data, no backfill required
 - **Run:** `alembic upgrade head`
 - **Rollback:** `alembic downgrade base` (drops all tables in reverse FK order using `CASCADE`)
-- **Source of truth:** [ERD v4.0](ERD.md)
+- **Source of truth:** [ERD v5.0](ERD.md)
 - **ORM:** None — raw SQL only via `op.execute()`
 
 ## Changelog
@@ -351,3 +382,4 @@ CREATE INDEX ix_tour_assignment_logs_guide_id ON tour_assignment_logs (guide_id)
 | Version | Date       | Author          | Description |
 |---------|------------|-----------------|-------------|
 | 1.0     | 2026-03-04 | Evandro Maciel  | Initial 19-table schema from ERD v4.0 |
+| 1.1     | 2026-03-11 | Evandro Maciel  | Aligned with production: added `poll_staging` (20 tables); expanded `poll_execution` with `seed`, `finished_at`, `generated_*`, `error_message`; changed `clorian_client_id`, `clorian_reservation_id`, `clorian_ticket_id` from INTEGER to VARCHAR(100); updated ERD ref to v5.0 |
