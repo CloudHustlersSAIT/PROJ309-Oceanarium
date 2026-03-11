@@ -46,6 +46,7 @@ def read_schedules(
     except Exception as e:
         return handle_domain_exception(e)
 
+
 @router.post("")
 def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
     try:
