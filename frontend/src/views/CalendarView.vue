@@ -3,51 +3,55 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
 import CalendarToolbar from '../components/calendar/CalendarToolbar.vue'
 import CalendarGrid from '../components/calendar/CalendarGrid.vue'
+import CancelButton from '../components/CancelButton.vue'
 import { useCalendarStore } from '../stores/calendar'
-import { createBooking, getSchedules } from '../services/api'
+import { createSchedule, getTours } from '../services/api'
 import { downloadCsv } from '../utils/calendar'
 import {
   formatLocalTimeLowerAmPm,
   formatScheduleDateTimeForDisplay,
-  sanitizeNumericInput,
 } from '../utils/reservation'
 
 const calendar = useCalendarStore()
 const bulkMode = ref(false)
-const searchText = ref('')
-const showEvents = ref(false)
-const showTask = ref(false)
-const showAppointment = ref(false)
 const showCreatePopup = ref(false)
 const showTourDetailsPopup = ref(false)
 const showDayEventsPopup = ref(false)
 const formError = ref('')
 const createDraftSnapshot = ref('')
-const creatingReservation = ref(false)
-const schedulesLoading = ref(false)
-const schedulesError = ref('')
-const availableSchedules = ref([])
+const creatingSchedule = ref(false)
+const toursLoading = ref(false)
+const toursError = ref('')
+const availableTours = ref([])
 
-const ID_MAX_LENGTH = 4
-const SHORT_NUMERIC_MAX_LENGTH = 2
+const LANGUAGE_CODE_OPTIONS = [
+  { code: 'en', label: 'English' },
+  { code: 'pt', label: 'Portuguese' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'fr', label: 'French' },
+  { code: 'zh', label: 'Chinese' },
+]
 
 const createForm = ref({
-  customerId: '',
-  selectedScheduleId: '',
-  adultTickets: '',
-  childTickets: '',
+  tourId: '',
+  languageCode: 'en',
+  eventDate: '',
+  startTime: '10:00',
+  endTime: '11:00',
 })
 
-const selectedCreateSchedule = computed(() => {
-  const selectedId = Number(createForm.value.selectedScheduleId)
+const selectedCreateTour = computed(() => {
+  const selectedId = Number(createForm.value.tourId)
   if (!Number.isInteger(selectedId) || selectedId <= 0) return null
-  return availableSchedules.value.find((schedule) => Number(schedule?.id) === selectedId) || null
+  return availableTours.value.find((tour) => Number(tour?.id) === selectedId) || null
 })
 
 const canSaveCreatedEvent = computed(() =>
-  Boolean(createForm.value.customerId.trim())
-  && Boolean(createForm.value.selectedScheduleId)
-  && ((Number(createForm.value.adultTickets) || 0) + (Number(createForm.value.childTickets) || 0) > 0),
+  Boolean(createForm.value.tourId)
+  && Boolean(createForm.value.languageCode)
+  && Boolean(createForm.value.eventDate)
+  && Boolean(createForm.value.startTime)
+  && Boolean(createForm.value.endTime),
 )
 
 const selectedDate = computed(() => new Date(calendar.selectedDate))
@@ -123,41 +127,6 @@ function isDetailsPopupAllowedSource(source) {
   return normalized === 'booking' || normalized === 'manual' || normalized === 'schedule'
 }
 
-function sanitizeNumericId(value, maxLength) {
-  return sanitizeNumericInput(value, maxLength)
-}
-
-function handleNumericBeforeInput(event) {
-  if (event?.data && /\D/.test(event.data)) {
-    event.preventDefault()
-  }
-}
-
-function handleNumericPaste(event, setter, maxLength) {
-  const pastedText = event?.clipboardData?.getData('text') ?? ''
-  const sanitized = sanitizeNumericId(pastedText, maxLength)
-  event.preventDefault()
-  setter(sanitized)
-}
-
-function setNumericField(event, field, maxLength) {
-  const digitsOnly = sanitizeNumericId(event?.target?.value, maxLength)
-  if (event?.target) event.target.value = digitsOnly
-  createForm.value[field] = digitsOnly
-}
-
-function handleCustomerIdInput(event) {
-  setNumericField(event, 'customerId', ID_MAX_LENGTH)
-}
-
-function handleAdultTicketsInput(event) {
-  setNumericField(event, 'adultTickets', SHORT_NUMERIC_MAX_LENGTH)
-}
-
-function handleChildTicketsInput(event) {
-  setNumericField(event, 'childTickets', SHORT_NUMERIC_MAX_LENGTH)
-}
-
 function getSelectedDateIso() {
   const selected = new Date(calendar.selectedDate)
   return `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`
@@ -167,53 +136,37 @@ function formatScheduleDateTime(rawValue) {
   return formatScheduleDateTimeForDisplay(rawValue)
 }
 
-function buildScheduleOptionLabel(schedule) {
-  const guideName = schedule?.guide_name || 'Unassigned Guide'
-  const status = schedule?.status || 'scheduled'
-  const start = formatScheduleDateTime(schedule?.event_start_datetime)
-  const reservationCount = Number(schedule?.reservation_count ?? 0)
-  const tourId = schedule?.tour_id ?? '-'
-  return `#${schedule?.id} | Tour ${tourId} | ${start} | ${guideName} | ${status} | reservations: ${reservationCount}`
+function buildTourOptionLabel(tour) {
+  const name = String(tour?.name || '').trim()
+  return name ? `${tour.id} - ${name}` : `${tour.id}`
 }
 
-async function loadCreateSchedules() {
-  schedulesLoading.value = true
-  schedulesError.value = ''
+function toIsoDateTime(dateText, timeText) {
+  return new Date(`${dateText}T${timeText}:00`).toISOString()
+}
+
+async function loadCreateTours() {
+  toursLoading.value = true
+  toursError.value = ''
 
   try {
-    const selectedDate = getSelectedDateIso()
-    let schedules = await getSchedules({
-      startDate: selectedDate,
-      endDate: selectedDate,
-      status: 'scheduled',
-    })
+    const tours = await getTours()
+    const nextTours = (Array.isArray(tours) ? tours : [])
+      .filter((tour) => Number.isInteger(Number(tour?.id)) && Number(tour.id) > 0)
+      .sort((a, b) => Number(a.id) - Number(b.id))
 
-    if (!Array.isArray(schedules) || schedules.length === 0) {
-      schedules = await getSchedules({
-        startDate: selectedDate,
-        endDate: selectedDate,
-      })
-    }
+    availableTours.value = nextTours
 
-    const nextSchedules = (Array.isArray(schedules) ? schedules : [])
-      .filter((schedule) => {
-        const status = String(schedule?.status || '').trim().toLowerCase()
-        return status !== 'cancelled' && status !== 'completed'
-      })
-      .sort((a, b) => String(a?.event_start_datetime || '').localeCompare(String(b?.event_start_datetime || '')))
-
-    availableSchedules.value = nextSchedules
-
-    const selectedId = Number(createForm.value.selectedScheduleId)
-    if (!nextSchedules.some((schedule) => Number(schedule?.id) === selectedId)) {
-      createForm.value.selectedScheduleId = nextSchedules.length === 1 ? String(nextSchedules[0]?.id) : ''
+    const selectedId = Number(createForm.value.tourId)
+    if (!nextTours.some((tour) => Number(tour?.id) === selectedId)) {
+      createForm.value.tourId = nextTours.length === 1 ? String(nextTours[0]?.id) : ''
     }
   } catch (err) {
-    availableSchedules.value = []
-    createForm.value.selectedScheduleId = ''
-    schedulesError.value = err?.message || 'Failed to load schedules.'
+    availableTours.value = []
+    createForm.value.tourId = ''
+    toursError.value = err?.message || 'Failed to load tours.'
   } finally {
-    schedulesLoading.value = false
+    toursLoading.value = false
   }
 }
 
@@ -222,17 +175,19 @@ function hasUnsavedCreateDraft() {
 }
 
 function handleCreateEvent() {
+  const selectedDateIso = getSelectedDateIso()
   createForm.value = {
-    customerId: '',
-    selectedScheduleId: '',
-    adultTickets: '',
-    childTickets: '',
+    tourId: '',
+    languageCode: 'en',
+    eventDate: selectedDateIso,
+    startTime: '10:00',
+    endTime: '11:00',
   }
   formError.value = ''
-  schedulesError.value = ''
+  toursError.value = ''
   createDraftSnapshot.value = getCreateDraftSnapshot()
   showCreatePopup.value = true
-  loadCreateSchedules()
+  loadCreateTours()
 }
 
 function handlePrimaryCreateClick() {
@@ -298,54 +253,50 @@ function handleGlobalKeydown(event) {
 function saveCreatedEvent() {
   formError.value = ''
 
-  createForm.value.customerId = sanitizeNumericId(createForm.value.customerId, ID_MAX_LENGTH)
-  createForm.value.adultTickets = sanitizeNumericId(createForm.value.adultTickets, SHORT_NUMERIC_MAX_LENGTH)
-  createForm.value.childTickets = sanitizeNumericId(createForm.value.childTickets, SHORT_NUMERIC_MAX_LENGTH)
+  const tourId = Number(createForm.value.tourId)
+  const languageCode = String(createForm.value.languageCode || '').trim().toLowerCase()
+  const eventDate = String(createForm.value.eventDate || '').trim()
+  const startTime = String(createForm.value.startTime || '').trim()
+  const endTime = String(createForm.value.endTime || '').trim()
 
-  const selectedScheduleId = Number(createForm.value.selectedScheduleId)
-  const adultTickets = Number(createForm.value.adultTickets) || 0
-  const childTickets = Number(createForm.value.childTickets) || 0
-
-  if (!createForm.value.customerId.trim()) {
-    formError.value = 'Customer ID is required.'
+  if (!Number.isInteger(tourId) || tourId <= 0) {
+    formError.value = 'Tour is required.'
     return
   }
 
-  if (!Number.isInteger(selectedScheduleId) || selectedScheduleId <= 0) {
-    formError.value = 'Please select a schedule before saving.'
+  if (!/^[a-z]{2}$/.test(languageCode)) {
+    formError.value = 'Language code must have 2 letters (e.g., en, pt).'
     return
   }
 
-  if (!/^\d{1,4}$/.test(createForm.value.customerId)) {
-    formError.value = 'Customer ID must contain only numbers (up to 4 digits).'
+  if (!eventDate || !startTime || !endTime) {
+    formError.value = 'Date, Start time, and End time are required.'
     return
   }
 
-  if (!/^\d{0,2}$/.test(createForm.value.adultTickets) || !/^\d{0,2}$/.test(createForm.value.childTickets)) {
-    formError.value = 'Adult and Child Tickets must contain only numbers (up to 2 digits).'
+  const startIso = toIsoDateTime(eventDate, startTime)
+  const endIso = toIsoDateTime(eventDate, endTime)
+  if (Number.isNaN(new Date(startIso).getTime()) || Number.isNaN(new Date(endIso).getTime())) {
+    formError.value = 'Date/time values are invalid.'
     return
   }
 
-  if (adultTickets + childTickets <= 0) {
-    formError.value = 'At least one ticket is required.'
+  if (new Date(endIso) <= new Date(startIso)) {
+    formError.value = 'End time must be after Start time.'
     return
   }
 
-  creatingReservation.value = true
+  creatingSchedule.value = true
 
-  createBooking({
-    customer_id: createForm.value.customerId.trim(),
-    schedule_id: selectedScheduleId,
-    adult_tickets: adultTickets,
-    child_tickets: childTickets,
+  createSchedule({
+    tour_id: tourId,
+    language_code: languageCode,
+    event_start_datetime: startIso,
+    event_end_datetime: endIso,
   })
     .then(async () => {
-      await Promise.all([calendar.loadEvents(), loadCreateSchedules()])
-      const startRaw = String(selectedCreateSchedule.value?.event_start_datetime || '').trim()
-      if (startRaw) {
-        const parsed = new Date(startRaw)
-        if (!Number.isNaN(parsed.getTime())) calendar.setDate(parsed)
-      }
+      await Promise.all([calendar.loadEvents(), loadCreateTours()])
+      calendar.setDate(new Date(startIso))
       formError.value = ''
       createDraftSnapshot.value = ''
       showCreatePopup.value = false
@@ -354,7 +305,7 @@ function saveCreatedEvent() {
       formError.value = error?.message || 'Failed to create reservation.'
     })
     .finally(() => {
-      creatingReservation.value = false
+      creatingSchedule.value = false
     })
 }
 
@@ -411,32 +362,17 @@ function handleDeleteSelectedEvent() {
   showTourDetailsPopup.value = false
 }
 
-function syncQuickFilters() {
-  const types = []
-  if (showEvents.value) types.push('tour')
-  if (showTask.value) types.push('task')
-  if (showAppointment.value) types.push('appointment')
-
-  calendar.setFilters({
-    search: searchText.value,
-    eventTypes: types,
-  })
-}
-
-watch([searchText, showEvents, showTask, showAppointment], syncQuickFilters)
-
 watch(
   () => calendar.selectedDate,
   () => {
     if (!showCreatePopup.value) return
-    loadCreateSchedules()
+    createForm.value.eventDate = getSelectedDateIso()
   },
 )
 
 onMounted(() => {
   calendar.setView('month')
   calendar.loadEvents()
-  syncQuickFilters()
   document.addEventListener('keydown', handleGlobalKeydown)
 })
 
@@ -472,13 +408,11 @@ onBeforeUnmount(() => {
             >
               Delete selected
             </button>
-            <button
+            <CancelButton
               v-if="bulkMode"
-              class="px-3 py-1.5 rounded bg-gray-500 text-white text-sm"
-              @click="calendar.applyBulkStatus('cancelled')"
-            >
-              Cancel selected
-            </button>
+              label="Cancel selected"
+              @cancel="calendar.applyBulkStatus('cancelled')"
+            />
             <button v-if="bulkMode" class="px-3 py-1.5 rounded border border-gray-300 text-sm" @click="calendar.clearBulkSelection()">Clear</button>
           </div>
         </div>
@@ -624,51 +558,6 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <div>
-              <label class="text-xs font-semibold text-gray-300 uppercase tracking-wide">Search tours</label>
-              <input
-                v-model="searchText"
-                type="text"
-                placeholder="Search by title or resource"
-                class="mt-1 w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div class="space-y-2">
-              <div class="text-xs font-semibold text-gray-300 uppercase tracking-wide">My calendars</div>
-              <label class="flex items-center gap-2 text-sm text-gray-200">
-                <input v-model="showEvents" type="checkbox" class="accent-blue-600" />
-                Tours
-              </label>
-              <label class="flex items-center gap-2 text-sm text-gray-200">
-                <input v-model="showTask" type="checkbox" class="accent-blue-600" />
-                Task
-              </label>
-              <label class="flex items-center gap-2 text-sm text-gray-200">
-                <input v-model="showAppointment" type="checkbox" class="accent-blue-600" />
-                Appointment
-              </label>
-            </div>
-          </div>
-
-          <div>
-            <label class="text-gray-300 block mb-1">Customer ID</label>
-            <div class="flex items-stretch rounded border border-[#ACBAC4] bg-[#2d2d2d] overflow-hidden">
-              <span class="inline-flex items-center border-r border-[#ACBAC4] bg-[#252525] px-3 text-sm text-gray-300">CUST-</span>
-              <input
-                :value="createForm.customerId"
-                type="text"
-                inputmode="numeric"
-                :maxlength="ID_MAX_LENGTH"
-                pattern="[0-9]*"
-                autocomplete="off"
-                placeholder="0000"
-                class="w-full px-3 py-2 text-sm bg-transparent text-white outline-none placeholder:text-gray-500"
-                @beforeinput="handleNumericBeforeInput"
-                @paste="(event) => handleNumericPaste(event, (value) => (createForm.customerId = value), ID_MAX_LENGTH)"
-                @input="handleCustomerIdInput"
-              />
-            </div>
           </div>
 
           <div>
@@ -676,10 +565,10 @@ onBeforeUnmount(() => {
               <button
                 type="button"
                 class="inline-flex items-center rounded p-0.5 text-gray-300 hover:bg-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="schedulesLoading"
-                aria-label="Refresh schedules"
-                title="Refresh schedules"
-                @click="loadCreateSchedules"
+                :disabled="toursLoading"
+                aria-label="Refresh tours"
+                title="Refresh tours"
+                @click="loadCreateTours"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -688,7 +577,7 @@ onBeforeUnmount(() => {
                   stroke="currentColor"
                   stroke-width="2"
                   class="h-4 w-4"
-                  :class="{ 'animate-spin': schedulesLoading }"
+                  :class="{ 'animate-spin': toursLoading }"
                   aria-hidden="true"
                 >
                   <path d="M21 2v6h-6" />
@@ -697,81 +586,81 @@ onBeforeUnmount(() => {
                   <path d="M21 12a9 9 0 0 1-15.3 6.3L3 16" />
                 </svg>
               </button>
-              <span>Schedule</span>
+              <span>Tour</span>
             </label>
             <select
-              v-model="createForm.selectedScheduleId"
+              v-model="createForm.tourId"
               class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 text-sm"
-              :disabled="schedulesLoading || availableSchedules.length === 0"
+              :disabled="toursLoading || availableTours.length === 0"
             >
-              <option value="">Select a schedule</option>
-              <option v-for="schedule in availableSchedules" :key="`schedule-${schedule.id}`" :value="String(schedule.id)">
-                {{ buildScheduleOptionLabel(schedule) }}
+              <option value="">Select a tour</option>
+              <option v-for="tour in availableTours" :key="`tour-${tour.id}`" :value="String(tour.id)">
+                {{ buildTourOptionLabel(tour) }}
               </option>
             </select>
-            <p v-if="schedulesLoading" class="mt-1 text-xs text-gray-400">Loading available schedules...</p>
-            <p v-else-if="schedulesError" class="mt-1 text-xs text-red-300">{{ schedulesError }}</p>
-            <p v-else-if="!availableSchedules.length" class="mt-1 text-xs text-amber-300">
-              No open schedules available for this date.
-            </p>
-            <p v-else class="mt-1 text-xs text-gray-400">Use a schedule from the selected calendar date.</p>
+            <p v-if="toursLoading" class="mt-1 text-xs text-gray-400">Loading tours...</p>
+            <p v-else-if="toursError" class="mt-1 text-xs text-red-300">{{ toursError }}</p>
+            <p v-else-if="!availableTours.length" class="mt-1 text-xs text-amber-300">No tours available.</p>
+          </div>
+
+          <div>
+            <label class="text-gray-300 block mb-1">Language</label>
+            <select
+              v-model="createForm.languageCode"
+              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+            >
+              <option v-for="lang in LANGUAGE_CODE_OPTIONS" :key="lang.code" :value="lang.code">
+                {{ lang.label }} ({{ lang.code }})
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-gray-300 block mb-1">Date</label>
+            <input
+              v-model="createForm.eventDate"
+              type="date"
+              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-gray-300 block mb-1">Start Time</label>
+              <input
+                v-model="createForm.startTime"
+                type="time"
+                class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label class="text-gray-300 block mb-1">End Time</label>
+              <input
+                v-model="createForm.endTime"
+                type="time"
+                class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2"
+              />
+            </div>
           </div>
 
           <div
-            v-if="selectedCreateSchedule"
+            v-if="selectedCreateTour"
             class="rounded border border-[#ACBAC4] bg-[#2a2a2a] px-3 py-2 text-xs text-gray-200"
           >
-            <div><span class="font-semibold">Tour:</span> {{ selectedCreateSchedule.tour_name || `Tour ${selectedCreateSchedule.tour_id}` }}</div>
-            <div><span class="font-semibold">Starts:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}</div>
-            <div><span class="font-semibold">Ends:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_end_datetime) }}</div>
-            <div><span class="font-semibold">Guide:</span> {{ selectedCreateSchedule.guide_name || 'Unassigned Guide' }}</div>
-            <div><span class="font-semibold">Status:</span> {{ selectedCreateSchedule.status || '-' }}</div>
-          </div>
-
-          <div>
-            <label class="text-gray-300 block mb-1">Adult Tickets</label>
-            <input
-              :value="createForm.adultTickets"
-              type="text"
-              inputmode="numeric"
-              :maxlength="SHORT_NUMERIC_MAX_LENGTH"
-              pattern="[0-9]*"
-              autocomplete="off"
-              placeholder="0"
-              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 placeholder:text-gray-400"
-              @beforeinput="handleNumericBeforeInput"
-              @paste="(event) => handleNumericPaste(event, (value) => (createForm.adultTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
-              @input="handleAdultTicketsInput"
-            />
-          </div>
-
-          <div>
-            <label class="text-gray-300 block mb-1">Child Tickets</label>
-            <input
-              :value="createForm.childTickets"
-              type="text"
-              inputmode="numeric"
-              :maxlength="SHORT_NUMERIC_MAX_LENGTH"
-              pattern="[0-9]*"
-              autocomplete="off"
-              placeholder="0"
-              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 placeholder:text-gray-400"
-              @beforeinput="handleNumericBeforeInput"
-              @paste="(event) => handleNumericPaste(event, (value) => (createForm.childTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
-              @input="handleChildTicketsInput"
-            />
+            <div><span class="font-semibold">Tour:</span> {{ selectedCreateTour.name || `Tour ${selectedCreateTour.id}` }}</div>
+            <div><span class="font-semibold">Language:</span> {{ createForm.languageCode }}</div>
           </div>
         </div>
 
         <div class="mt-6 flex items-center justify-end gap-2">
-          <button class="px-4 py-2 rounded border border-[#ACBAC4] text-gray-200" @click="closeCreatePopup">Cancel</button>
+          <CancelButton @cancel="closeCreatePopup" />
           <button
             class="px-5 py-2 rounded text-white font-medium"
-            :class="canSaveCreatedEvent && !creatingReservation ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-500/40 cursor-not-allowed'"
-            :disabled="!canSaveCreatedEvent || creatingReservation"
+            :class="canSaveCreatedEvent && !creatingSchedule ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-500/40 cursor-not-allowed'"
+            :disabled="!canSaveCreatedEvent || creatingSchedule"
             @click="saveCreatedEvent"
           >
-            {{ creatingReservation ? 'Saving...' : 'Save' }}
+            {{ creatingSchedule ? 'Saving...' : 'Save' }}
           </button>
         </div>
       </div>

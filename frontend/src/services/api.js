@@ -181,6 +181,48 @@ export async function getSchedules(filters = {}) {
   return fetchAPI(query ? `/schedules?${query}` : '/schedules')
 }
 
+// Create a new schedule
+export async function createSchedule(scheduleData) {
+  const tourId = Number(scheduleData?.tour_id)
+  const languageCode = String(scheduleData?.language_code || '')
+    .trim()
+    .toLowerCase()
+  const eventStartDateTime = String(scheduleData?.event_start_datetime || '').trim()
+  const eventEndDateTime = String(scheduleData?.event_end_datetime || '').trim()
+
+  if (!Number.isInteger(tourId) || tourId <= 0) {
+    throw new Error('Tour is required and must be valid.')
+  }
+
+  if (!/^[a-z]{2}$/.test(languageCode)) {
+    throw new Error('Language code is required and must be 2 letters (e.g., en, pt).')
+  }
+
+  if (!eventStartDateTime || !eventEndDateTime) {
+    throw new Error('Start and End datetime are required.')
+  }
+
+  const startParsed = new Date(eventStartDateTime)
+  const endParsed = new Date(eventEndDateTime)
+  if (Number.isNaN(startParsed.getTime()) || Number.isNaN(endParsed.getTime())) {
+    throw new Error('Start and End datetime must be valid ISO datetime values.')
+  }
+
+  if (endParsed <= startParsed) {
+    throw new Error('End datetime must be after Start datetime.')
+  }
+
+  return fetchAPI('/schedules', {
+    method: 'POST',
+    body: JSON.stringify({
+      tour_id: tourId,
+      language_code: languageCode,
+      event_start_datetime: startParsed.toISOString(),
+      event_end_datetime: endParsed.toISOString(),
+    }),
+  })
+}
+
 // Get all bookings
 export async function getBookings() {
   const data = await fetchAPI('/reservations')

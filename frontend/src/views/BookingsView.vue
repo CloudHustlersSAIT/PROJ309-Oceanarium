@@ -1,6 +1,7 @@
 ﻿<script setup>
 import { computed, onMounted, ref } from 'vue'
 import Sidebar from '../components/Sidebar.vue'
+import CancelButton from '../components/CancelButton.vue'
 import { cancelBooking, createBooking, getBookings, getSchedules, rescheduleBooking } from '../services/api'
 import {
   formatScheduleDateTimeForDisplay,
@@ -20,6 +21,7 @@ const actionState = ref({ id: null, type: '' })
 const availableSchedules = ref([])
 const schedulesLoading = ref(false)
 const schedulesError = ref('')
+const showCreatePopup = ref(false)
 
 const CUSTOMER_ID_MAX_LENGTH = 4
 const SHORT_NUMERIC_MAX_LENGTH = 2
@@ -294,11 +296,11 @@ async function resolveScheduleIdByCriteria(tourId, date, startTime, endTime, lan
 
 function buildScheduleOptionLabel(schedule) {
   const guideName = schedule?.guide_name || 'Unassigned Guide'
-  const status = schedule?.status || 'scheduled'
-  const start = formatScheduleDateTime(schedule?.event_start_datetime)
+  const tourName = String(schedule?.tour_name || '').trim() || `Tour ${schedule?.tour_id ?? '-'}`
+  const dateTime = formatScheduleDateTime(schedule?.event_start_datetime)
+  const language = String(schedule?.language_code || '-').trim().toLowerCase() || '-'
   const reservationCount = Number(schedule?.reservation_count ?? 0)
-  const tourId = schedule?.tour_id ?? '-'
-  return `#${schedule?.id} | Tour ${tourId} | ${start} | ${guideName} | ${status} | reservations: ${reservationCount}`
+  return `${tourName} | ${dateTime} | ${guideName} | ${language} | reservations: ${reservationCount}`
 }
 
 async function loadCreateSchedules() {
@@ -377,6 +379,16 @@ function resetForm() {
   form.value = createDefaultForm()
 }
 
+function openCreatePopup() {
+  createError.value = ''
+  createSuccess.value = ''
+  showCreatePopup.value = true
+}
+
+function closeCreatePopup() {
+  showCreatePopup.value = false
+}
+
 function getTodayIsoDate() {
   const now = new Date()
   const year = String(now.getFullYear())
@@ -452,6 +464,13 @@ async function handleCreateReservation() {
     return
   }
 
+  if (totalTicketCount.value > 10) {
+    const confirmed = window.confirm(
+      'This reservation has more than 10 tickets. Do you want to continue?',
+    )
+    if (!confirmed) return
+  }
+
   saving.value = true
   try {
     await createBooking({
@@ -464,6 +483,7 @@ async function handleCreateReservation() {
     createSuccess.value = 'Reservation created successfully.'
     resetForm()
     await Promise.all([loadReservations(), loadCreateSchedules()])
+    showCreatePopup.value = false
   } catch (err) {
     createError.value = err?.message || 'Failed to create reservation.'
   } finally {
@@ -543,102 +563,120 @@ onMounted(async () => {
     <main class="flex-1 min-w-0 p-4 md:p-6">
       <div class="flex items-center justify-between gap-4 mb-5">
         <h1 class="text-4xl font-medium text-gray-800">Reservation</h1>
-        <div class="w-full max-w-[430px] relative">
-          <input
-            v-model="searchText"
-            type="text"
-            placeholder="Search reservations"
-            class="w-full rounded-xl border border-gray-400 bg-white py-2.5 px-4 text-sm"
-          />
+        <div class="flex w-full max-w-[620px] items-center gap-3">
+          <div class="relative flex-1">
+            <input
+              v-model="searchText"
+              type="text"
+              placeholder="Search reservations"
+              class="w-full rounded-xl border border-gray-400 bg-white py-2.5 px-4 text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            class="rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-cyan-600"
+            @click="openCreatePopup"
+          >
+            + Create
+          </button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 2xl:grid-cols-[minmax(760px,1fr)_320px] gap-6">
-        <section class="bg-white border border-gray-300 rounded-lg overflow-hidden">
-          <div v-if="loading" class="p-4 text-sm text-gray-500">Loading reservations...</div>
-          <div v-else-if="error" class="p-4 text-sm text-red-600">
-            <div>{{ error }}</div>
-            <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs" @click="loadReservations">
-              Retry
-            </button>
-          </div>
-          <div v-else-if="filteredReservations.length === 0" class="p-4 text-sm text-gray-500">No reservations found.</div>
-          <div v-else class="overflow-hidden">
-            <table class="w-full table-fixed text-sm">
-              <colgroup>
-                <col class="w-[16%]" />
-                <col class="w-[12%]" />
-                <col class="w-[14%]" />
-                <col class="w-[8%]" />
-                <col class="w-[14%]" />
-                <col class="w-[10%]" />
-                <col class="w-[26%]" />
-              </colgroup>
-              <thead class="bg-gray-50 text-gray-800 border-b border-gray-200">
-                <tr>
-                  <th class="px-5 py-3 text-left font-semibold">Reservation</th>
-                  <th class="px-5 py-3 text-center font-semibold">Date</th>
-                  <th class="px-5 py-3 text-center font-semibold">Customer</th>
-                  <th class="px-5 py-3 text-center font-semibold">Tour</th>
-                  <th class="px-5 py-3 text-center font-semibold">Language</th>
-                  <th class="px-5 py-3 text-center font-semibold">Status</th>
-                  <th class="px-5 py-3 text-center font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(reservation, index) in filteredReservations"
-                  :key="getRowKey(reservation, index)"
-                  class="border-b border-gray-200 hover:bg-gray-50"
-                >
-                  <td class="px-5 py-4 text-left text-gray-700 wrap-break-word">{{ getReservationDisplayId(reservation) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatShortDate(getReservationDate(reservation)) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getCustomerId(reservation) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ getTourId(reservation) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getReservationLanguage(reservation) }}</td>
-                  <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatStatusLabel(getStatus(reservation), '-') }}</td>
-                  <td class="px-5 py-4 text-center">
-                    <div class="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
-                      <button
-                        type="button"
-                        class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700"
-                        :disabled="actionState.id === getReservationId(reservation)"
-                        @click="handleRescheduleReservation(reservation)"
-                      >
-                        {{ actionState.id === getReservationId(reservation) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
-                      </button>
-                      <button
-                        v-if="!isCancelledStatus(reservation)"
-                        type="button"
-                        class="rounded border border-red-300 px-2 py-1 text-xs text-red-700"
-                        :disabled="actionState.id === getReservationId(reservation)"
-                        @click="handleCancelReservation(reservation)"
-                      >
-                        {{ actionState.id === getReservationId(reservation) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel' }}
-                      </button>
-                      <button
-                        v-else
-                        type="button"
-                        class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-400 cursor-not-allowed"
-                        disabled
-                        aria-disabled="true"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+      <section class="bg-white border border-gray-300 rounded-lg overflow-hidden">
+        <div v-if="loading" class="p-4 text-sm text-gray-500">Loading reservations...</div>
+        <div v-else-if="error" class="p-4 text-sm text-red-600">
+          <div>{{ error }}</div>
+          <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs" @click="loadReservations">
+            Retry
+          </button>
+        </div>
+        <div v-else-if="filteredReservations.length === 0" class="p-4 text-sm text-gray-500">No reservations found.</div>
+        <div v-else class="overflow-hidden">
+          <table class="w-full table-fixed text-sm">
+            <colgroup>
+              <col class="w-[16%]" />
+              <col class="w-[12%]" />
+              <col class="w-[14%]" />
+              <col class="w-[8%]" />
+              <col class="w-[14%]" />
+              <col class="w-[10%]" />
+              <col class="w-[26%]" />
+            </colgroup>
+            <thead class="bg-gray-50 text-gray-800 border-b border-gray-200">
+              <tr>
+                <th class="px-5 py-3 text-left font-semibold">Reservation</th>
+                <th class="px-5 py-3 text-center font-semibold">Date</th>
+                <th class="px-5 py-3 text-center font-semibold">Customer</th>
+                <th class="px-5 py-3 text-center font-semibold">Tour</th>
+                <th class="px-5 py-3 text-center font-semibold">Language</th>
+                <th class="px-5 py-3 text-center font-semibold">Status</th>
+                <th class="px-5 py-3 text-center font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(reservation, index) in filteredReservations"
+                :key="getRowKey(reservation, index)"
+                class="border-b border-gray-200 hover:bg-gray-50"
+              >
+                <td class="px-5 py-4 text-left text-gray-700 wrap-break-word">{{ getReservationDisplayId(reservation) }}</td>
+                <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatShortDate(getReservationDate(reservation)) }}</td>
+                <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getCustomerId(reservation) }}</td>
+                <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ getTourId(reservation) }}</td>
+                <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getReservationLanguage(reservation) }}</td>
+                <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatStatusLabel(getStatus(reservation), '-') }}</td>
+                <td class="px-5 py-4 text-center">
+                  <div class="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
+                    <button
+                      v-if="!isCancelledStatus(reservation)"
+                      type="button"
+                      class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700"
+                      :disabled="actionState.id === getReservationId(reservation)"
+                      @click="handleRescheduleReservation(reservation)"
+                    >
+                      {{ actionState.id === getReservationId(reservation) && actionState.type === 'reschedule' ? 'Saving...' : 'Reschedule' }}
+                    </button>
+                    <button
+                      v-else
+                      type="button"
+                      class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-400 cursor-not-allowed"
+                      disabled
+                      aria-disabled="true"
+                    >
+                      Reschedule
+                    </button>
+                    <CancelButton
+                      v-if="!isCancelledStatus(reservation)"
+                      class="px-2 py-1 text-xs"
+                      :label="actionState.id === getReservationId(reservation) && actionState.type === 'cancel' ? 'Cancelling...' : 'Cancel'"
+                      :disabled="actionState.id === getReservationId(reservation)"
+                      @cancel="handleCancelReservation(reservation)"
+                    />
+                    <CancelButton
+                      v-else
+                      class="px-2 py-1 text-xs"
+                      :label="'Cancel'"
+                      :disabled="true"
+                      aria-disabled="true"
+                    />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-        <section class="bg-gray-100 border border-gray-400 rounded-none p-4 h-fit">
-          <h2 class="text-2xl font-medium text-gray-700 mb-4">Add New Reservation</h2>
+      <div v-if="showCreatePopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeCreatePopup">
+        <div class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-sm text-gray-300">Create</div>
+            <button class="text-gray-300 hover:text-white text-xl leading-none" aria-label="Close create popup" @click="closeCreatePopup">×</button>
+          </div>
 
           <div class="space-y-3">
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Customer ID</label>
+              <label class="text-gray-300 block mb-1">Customer ID</label>
               <input
                 :value="form.customerId"
                 type="text"
@@ -648,7 +686,7 @@ onMounted(async () => {
                 autocomplete="off"
                 list="customer-id-options"
                 placeholder="Enter existing customer numeric ID"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
                 @beforeinput="handleNumericBeforeInput"
                 @paste="(event) => handleNumericPaste(event, (value) => (form.customerId = value), CUSTOMER_ID_MAX_LENGTH)"
                 @input="handleCustomerIdInput"
@@ -656,14 +694,14 @@ onMounted(async () => {
               <datalist id="customer-id-options">
                 <option v-for="customerId in knownCustomerIds" :key="`customer-${customerId}`" :value="customerId" />
               </datalist>
-              <p class="mt-1 text-xs text-gray-500">Use an existing customer ID from the customers table. Suggestions come from existing reservations.</p>
+              <p class="mt-1 text-xs text-gray-400">Use an existing customer ID from the customers table. Suggestions come from existing reservations.</p>
             </div>
 
             <div>
-              <label class="mb-1 flex items-center gap-1 text-sm text-gray-700">
+              <label class="mb-1 flex items-center gap-1 text-sm text-gray-300">
                 <button
                   type="button"
-                  class="inline-flex items-center rounded p-0.5 text-gray-700 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  class="inline-flex items-center rounded p-0.5 text-gray-300 hover:bg-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="schedulesLoading"
                   aria-label="Refresh schedules"
                   title="Refresh schedules"
@@ -689,7 +727,7 @@ onMounted(async () => {
               </label>
               <select
                 v-model="form.selectedScheduleId"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm"
                 :disabled="schedulesLoading || availableSchedules.length === 0"
               >
                 <option value="">Select a schedule</option>
@@ -697,25 +735,24 @@ onMounted(async () => {
                   {{ buildScheduleOptionLabel(schedule) }}
                 </option>
               </select>
-              <p v-if="schedulesLoading" class="mt-1 text-xs text-gray-500">Loading available schedules...</p>
-              <p v-else-if="schedulesError" class="mt-1 text-xs text-red-600">{{ schedulesError }}</p>
-              <p v-else-if="!availableSchedules.length" class="mt-1 text-xs text-amber-700">
+              <p v-if="schedulesLoading" class="mt-1 text-xs text-gray-400">Loading available schedules...</p>
+              <p v-else-if="schedulesError" class="mt-1 text-xs text-red-300">{{ schedulesError }}</p>
+              <p v-else-if="!availableSchedules.length" class="mt-1 text-xs text-amber-300">
                 No open schedules available. Create a schedule first.
               </p>
-              <p v-else class="mt-1 text-xs text-gray-500">Pick the event schedule for this reservation.</p>
+              <p v-else class="mt-1 text-xs text-gray-400">Pick the event schedule for this reservation.</p>
             </div>
 
-            <div v-if="selectedCreateSchedule" class="rounded border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+            <div v-if="selectedCreateSchedule" class="rounded border border-[#ACBAC4] bg-[#2a2a2a] px-3 py-2 text-xs text-gray-200">
               <div><span class="font-medium">Tour:</span> {{ selectedCreateSchedule.tour_name || `Tour ${selectedCreateSchedule.tour_id}` }}</div>
-              <div><span class="font-medium">Language:</span> {{ mapLanguageCodeToName(selectedCreateSchedule.language_code) || selectedCreateSchedule.language_code || '-' }}</div>
-              <div><span class="font-medium">Starts:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}</div>
-              <div><span class="font-medium">Ends:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_end_datetime) }}</div>
+              <div><span class="font-medium">Date & Time:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}</div>
               <div><span class="font-medium">Guide:</span> {{ selectedCreateSchedule.guide_name || 'Unassigned Guide' }}</div>
-              <div><span class="font-medium">Status:</span> {{ selectedCreateSchedule.status || '-' }}</div>
+              <div><span class="font-medium">Language:</span> {{ String(selectedCreateSchedule.language_code || '-').trim().toLowerCase() || '-' }}</div>
+              <div><span class="font-medium">Reservations:</span> {{ Number(selectedCreateSchedule.reservation_count ?? 0) }}</div>
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Adult Tickets</label>
+              <label class="text-gray-300 block mb-1">Adult Tickets</label>
               <input
                 :value="form.adultTickets"
                 type="text"
@@ -724,7 +761,7 @@ onMounted(async () => {
                 pattern="[0-9]*"
                 autocomplete="off"
                 placeholder="00"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
                 @beforeinput="handleNumericBeforeInput"
                 @paste="(event) => handleNumericPaste(event, (value) => (form.adultTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
                 @input="handleAdultTicketsInput"
@@ -732,7 +769,7 @@ onMounted(async () => {
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Child Tickets</label>
+              <label class="text-gray-300 block mb-1">Child Tickets</label>
               <input
                 :value="form.childTickets"
                 type="text"
@@ -741,7 +778,7 @@ onMounted(async () => {
                 pattern="[0-9]*"
                 autocomplete="off"
                 placeholder="00"
-                class="w-full rounded border border-gray-400 bg-white px-3 py-2 text-sm"
+                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
                 @beforeinput="handleNumericBeforeInput"
                 @paste="(event) => handleNumericPaste(event, (value) => (form.childTickets = value), SHORT_NUMERIC_MAX_LENGTH)"
                 @input="handleChildTicketsInput"
@@ -749,37 +786,32 @@ onMounted(async () => {
             </div>
 
             <div>
-              <label class="block text-sm text-gray-700 mb-1">Total Tickets</label>
+              <label class="text-gray-300 block mb-1">Total Tickets</label>
               <input
                 :value="totalTicketCount"
                 type="text"
                 readonly
-                class="w-full rounded border border-gray-400 bg-gray-100 px-3 py-2 text-sm text-gray-700"
+                class="w-full rounded border border-[#ACBAC4] bg-[#252525] px-3 py-2 text-sm text-gray-300"
               />
             </div>
 
-            <p v-if="createError" class="text-xs text-red-600">{{ createError }}</p>
-            <p v-if="createSuccess" class="text-xs text-green-700">{{ createSuccess }}</p>
+            <p v-if="createError" class="text-xs text-red-300">{{ createError }}</p>
+            <p v-if="createSuccess" class="text-xs text-green-300">{{ createSuccess }}</p>
 
-            <div class="pt-2 flex gap-3">
+            <div class="pt-2 flex items-center justify-end gap-2">
+              <CancelButton @cancel="closeCreatePopup" />
               <button
                 type="button"
-                class="flex-1 rounded bg-cyan-500 hover:bg-cyan-600 text-gray-900 py-2 text-sm font-medium disabled:opacity-60"
+                class="px-5 py-2 rounded text-white font-medium"
+                :class="!saving ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-500/40 cursor-not-allowed'"
                 :disabled="saving"
                 @click="handleCreateReservation"
               >
                 {{ saving ? 'Creating...' : 'Create' }}
               </button>
-              <button
-                type="button"
-                class="flex-1 rounded border border-gray-500 bg-white py-2 text-sm font-medium text-gray-700"
-                @click="resetForm"
-              >
-                Cancel
-              </button>
             </div>
           </div>
-        </section>
+        </div>
       </div>
     </main>
   </div>
