@@ -19,6 +19,7 @@
       "parentId": "wrk_oceanarium",
       "data": {
         "base_url": "http://localhost:8000",
+        "firebase_api_key": "",
         "auth_token": ""
       }
     },
@@ -29,6 +30,7 @@
       "parentId": "env_base",
       "data": {
         "base_url": "http://localhost:8000",
+        "firebase_api_key": "<your-firebase-web-api-key>",
         "auth_token": "dev-bypass"
       }
     },
@@ -39,7 +41,8 @@
       "parentId": "env_base",
       "data": {
         "base_url": "https://oceanarium.duckdns.org",
-        "auth_token": "<your-firebase-id-token>"
+        "firebase_api_key": "<your-firebase-web-api-key>",
+        "auth_token": "<paste-idToken-from-sign-in-response>"
       }
     },
 
@@ -81,6 +84,26 @@
       "metaSortKey": 2
     },
     {
+      "_id": "req_firebase_signin",
+      "_type": "request",
+      "name": "Sign In (Get Token)",
+      "description": "Calls Firebase Auth REST API. Copy the idToken from the response and paste it into the auth_token environment variable.",
+      "method": "POST",
+      "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{ _.firebase_api_key }}",
+      "parentId": "fld_auth",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"your-email@example.com\",\n  \"password\": \"your-password\",\n  \"returnSecureToken\": true\n}"
+      },
+      "metaSortKey": 1
+    },
+    {
       "_id": "req_auth_me",
       "_type": "request",
       "name": "Get Current User",
@@ -94,7 +117,7 @@
         }
       ],
       "body": {},
-      "metaSortKey": 1
+      "metaSortKey": 2
     },
 
     {
