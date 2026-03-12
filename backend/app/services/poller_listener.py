@@ -1,10 +1,7 @@
 import hashlib
 import json
-from datetime import datetime
 
 from sqlalchemy import text
-
-from app.services.schedule_service import get_or_create_schedule
 
 
 def process_staging_rows(conn):
@@ -84,12 +81,6 @@ def process_staging_rows(conn):
 
         tour_id = tour[0]
 
-        # Convert datetime strings → Python datetime
-
-        event_start = datetime.fromisoformat(reservation["event_start_datetime"].replace("Z", "+00:00"))
-
-        event_end = datetime.fromisoformat(reservation["event_end_datetime"].replace("Z", "+00:00"))
-
         # Insert reservation
 
         conn.execute(
@@ -126,7 +117,7 @@ def process_staging_rows(conn):
                 "customer_id": customer_id,
                 "tour_id": tour_id,
                 "language": reservation["language_code"],
-                "event_start": event_start,
+                "event_start": reservation["event_start_datetime"],
                 "status": reservation["status"],
                 "ticket_count": reservation["current_ticket_num"],
                 "created_at": reservation["clorian_created_at"],
@@ -144,27 +135,6 @@ def process_staging_rows(conn):
         """),
             {"rid": reservation["clorian_reservation_id"]},
         ).scalar_one()
-
-        # Create / fetch schedule
-
-        schedule_id = get_or_create_schedule(
-            conn,
-            tour_id,
-            reservation["language_code"],
-            event_start,
-            event_end,
-        )
-
-        # Update reservation with schedule
-
-        conn.execute(
-            text("""
-            UPDATE reservations
-            SET schedule_id = :schedule_id
-            WHERE id = :reservation_id
-        """),
-            {"schedule_id": schedule_id, "reservation_id": reservation_id},
-        )
 
         # Insert tickets
 
@@ -265,7 +235,7 @@ def process_staging_rows(conn):
                     "status": reservation["status"],
                     "ticket_num": reservation["current_ticket_num"],
                     "language": reservation["language_code"],
-                    "event_start": event_start,
+                    "event_start": reservation["event_start_datetime"],
                     "poll_execution_id": row["poll_execution_id"],
                 },
             )

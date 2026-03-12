@@ -1,3 +1,5 @@
+import sys
+
 from locust import HttpUser, between, events, task
 
 FAIL_RATIO_THRESHOLD = 0.01
@@ -36,5 +38,8 @@ def check_thresholds(environment, **_kwargs):
         environment.process_exit_code = 1
 
     if stats.avg_response_time > AVG_RESPONSE_TIME_THRESHOLD:
-        print(f"FAIL: avg response time {stats.avg_response_time:.0f}ms exceeds {AVG_RESPONSE_TIME_THRESHOLD}ms")
+        print(
+            f"FAIL: avg response time {stats.avg_response_time:.0f}ms "
+            f"exceeds {AVG_RESPONSE_TIME_THRESHOLD}ms"
+        )
         environment.process_exit_code = 1
