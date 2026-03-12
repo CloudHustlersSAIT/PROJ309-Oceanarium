@@ -325,6 +325,18 @@
       },
       "metaSortKey": 4
     },
+    {
+      "_id": "req_cancel_guide",
+      "_type": "request",
+      "name": "Cancel Guide from Schedule",
+      "description": "Removes the assigned guide from a schedule and automatically attempts to find a replacement (FDR-004 FR-5).",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/schedules/1/guide",
+      "parentId": "fld_schedules",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 5
+    },
 
     {
       "_id": "fld_notifications",
@@ -420,6 +432,18 @@
         "text": "{\n  \"seed\": 42,\n  \"batch_size\": 10,\n  \"update_ratio\": 0.30,\n  \"unchanged_ratio\": 0.20\n}"
       },
       "metaSortKey": 1
+    },
+    {
+      "_id": "req_mock_process",
+      "_type": "request",
+      "name": "Process Staging Rows",
+      "description": "Processes unprocessed poll_staging rows: ingests into domain tables, detects changes, and triggers auto re-scheduling (FDR-004).",
+      "method": "POST",
+      "url": "{{ _.base_url }}/mock/process",
+      "parentId": "fld_mock",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 2
     }
   ]
 }

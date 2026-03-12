@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 from app.services.guide import list_guides
 from app.services.issue import create_issue
-from app.services.notification import list_notifications
+from app.services.notification import create_notification, list_notifications
 from app.services.stats import get_stats
 from app.services.tour import list_tours
 
@@ -40,6 +40,10 @@ class TestNotificationService:
 
         rows = list_notifications(mock_conn)
         assert len(rows) == 1
+
+    def test_create_notification(self, mock_conn):
+        create_notification(mock_conn, "GUIDE_ASSIGNED", schedule_id=1, guide_id=5, message="Test")
+        mock_conn.execute.assert_called_once()
 
 
 class TestIssueService:
