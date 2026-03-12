@@ -17,6 +17,10 @@ Create a `.env` file in this folder:
 
 ```bash
 DATABASE_URL=postgresql+psycopg2://USER:PASS@HOST/DBNAME
+FIREBASE_SERVICE_ACCOUNT_JSON={...}
+# Optional local-only auth bypass:
+# ENV=development
+# AUTH_BYPASS=true
 ```
 
 Run the server:
@@ -81,7 +85,7 @@ cd backend && alembic upgrade head
 
 ## Architecture Overview
 
-The backend follows a **layered domain architecture** (see [ADR-002](docs/ADR/ADR-002-layered-domain-architecture.md)). We are currently on **Phase 1** of 6 — routes and services are extracted, but raw SQL still lives in services temporarily.
+The backend follows a **layered domain architecture** (see [ADR-002](docs/ADR/ADR-002-layered-domain-architecture.md)). Routes stay thin, services own business logic, and SQL is currently executed in services through injected DB connections.
 
 ### Request Flow
 
@@ -102,13 +106,26 @@ HTTP Request
 
 ```
 backend/
+├── .env.example            # Environment template for local setup
+├── alembic.ini             # Alembic configuration (URL loaded from env)
+├── Dockerfile
+├── pyproject.toml          # Ruff, pytest, coverage settings
+├── requirements.txt
+├── load_tests/             # Locust performance scenarios
+├── tests/                  # Backend unit/integration tests
 ├── app/
 │   ├── __init__.py
 │   ├── main.py              # App factory: FastAPI instance, CORS, router registration
 │   ├── db.py                # Database engine, connection helper (get_db), health check
+│   ├── firebase_auth.py     # Firebase Admin initialization + token verification
+│   ├── dependencies/
+│   │   ├── __init__.py
+│   │   └── auth.py          # Bearer token extraction + authenticated user dependency
 │   │
 │   ├── routes/              # HTTP layer — thin handlers, no business logic
 │   │   ├── __init__.py
+│   │   ├── auth.py          # GET /auth/me
+│   │   ├── customer.py      # GET/POST /customers, PATCH /customers/{customer_id}
 │   │   ├── health.py        # GET /health, GET /health/db
 │   │   ├── reservation.py   # GET/POST /reservations, PATCH reschedule/cancel (+ deprecated /bookings aliases)
 │   │   ├── guide.py         # GET /guides
@@ -117,19 +134,25 @@ backend/
 │   │   ├── notification.py  # GET /notifications
 │   │   ├── issue.py         # POST /issues
 │   │   ├── stats.py         # GET /stats
-│   │   └── mock.py          # POST /mock/run
+│   │   └── mock.py          # POST /mock/run, POST /mock/process
 │   │
 │   └── services/            # Business logic, validation, orchestration
 │       ├── __init__.py
 │       ├── exceptions.py    # Domain exceptions (NotFoundError, ConflictError, etc.)
+│       ├── error_handlers.py  # Maps domain exceptions to HTTP errors
+│       ├── auth.py          # Authenticated user resolution from token claims
+│       ├── customer.py      # Customer list/create/update + MANUAL ID generation
 │       ├── reservation.py   # Reservation CRUD + conflict detection
 │       ├── guide.py         # Guide queries
+│       ├── guide_assignment.py  # Auto/manual guide assignment logic
 │       ├── tour.py          # Tour queries
 │       ├── schedule.py      # Schedule queries + filters
-│       ├── notification.py  # Notification queries
+│       ├── notification.py  # Notification queries + create helper
 │       ├── issue.py         # Issue creation
 │       ├── stats.py         # Dashboard aggregation
-│       └── mock_poller.py   # Mock Clorian data generation + staging
+│       ├── mock_poller.py   # Mock Clorian data generation + staging
+│       ├── poller_listener.py  # Staging ingestion + change detection (FDR-004)
+│       └── rescheduling.py  # Auto re-scheduling service (FDR-004)
 │
 ├── migrations/              # Alembic raw SQL migrations
 │   ├── env.py               # Loads DATABASE_URL from environment
@@ -138,9 +161,6 @@ backend/
 │       └── 0001_initial_schema.py  # 20-table initial schema
 │
 ├── docs/                    # Architecture decisions, domain docs, ERD
-├── alembic.ini              # Alembic configuration (URL loaded from env)
-├── Dockerfile
-├── requirements.txt
 └── .env                     # Not committed — see .gitignore
 ```
 
@@ -175,6 +195,10 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
 |--------|------|------------|-------------|
 | GET | `/health` | `routes/health.py` | App liveness check |
 | GET | `/health/db` | `routes/health.py` | Database connectivity check |
+| GET | `/auth/me` | `routes/auth.py` | Resolve current authenticated user profile from Firebase token |
+| GET | `/customers` | `routes/customer.py` | List customers with aggregated `total_visits` and `first_tour_date` |
+| POST | `/customers` | `routes/customer.py` | Create customer (optional `clorian_client_id`, auto-generates `MANUAL-######` when missing) |
+| PATCH | `/customers/{customer_id}` | `routes/customer.py` | Partially update customer by `clorian_client_id` |
 | GET | `/reservations` | `routes/reservation.py` | List all reservations (newest first) |
 | POST | `/reservations` | `routes/reservation.py` | Create a reservation |
 | PATCH | `/reservations/{id}/reschedule` | `routes/reservation.py` | Reschedule a reservation |
@@ -189,7 +213,31 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
 | GET | `/notifications` | `routes/notification.py` | List recent notifications (last 10) |
 | POST | `/issues` | `routes/issue.py` | Report a new issue |
 | GET | `/stats` | `routes/stats.py` | Dashboard stats for today |
+| POST | `/schedules` | `routes/schedule.py` | Create a schedule |
+| POST | `/schedules/{id}/assign` | `routes/schedule.py` | Auto-assign a guide to a schedule |
+| PUT | `/schedules/{id}/assign` | `routes/schedule.py` | Manually assign a guide (admin override) |
+| DELETE | `/schedules/{id}/guide` | `routes/schedule.py` | Remove guide from schedule and auto-replace (FDR-004 FR-5) |
 | POST | `/mock/run` | `routes/mock.py` | Generate and stage deterministic mock Clorian reservation payloads |
+| POST | `/mock/process` | `routes/mock.py` | Process staging rows: ingest, detect changes, trigger re-scheduling (FDR-004) |
+
+### Authentication Notes
+
+- `Authorization: Bearer <firebase_id_token>` is required for:
+    - `GET /auth/me`
+    - `POST /customers`
+    - `PATCH /customers/{customer_id}`
+    - `POST /reservations`
+    - `PATCH /reservations/{id}/reschedule`
+    - `PATCH /reservations/{id}/cancel`
+    - `POST /issues`
+- Local bypass exists only when both `ENV=development` and `AUTH_BYPASS=true` are set.
+
+### Customers Endpoint Notes
+
+- `GET /customers` returns `clorian_client_id`, `full_name`, `email`, `total_visits`, and `first_tour_date`.
+- `POST /customers` requires `first_name`, `last_name`, and `email`.
+- When `clorian_client_id` is omitted on create, backend generates the next available `MANUAL-######` value (starting at `MANUAL-000001`).
+- `PATCH /customers/{customer_id}` supports partial updates of `first_name`, `last_name`, and `email`.
 
 ### Schedules Endpoint Notes
 
