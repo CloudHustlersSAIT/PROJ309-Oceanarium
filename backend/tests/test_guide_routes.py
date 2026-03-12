@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -26,3 +26,61 @@ async def test_get_guides_internal_error(client):
 
     assert response.status_code == 500
     assert "Internal server error" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_swap_accept_success(client):
+    with (
+        patch("app.routes.guide_requests.engine.connect") as mock_connect,
+        patch("app.routes.guide_requests.request_service") as mock_svc,
+    ):
+        mock_connect.return_value.__enter__.return_value = MagicMock()
+        mock_svc.accept_swap_request.return_value = {
+            "status": "accepted",
+            "schedule_id": 10,
+            "guide_id": 3,
+        }
+
+        response = await client.post("/guide/swap-accept", params={"swap_request_id": 123})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "status" in data
+    assert data["status"] == "accepted"
+
+
+@pytest.mark.asyncio
+async def test_swap_reject_success(client):
+    with (
+        patch("app.routes.guide_requests.engine.connect") as mock_connect,
+        patch("app.routes.guide_requests.request_service") as mock_svc,
+    ):
+        mock_connect.return_value.__enter__.return_value = MagicMock()
+        mock_svc.reject_swap_request.return_value = {
+            "status": "rejected",
+            "schedule_id": 10,
+            "guide_id": 3,
+        }
+
+        response = await client.post("/guide/swap-reject", params={"swap_request_id": 123})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "status" in data
+    assert data["status"] == "rejected"
+
+
+@pytest.mark.asyncio
+async def test_swap_accept_not_found(client):
+    with (
+        patch("app.routes.guide_requests.engine.connect") as mock_connect,
+        patch("app.routes.guide_requests.request_service") as mock_svc,
+    ):
+        mock_connect.return_value.__enter__.return_value = MagicMock()
+        mock_svc.accept_swap_request.return_value = {"status": "not_found"}
+
+        response = await client.post("/guide/swap-accept", params={"swap_request_id": 999999})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {"status": "not_found"}
