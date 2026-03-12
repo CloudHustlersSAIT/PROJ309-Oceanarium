@@ -24,6 +24,7 @@ from .routes.reservation import router as reservation_router
 from .routes.schedule import router as schedule_router
 from .routes.stats import router as stats_router
 from .routes.tour import router as tour_router
+from .routes.guide_dashboard import router as guide_dashboard_router
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,7 @@ app.include_router(stats_router)
 app.include_router(mock_router)
 app.include_router(auth_router)
 app.include_router(guide_requests_router)
+app.include_router(guide_dashboard_router)
 
 origins = [
     "http://localhost:5173",
