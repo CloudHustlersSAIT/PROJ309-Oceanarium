@@ -117,7 +117,7 @@ backend/
 │   │   ├── notification.py  # GET /notifications
 │   │   ├── issue.py         # POST /issues
 │   │   ├── stats.py         # GET /stats
-│   │   └── mock.py          # POST /mock/run, POST /mock/process
+│   │   └── mock.py          # POST /mock/run
 │   │
 │   └── services/            # Business logic, validation, orchestration
 │       ├── __init__.py
@@ -126,12 +126,10 @@ backend/
 │       ├── guide.py         # Guide queries
 │       ├── tour.py          # Tour queries
 │       ├── schedule.py      # Schedule queries + filters
-│       ├── notification.py  # Notification queries + create helper
+│       ├── notification.py  # Notification queries
 │       ├── issue.py         # Issue creation
 │       ├── stats.py         # Dashboard aggregation
-│       ├── mock_poller.py   # Mock Clorian data generation + staging
-│       ├── poller_listener.py  # Staging ingestion + change detection (FDR-004)
-│       └── rescheduling.py  # Auto re-scheduling service (FDR-004)
+│       └── mock_poller.py   # Mock Clorian data generation + staging
 │
 ├── migrations/              # Alembic raw SQL migrations
 │   ├── env.py               # Loads DATABASE_URL from environment
@@ -191,12 +189,7 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
 | GET | `/notifications` | `routes/notification.py` | List recent notifications (last 10) |
 | POST | `/issues` | `routes/issue.py` | Report a new issue |
 | GET | `/stats` | `routes/stats.py` | Dashboard stats for today |
-| POST | `/schedules` | `routes/schedule.py` | Create a schedule |
-| POST | `/schedules/{id}/assign` | `routes/schedule.py` | Auto-assign a guide to a schedule |
-| PUT | `/schedules/{id}/assign` | `routes/schedule.py` | Manually assign a guide (admin override) |
-| DELETE | `/schedules/{id}/guide` | `routes/schedule.py` | Remove guide from schedule and auto-replace (FDR-004 FR-5) |
 | POST | `/mock/run` | `routes/mock.py` | Generate and stage deterministic mock Clorian reservation payloads |
-| POST | `/mock/process` | `routes/mock.py` | Process staging rows: ingest, detect changes, trigger re-scheduling (FDR-004) |
 
 ### Schedules Endpoint Notes
 

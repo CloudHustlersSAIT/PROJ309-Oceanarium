@@ -136,18 +136,21 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/contexts/authContext'
 import { firebaseDisabled } from '@/utils/firebase'
 
 const route = useRoute()
 const router = useRouter()
-const { user, logout } = useAuth()
+const { user, profile, logout } = useAuth()
 const unreadCount = ref(0)
 const isMenuOpen = ref(false)
 
-const userEmail = firebaseDisabled ? 'guest@local' : user?.value?.email || 'Guide'
+const userEmail = computed(() => {
+  if (firebaseDisabled) return 'guest@local'
+  return profile?.value?.email || user?.value?.email || 'Guide'
+})
 
 function loadUnreadCountFromStorage() {
   const raw = localStorage.getItem('guideUnreadNotifications')
@@ -202,7 +205,6 @@ function closeMenu() {
 
 async function handleLogout() {
   closeMenu()
-  localStorage.removeItem('role')
   localStorage.removeItem('guideUnreadNotifications')
   unreadCount.value = 0
 

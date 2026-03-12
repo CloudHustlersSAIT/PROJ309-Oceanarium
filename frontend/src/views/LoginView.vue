@@ -51,7 +51,7 @@
                 <strong>Authentication unavailable:</strong> Firebase is not configured.
               </p>
               <p class="mt-4 text-sm text-black/70">
-                Public signup and client-side role selection are disabled. Configure Firebase to continue.
+                Client-side role selection and public signup have been removed. Configure Firebase to continue.
               </p>
             </section>
 

@@ -95,7 +95,7 @@ import logoText from "@/assets/images/logo-text.svg";
 
 const route = useRoute();
 const router = useRouter();
-const { user, logout } = useAuth();
+const { user, profile, logout } = useAuth();
 const unreadCount = ref(0);
 const mobileOpen = ref(false);
 
@@ -107,7 +107,10 @@ const navItems = [
   { label: "Profile", to: "/guide/profile", icon: iconSettings },
 ];
 
-const userEmail = computed(() => (firebaseDisabled ? "guest@local" : user?.value?.email || "Guide"));
+const userEmail = computed(() => {
+  if (firebaseDisabled) return "guest@local";
+  return profile?.value?.email || user?.value?.email || "Guide";
+});
 const avatarInitial = computed(() => userEmail.value?.charAt(0)?.toUpperCase() || "G");
 
 function loadUnreadCountFromStorage() {
@@ -161,7 +164,6 @@ function linkClass(path) {
 
 async function handleLogout() {
   closeMobile();
-  localStorage.removeItem("role");
   localStorage.removeItem("guideUnreadNotifications");
   unreadCount.value = 0;
 

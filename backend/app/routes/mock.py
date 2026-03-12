@@ -15,7 +15,6 @@ from ..services.mock_poller import (
     finalize_run_failure,
     run_mock_poller_service,
 )
-from ..services.poller_listener import process_staging_rows
 
 ENV = os.getenv("ENV", "production").lower()
 _LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
@@ -121,17 +120,5 @@ def run_mock_poller(
             detail="Mock poller execution failed. Check server logs.",
         ) from e
 
-    except Exception as e:
-        return handle_domain_exception(e)
-
-
-@router.post("/process")
-def process_staging(
-    _guard: None = Depends(_require_dev_or_localhost),
-):
-    try:
-        with engine.begin() as conn:
-            processed = process_staging_rows(conn)
-        return {"processed": processed}
     except Exception as e:
         return handle_domain_exception(e)

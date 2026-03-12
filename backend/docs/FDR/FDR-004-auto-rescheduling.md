@@ -3,11 +3,11 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-004                |
-| **Version**      | 2.0                    |
-| **Status**       | Implemented            |
+| **Version**      | 1.1                    |
+| **Status**       | Draft                  |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
-| **Last Updated** | 2026-03-11             |
+| **Last Updated** | 2026-03-03             |
 
 ---
 
@@ -183,9 +183,9 @@ Admin/Guide Action
 
 | # | Question | Answer | Status |
 |---|----------|--------|--------|
-| 1 | Should re-scheduling be synchronous (within the poll) or async (event queue)? | Synchronous within poll batch for MVP | Resolved |
+| 1 | Should re-scheduling be synchronous (within the poll) or async (event queue)? | TBD | Open |
 | 2 | What happens if a reservation changes multiple attributes at once (e.g., time + tour)? | Process as a single re-schedule using new values | Resolved |
-| 3 | Should there be a cool-down period to batch rapid changes? | No cool-down for MVP; changes processed sequentially per poll batch | Resolved |
+| 3 | Should there be a cool-down period to batch rapid changes? | TBD | Open |
 | 4 | When a schedule becomes empty, should it be hard-deleted or soft-deleted? | Soft-delete (`status = 'CANCELLED'`) | Resolved |
 
 ## Changelog
@@ -194,4 +194,3 @@ Admin/Guide Action
 |---------|------------|-----------------|-------------|
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial draft — re-scheduling on booking changes + guide cancellation |
 | 1.1     | 2026-03-03 | Evandro Maciel | Renamed bookings→reservations; updated all event names to Reservation*; language change now from reservation directly |
-| 2.0     | 2026-03-11 | Evandro Maciel | Implemented: rescheduling service, poller listener change detection, guide cancellation endpoint, notifications |

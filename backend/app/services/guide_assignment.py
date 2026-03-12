@@ -85,17 +85,17 @@ def _guides_matching_availability(
             WHERE g.id = ANY(:guide_ids)
               AND LOWER(asl.day_of_week) = LOWER(
                   TRIM(TO_CHAR(
-                      CAST(:event_start AS timestamptz) AT TIME ZONE ap.timezone,
+                      (:event_start::timestamptz) AT TIME ZONE ap.timezone,
                       'Day'
                   ))
               )
-              AND asl.start_time <= (CAST(:event_start AS timestamptz) AT TIME ZONE ap.timezone)::time
-              AND asl.end_time   >= (CAST(:event_end   AS timestamptz) AT TIME ZONE ap.timezone)::time
+              AND asl.start_time <= ((:event_start::timestamptz) AT TIME ZONE ap.timezone)::time
+              AND asl.end_time   >= ((:event_end::timestamptz)   AT TIME ZONE ap.timezone)::time
               AND NOT EXISTS (
                   SELECT 1
                   FROM availability_exceptions ae
                   WHERE ae.pattern_id = ap.id
-                    AND ae.date = (CAST(:event_start AS timestamptz) AT TIME ZONE ap.timezone)::date
+                    AND ae.date = ((:event_start::timestamptz) AT TIME ZONE ap.timezone)::date
                     AND UPPER(ae.type) = 'BLOCKED'
               )
               AND NOT EXISTS (
@@ -196,7 +196,7 @@ def find_eligible_guides(conn, schedule_id: int):
     return ranked, reasons
 
 
-def auto_assign_guide(conn, schedule_id: int, *, commit: bool = True) -> dict:
+def auto_assign_guide(conn, schedule_id: int) -> dict:
     """Auto-assign the best eligible guide to a schedule (FDR-002 FR-1..FR-4)."""
     schedule = _fetch_schedule(conn, schedule_id)
     ranked, reasons = find_eligible_guides(conn, schedule_id)
@@ -206,8 +206,7 @@ def auto_assign_guide(conn, schedule_id: int, *, commit: bool = True) -> dict:
             text("UPDATE schedule SET status = 'UNASSIGNABLE' WHERE id = :id"),
             {"id": schedule_id},
         )
-        if commit:
-            conn.commit()
+        conn.commit()
         raise UnassignableError(
             "No eligible guide found for this schedule",
             reasons=reasons,
@@ -245,8 +244,7 @@ def auto_assign_guide(conn, schedule_id: int, *, commit: bool = True) -> dict:
         },
     )
 
-    if commit:
-        conn.commit()
+    conn.commit()
 
     return {
         "schedule_id": schedule_id,
@@ -312,8 +310,6 @@ def manual_assign_guide(
     schedule_id: int,
     guide_id: int,
     assigned_by: str,
-    *,
-    commit: bool = True,
 ) -> dict:
     """Manually assign a guide to a schedule (FDR-002 FR-5).
 
@@ -363,8 +359,7 @@ def manual_assign_guide(
         },
     )
 
-    if commit:
-        conn.commit()
+    conn.commit()
 
     return {
         "schedule_id": schedule_id,

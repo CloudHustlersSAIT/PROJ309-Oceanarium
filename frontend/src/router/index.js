@@ -117,7 +117,7 @@ router.beforeEach(async (to, from, next) => {
   try {
     await ensureAuthReady()
   } catch {
-    // Let invalid sessions fall through to the auth checks below.
+    // Let the checks below handle redirects for invalid sessions.
   }
   const publicRoutes = ['login', 'forgot-password']
 

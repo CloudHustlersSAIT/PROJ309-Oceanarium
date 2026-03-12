@@ -92,18 +92,7 @@ def process_staging_rows(conn):
 
         # Insert reservation
 
-        old = conn.execute(
-            text("""
-            SELECT id, tour_id, language_code, event_start_datetime, status, schedule_id
-            FROM reservations
-            WHERE clorian_reservation_id = :rid
-        """),
-            {"rid": reservation["clorian_reservation_id"]},
-        ).fetchone()
-
-        # Upsert reservation
-
-        result_row = conn.execute(
+        conn.execute(
             text("""
             INSERT INTO reservations (
                 clorian_reservation_id,
@@ -129,14 +118,7 @@ def process_staging_rows(conn):
                 :created_at,
                 :modified_at
             )
-            ON CONFLICT (clorian_reservation_id) DO UPDATE
-            SET tour_id = EXCLUDED.tour_id,
-                language_code = EXCLUDED.language_code,
-                event_start_datetime = EXCLUDED.event_start_datetime,
-                status = EXCLUDED.status,
-                current_ticket_num = EXCLUDED.current_ticket_num,
-                clorian_modified_at = EXCLUDED.clorian_modified_at
-            RETURNING id
+            ON CONFLICT (clorian_reservation_id) DO NOTHING
         """),
             {
                 "reservation_id": reservation["clorian_reservation_id"],
@@ -150,9 +132,18 @@ def process_staging_rows(conn):
                 "created_at": reservation["clorian_created_at"],
                 "modified_at": reservation["clorian_modified_at"],
             },
-        ).fetchone()
+        )
 
-        reservation_id = result_row[0]
+        # Get reservation id
+
+        reservation_id = conn.execute(
+            text("""
+            SELECT id
+            FROM reservations
+            WHERE clorian_reservation_id = :rid
+        """),
+            {"rid": reservation["clorian_reservation_id"]},
+        ).scalar_one()
 
         # Create / fetch schedule
 
@@ -278,37 +269,6 @@ def process_staging_rows(conn):
                     "poll_execution_id": row["poll_execution_id"],
                 },
             )
-
-        # Detect changes and trigger re-scheduling (FDR-004)
-
-        if old is not None and old[5] is not None:
-            old_tour_id = old[1]
-            old_language = old[2]
-            old_event_start = str(old[3]) if old[3] else None
-            old_status = (old[4] or "").strip().upper()
-            old_schedule_id = old[5]
-            new_status = (reservation["status"] or "").strip().upper()
-
-            if new_status == "CANCELLED" and old_status != "CANCELLED":
-                conn.execute(
-                    text("UPDATE reservations SET schedule_id = NULL WHERE id = :id"),
-                    {"id": reservation_id},
-                )
-                handle_reservation_cancellation(conn, reservation_id, old_schedule_id)
-            elif (
-                old_tour_id != tour_id
-                or (old_language or "").lower() != (reservation["language_code"] or "").lower()
-                or old_event_start != reservation["event_start_datetime"]
-            ):
-                handle_reservation_change(
-                    conn,
-                    reservation_id=reservation_id,
-                    old_schedule_id=old_schedule_id,
-                    new_tour_id=tour_id,
-                    new_language_code=reservation["language_code"],
-                    new_event_start=reservation["event_start_datetime"],
-                    new_event_end=reservation.get("event_end_datetime", reservation["event_start_datetime"]),
-                )
 
         # Mark staging row processed
 
