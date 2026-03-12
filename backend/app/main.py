@@ -15,6 +15,7 @@ from .firebase_auth import initialize_firebase
 from .routes.auth import router as auth_router
 from .routes.customer import router as customer_router
 from .routes.guide import router as guide_router
+from .routes.guide_requests import router as guide_requests_router
 from .routes.health import router as health_router
 from .routes.issue import router as issue_router
 from .routes.mock import router as mock_router
@@ -58,6 +59,7 @@ app.include_router(issue_router)
 app.include_router(stats_router)
 app.include_router(mock_router)
 app.include_router(auth_router)
+app.include_router(guide_requests_router)
 
 origins = [
     "http://localhost:5173",
