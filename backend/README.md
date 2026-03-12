@@ -231,6 +231,10 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
     - `PATCH /reservations/{id}/cancel`
     - `POST /issues`
 - Local bypass exists only when both `ENV=development` and `AUTH_BYPASS=true` are set.
+- In local bypass mode, when token verification fails, backend falls back to bypass claims instead of returning `401`.
+- Optional local bypass claim overrides:
+    - `AUTH_BYPASS_EMAIL` (default: `local-dev@oceanarium.local`)
+    - `AUTH_BYPASS_UID` (default: `local-dev-user`)
 
 ### Customers Endpoint Notes
 
