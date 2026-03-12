@@ -15,6 +15,7 @@ from .firebase_auth import initialize_firebase
 from .routes.auth import router as auth_router
 from .routes.customer import router as customer_router
 from .routes.guide import router as guide_router
+from .routes.guide_dashboard import router as guide_dashboard_router
 from .routes.guide_requests import router as guide_requests_router
 from .routes.health import router as health_router
 from .routes.issue import router as issue_router
@@ -24,7 +25,6 @@ from .routes.reservation import router as reservation_router
 from .routes.schedule import router as schedule_router
 from .routes.stats import router as stats_router
 from .routes.tour import router as tour_router
-from .routes.guide_dashboard import router as guide_dashboard_router
 
 logger = logging.getLogger(__name__)
 
