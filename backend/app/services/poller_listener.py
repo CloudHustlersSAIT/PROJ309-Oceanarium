@@ -89,13 +89,9 @@ def process_staging_rows(conn):
         tour_id = tour[0]
 
         # Convert event datetime strings → Python datetime
-        event_start = datetime.fromisoformat(
-            reservation["event_start_datetime"].replace("Z", "+00:00")
-        )
+        event_start = datetime.fromisoformat(reservation["event_start_datetime"].replace("Z", "+00:00"))
 
-        event_end = datetime.fromisoformat(
-            reservation["event_end_datetime"].replace("Z", "+00:00")
-        )
+        event_end = datetime.fromisoformat(reservation["event_end_datetime"].replace("Z", "+00:00"))
 
         # Insert reservation
         conn.execute(
