@@ -140,9 +140,6 @@ backend/
 │       └── 0001_initial_schema.py  # 20-table initial schema
 │
 ├── docs/                    # Architecture decisions, domain docs, ERD
-├── alembic.ini              # Alembic configuration (URL loaded from env)
-├── Dockerfile
-├── requirements.txt
 └── .env                     # Not committed — see .gitignore
 ```
 
