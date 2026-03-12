@@ -7,6 +7,30 @@ from sqlalchemy import text
 from app.services.schedule_service import get_or_create_schedule
 
 
+def handle_reservation_cancellation(conn, reservation_id, schedule_id):
+    """
+    Placeholder handler for reservation cancellation.
+    Tests patch this function, so it must exist.
+    """
+    pass
+
+
+def handle_reservation_change(
+    conn,
+    reservation_id,
+    old_schedule_id,
+    new_tour_id,
+    new_language_code,
+    new_event_start,
+    new_event_end,
+):
+    """
+    Placeholder handler for reservation schedule changes.
+    Tests patch this function, so it must exist.
+    """
+    pass
+
+
 def process_staging_rows(conn):
     rows = (
         conn.execute(
