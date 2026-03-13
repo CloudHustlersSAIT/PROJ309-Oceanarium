@@ -3,17 +3,19 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-003                |
-| **Version**      | 2.0                    |
-| **Status**       | Implemented            |
+| **Version**      | 3.0                    |
+| **Status**       | Refactoring in Progress |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
-| **Last Updated** | 2026-03-11             |
+| **Last Updated** | 2026-03-13             |
 
 ---
 
 ## 1. Purpose
 
 Every scheduling change must be communicated to the relevant Admin and Guide through two channels: the Oceanarium portal (in-app) and email. This ensures no assignment change goes unnoticed and enables timely action.
+
+**Notifications are triggered via dedicated API endpoints, decoupling notification logic from domain services.** This API-first approach provides flexibility, testability, and clear separation of concerns between business logic and notification delivery.
 
 ## 2. Scope
 
@@ -27,6 +29,9 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 - Rich notification detail view with full context
 - Priority levels and action-required flags
 - Automatic retry for failed email notifications (max 3 attempts)
+- **API-first notification triggering via dedicated POST endpoints**
+- **Decoupled architecture: domain services independent of notification logic**
+- **Manual notification triggering and retry capabilities**
 
 ### Out of Scope
 
@@ -38,7 +43,8 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 
 | Actor | Description |
 |-------|-------------|
-| **Notification Service** | Internal service that dispatches notifications across channels |
+| **Notification Service** | REST API service that exposes endpoints to trigger notifications across channels. Domain services do not directly invoke notification logic. |
+| **Frontend/Orchestrator** | Coordinates domain operations and notification triggers by calling respective API endpoints |
 | **Admin** | Staff member who manages schedules — receives all scheduling notifications |
 | **Guide** | Tour guide — receives notifications about their own assignments |
 
@@ -47,7 +53,14 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 ### FR-1: Notify on guide assignment
 
 - **Description**: When a guide is assigned to a schedule (auto or manual), notify the guide and all admins.
-- **Trigger**: `GuideAssigned` domain event
+- **Trigger**: `POST /notifications/guide-assigned` API call
+- **Called By**: Backend route after guide assignment OR frontend/orchestrator
+- **Request Body**:
+  ```
+  schedule_id: int (required)
+  guide_id: int (required)
+  assignment_type: "AUTO" | "MANUAL" (required)
+  ```
 - **Recipients**: Assigned guide + all active admins
 - **Channels**: Portal + Email
 - **Message Content**:
@@ -64,7 +77,16 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 ### FR-2: Notify on guide re-assignment
 
 - **Description**: When a guide is replaced on a schedule (due to cancellation or manual override), notify both the old and new guide plus admins.
-- **Trigger**: `GuideReassigned` domain event
+- **Trigger**: Two separate API calls:
+  1. `POST /notifications/guide-unassigned` for the removed guide
+  2. `POST /notifications/guide-assigned` for the new guide
+- **Request Body (unassigned)**:
+  ```
+  schedule_id: int (required)
+  guide_id: int (required)
+  reason: string (required)
+  replacement_guide_id: int (optional)
+  ```
 - **Recipients**: Previous guide (unassigned) + new guide (assigned) + all active admins
 - **Channels**: Portal + Email
 - **Message Content**:
@@ -80,7 +102,14 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 ### FR-3: Notify on reservation cancellation affecting a schedule
 
 - **Description**: When a reservation is cancelled and removed from a schedule, notify the assigned guide and admins.
-- **Trigger**: `ReservationRemovedFromSchedule` domain event
+- **Trigger**: `POST /notifications/schedule-changed` API call
+- **Request Body**:
+  ```
+  schedule_id: int (required)
+  change_type: "RESERVATION_CANCELLED" (required)
+  change_details: string (required)
+  affected_guide_id: int (optional)
+  ```
 - **Recipients**: Assigned guide + all active admins
 - **Channels**: Portal + Email
 - **Message Content**:
@@ -95,7 +124,16 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 ### FR-4: Notify on reservation change causing re-scheduling
 
 - **Description**: When a reservation changes (date, time, language, tour) and moves to a different schedule, notify the affected guides and admins.
-- **Trigger**: `ReservationMovedToSchedule` domain event
+- **Trigger**: `POST /notifications/schedule-changed` API call
+- **Request Body**:
+  ```
+  schedule_id: int (required)
+  change_type: "RESERVATION_MOVED" (required)
+  change_details: string (required)
+  affected_guide_id: int (optional)
+  old_state: object (optional)
+  new_state: object (optional)
+  ```
 - **Recipients**: Guide of old schedule + guide of new schedule + all active admins
 - **Channels**: Portal + Email
 - **Message Content**:
@@ -110,7 +148,14 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 ### FR-5: Notify on unassignable schedule
 
 - **Description**: When no guide matches all constraints for a schedule, alert admins.
-- **Trigger**: `ScheduleUnassignable` domain event
+- **Trigger**: `POST /notifications/schedule-unassignable` API call
+- **Called By**: Backend route when auto-assignment fails OR frontend/orchestrator
+- **Request Body**:
+  ```
+  schedule_id: int (required)
+  reasons: list[string] (required)
+  attempted_guides_count: int (optional)
+  ```
 - **Recipients**: All active admins
 - **Channels**: Portal + Email
 - **Message Content**:
@@ -144,7 +189,9 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 
 ## 6. API Contracts
 
-### `GET /notifications`
+### 6.1 Read Endpoints (Existing)
+
+#### `GET /notifications`
 
 List notifications for the authenticated user (admin or guide).
 
@@ -162,9 +209,171 @@ List notifications for the authenticated user (admin or guide).
 ]
 ```
 
-### `PATCH /notifications/{id}/read`
+#### `PATCH /notifications/{id}/read`
 
 Mark a portal notification as read.
+
+### 6.2 Trigger Endpoints (NEW - v3.0)
+
+All trigger endpoints use **JSON request body** for better structure, validation, and security.
+
+#### `POST /notifications/guide-assigned`
+
+Trigger guide assignment notifications (FR-1).
+
+**Authentication:** Required (Admin or System)
+
+**Request Body:**
+```json
+{
+  "schedule_id": 123,
+  "guide_id": 5,
+  "assignment_type": "AUTO"
+}
+```
+
+**Fields:**
+- `schedule_id` (int, required): Schedule ID
+- `guide_id` (int, required): Guide ID
+- `assignment_type` (string, required): "AUTO" or "MANUAL"
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "event_type": "GUIDE_ASSIGNED",
+  "schedule_id": 123,
+  "guide_id": 5,
+  "assignment_type": "AUTO",
+  "message": "Notification sent for guide assignment"
+}
+```
+
+**Response (400):**
+```json
+{
+  "error": "Schedule not found",
+  "details": "schedule_id 123 does not exist"
+}
+```
+
+#### `POST /notifications/guide-unassigned`
+
+Trigger guide unassignment notifications (FR-2).
+
+**Authentication:** Required (Admin or System)
+
+**Request Body:**
+```json
+{
+  "schedule_id": 123,
+  "guide_id": 5,
+  "reason": "Guide requested cancellation",
+  "replacement_guide_id": 7
+}
+```
+
+**Fields:**
+- `schedule_id` (int, required): Schedule ID
+- `guide_id` (int, required): Guide ID who was unassigned
+- `reason` (string, required): Reason for unassignment
+- `replacement_guide_id` (int, optional): New guide ID if replaced
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "event_type": "GUIDE_UNASSIGNED",
+  "schedule_id": 123,
+  "guide_id": 5,
+  "replacement_guide_id": 7,
+  "reason": "Guide requested cancellation",
+  "message": "Notification sent for guide unassignment"
+}
+```
+
+#### `POST /notifications/schedule-unassignable`
+
+Trigger urgent unassignable schedule notifications (FR-5).
+
+**Authentication:** Required (Admin or System)
+
+**Request Body:**
+```json
+{
+  "schedule_id": 123,
+  "reasons": [
+    "No guides available with Spanish language",
+    "All certified guides already assigned"
+  ],
+  "attempted_guides_count": 12
+}
+```
+
+**Fields:**
+- `schedule_id` (int, required): Schedule ID
+- `reasons` (list[string], required): List of constraint failures
+- `attempted_guides_count` (int, optional): Number of guides checked (default: 0)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "event_type": "SCHEDULE_UNASSIGNABLE",
+  "schedule_id": 123,
+  "priority": "urgent",
+  "reasons": [
+    "No guides available with Spanish language",
+    "All certified guides already assigned"
+  ],
+  "attempted_guides_count": 12,
+  "message": "Urgent notification sent to admins"
+}
+```
+
+#### `POST /notifications/schedule-changed`
+
+Trigger schedule change notifications (FR-3, FR-4).
+
+**Authentication:** Required (Admin or System)
+
+**Request Body:**
+```json
+{
+  "schedule_id": 123,
+  "change_type": "RESERVATION_CANCELLED",
+  "change_details": "Reservation #456 cancelled - 2 tickets removed",
+  "affected_guide_id": 5,
+  "old_state": {
+    "ticket_count": 10,
+    "status": "CONFIRMED"
+  },
+  "new_state": {
+    "ticket_count": 8,
+    "status": "CONFIRMED"
+  }
+}
+```
+
+**Fields:**
+- `schedule_id` (int, required): Schedule ID
+- `change_type` (string, required): Type of change
+- `change_details` (string, required): Description of change
+- `affected_guide_id` (int, optional): Guide affected by change
+- `old_state` (dict, optional): Previous state before change
+- `new_state` (dict, optional): New state after change
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "event_type": "SCHEDULE_CHANGED",
+  "schedule_id": 123,
+  "change_type": "RESERVATION_CANCELLED",
+  "affected_guide_id": 5,
+  "message": "Notification sent for schedule change"
+}
+```
 
 ## 7. Error Handling
 
@@ -173,14 +382,19 @@ Mark a portal notification as read.
 | Email delivery failure | `status = 'FAILED'`, retry up to 3 times | N/A |
 | Guide has no email configured | Log warning, send portal notification only | N/A |
 | Notification service unavailable | Queue notifications for later delivery | N/A |
+| Invalid schedule_id (API) | Return error: "Schedule not found" | 400 |
+| Invalid guide_id (API) | Return error: "Guide not found" | 400 |
+| Unauthorized API call | Return error: "Admin access required" | 403 |
+| Missing required fields (API) | Return error: "Missing required field: schedule_id" | 400 |
 
 ## 8. Dependencies
 
 | Dependency | Type | Notes |
 |------------|------|-------|
-| Email service (SMTP/SES/SendGrid) | Infrastructure | For email delivery |
-| [FDR-002] Guide Assignment | Internal | Produces assignment events |
-| [FDR-004] Auto Re-scheduling | Internal | Produces rescheduling events |
+| Email service (Resend.com) | Infrastructure | For email delivery |
+| [FDR-002] Guide Assignment | Internal | Independent - notifications triggered via API |
+| [FDR-004] Auto Re-scheduling | Internal | Independent - notifications triggered via API |
+| Frontend/Orchestrator | Application Layer | Coordinates domain operations and notification API calls |
 
 ## 9. Open Questions
 
@@ -190,6 +404,59 @@ Mark a portal notification as read.
 | 2 | Should portal notifications be real-time (WebSocket) or polling? | Polling for MVP (simpler implementation) | Resolved |
 | 3 | Should admins receive email for every change or just critical ones? | Every change, but configurable via preferences | Resolved |
 | 4 | Notification templates — managed in code or DB? | Code (notification_templates.py) | Resolved |
+| 5 | Should notifications be triggered automatically by domain services or via explicit API calls? | Explicit API calls (v3.0) - Decoupled architecture for better testability and flexibility | Resolved |
+| 6 | Who is responsible for triggering notifications: backend routes or frontend? | Both supported: Backend routes can call notification API internally, OR frontend can orchestrate after domain operations | Resolved |
+
+## 10. Architecture Decision
+
+### 10.1 Event-Based vs API-Based Notifications
+
+**Decision:** API-based notification triggering (v3.0)
+
+**Rationale:**
+1. **Decoupling:** Domain services (guide assignment, rescheduling) remain focused on business logic without notification concerns
+2. **Testability:** Notifications can be tested independently without triggering domain operations
+3. **Flexibility:** Frontend or backend can decide when to send notifications
+4. **Retry Logic:** Failed notifications can be easily retried via API calls
+5. **Manual Control:** Admins can manually trigger notifications via API
+6. **Observability:** Clear API logs show when and why notifications were triggered
+
+**Trade-offs:**
+- **Slightly more coordination required:** Caller must explicitly trigger notifications after domain operations
+- **Potential for missed notifications:** If caller forgets to trigger notification API
+- **Mitigation:** Backend routes call notification service directly; frontend can use orchestration layer
+
+### 10.2 Notification Triggering Patterns
+
+**Pattern 1: Backend Route Coordination** (Recommended for MVP)
+```python
+# Backend route handles both domain operation and notification
+result = guide_assignment_service.auto_assign_guide(conn, schedule_id)
+
+# Trigger notification internally
+notification_service.notify_guide_assignment(
+    conn, schedule_id, result["guide_id"], "AUTO"
+)
+
+return result
+```
+
+**Pattern 2: Frontend Orchestration** (Recommended for production)
+```typescript
+// Frontend coordinates domain and notification
+const result = await api.post('/schedules/1/assign');
+
+await api.post('/notifications/guide-assigned', {
+  schedule_id: 1,
+  guide_id: result.guide_id,
+  assignment_type: 'AUTO'
+});
+```
+
+**Pattern 3: Event-Driven** (Future consideration)
+- Domain services publish events to message queue
+- Notification service subscribes and processes events
+- Provides eventual consistency and retry mechanisms
 
 ## Changelog
 
@@ -198,3 +465,4 @@ Mark a portal notification as read.
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial draft — portal + email for admin and guide |
 | 1.1     | 2026-03-03 | Evandro Maciel | Renamed bookings→reservations throughout; updated event names |
 | 2.0     | 2026-03-11 | Evandro Maciel | Implemented: Multi-channel notifications with Resend.com, user preferences, rich detail view, priority levels, action buttons, enhanced templates following 2026 best practices |
+| 3.0     | 2026-03-13 | Evandro Maciel | Architecture refactor: API-first notification triggering, decoupled from domain services, added POST endpoints for manual/programmatic notification triggering, updated trigger mechanism from events to explicit API calls |

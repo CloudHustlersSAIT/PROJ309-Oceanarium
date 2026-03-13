@@ -1,0 +1,65 @@
+---
+description: Documentation creation policy - only create docs when explicitly requested
+alwaysApply: true
+---
+
+# Documentation Policy
+
+## Core Principle
+
+**Only create documentation files when explicitly requested by the user.**
+
+## Guidelines
+
+### DO Create Documentation When:
+- User explicitly asks: "Create a migration guide"
+- User requests: "Document this in a new file"
+- FDR or specification document is explicitly mentioned in requirements
+- User says: "Add documentation for..."
+
+### DO NOT Create Documentation When:
+- You think it "might be helpful"
+- Best practices suggest it
+- Other similar projects have it
+- You want to be thorough
+
+### Instead, Propose First:
+If you believe additional documentation would be valuable:
+
+```
+"I've completed [task]. Would you like me to also create:
+- [Specific doc file] for [specific purpose]
+- [Another doc] to help with [specific use case]
+Or should I keep documentation consolidated in [existing location]?"
+```
+
+## Consolidation Preference
+
+Default to consolidating documentation in:
+1. **FDR documents** (e.g., `docs/FDR/FDR-003.md`) - for functional requirements
+2. **README files** - for project setup and getting started
+3. **Existing API docs** - for endpoint documentation
+
+## Examples
+
+❌ **BAD** - Creating files without asking:
+```
+I'll create:
+- MIGRATION_GUIDE.md
+- TESTING_GUIDE.md
+- ARCHITECTURE_DECISIONS.md
+```
+
+✅ **GOOD** - Asking first:
+```
+I've updated FDR-003. Would you like me to also create a 
+MIGRATION_GUIDE.md to help developers transition to v3.0, 
+or is the information in FDR-003 Section 10 sufficient?
+```
+
+## When Updating Existing Docs
+
+Updating existing documentation IS allowed when:
+- File is mentioned in requirements
+- File is part of the plan being executed
+- Keeping existing docs in sync with code changes

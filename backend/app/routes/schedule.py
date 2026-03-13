@@ -8,11 +8,11 @@ from pydantic import BaseModel
 
 from ..db import get_db
 from ..services import guide_assignment as guide_assignment_service
+from ..services import notification as notification_service
 from ..services import rescheduling as rescheduling_service
 from ..services import schedule as schedule_service
 from ..services.error_handlers import handle_domain_exception
 from ..services.exceptions import UnassignableError
-from ..services.notification_dispatcher import dispatch_events
 
 logger = logging.getLogger(__name__)
 
@@ -71,16 +71,17 @@ def auto_assign(schedule_id: int, conn=Depends(get_db)):
     try:
         result = guide_assignment_service.auto_assign_guide(conn, schedule_id)
 
-        # Dispatch notification if event exists
-        if "_notification_event" in result:
-            dispatch_events(conn, [result["_notification_event"]])
-            del result["_notification_event"]
+        # Trigger notification directly
+        notification_service.notify_guide_assignment(
+            conn, schedule_id, result["guide_id"], "AUTO"
+        )
 
         return result
     except UnassignableError as e:
-        # Dispatch notification from exception if event exists
-        if hasattr(e, "notification_event"):
-            dispatch_events(conn, [e.notification_event])
+        # Trigger unassignable notification
+        notification_service.notify_schedule_unassignable(
+            conn, schedule_id, e.reasons
+        )
         return handle_domain_exception(e)
     except Exception as e:
         return handle_domain_exception(e)
@@ -96,10 +97,10 @@ def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(g
             assigned_by="admin",
         )
 
-        # Dispatch notification if event exists
-        if "_notification_event" in result:
-            dispatch_events(conn, [result["_notification_event"]])
-            del result["_notification_event"]
+        # Trigger notification directly
+        notification_service.notify_guide_assignment(
+            conn, schedule_id, payload.guide_id, "MANUAL"
+        )
 
         return result
     except Exception as e:
@@ -111,10 +112,21 @@ def cancel_guide(schedule_id: int, conn=Depends(get_db)):
     try:
         result = rescheduling_service.handle_guide_cancellation(conn, schedule_id)
 
-        # Dispatch notifications if events exist
-        if "_notification_events" in result:
-            dispatch_events(conn, result["_notification_events"])
-            del result["_notification_events"]
+        # Trigger notifications based on result
+        if result.get("old_guide_id"):
+            notification_service.notify_guide_unassignment(
+                conn, schedule_id, result["old_guide_id"], 
+                "Guide requested cancellation"
+            )
+
+        if result.get("new_guide_id"):
+            notification_service.notify_guide_assignment(
+                conn, schedule_id, result["new_guide_id"], "AUTO"
+            )
+        elif result.get("status") == "UNASSIGNABLE":
+            notification_service.notify_schedule_unassignable(
+                conn, schedule_id, result.get("reasons", [])
+            )
 
         return result
     except Exception as e:

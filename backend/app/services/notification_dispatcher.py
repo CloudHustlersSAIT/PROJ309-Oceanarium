@@ -1,17 +1,44 @@
-"""Utility for dispatching notification events.
+"""DEPRECATED: Utility for dispatching notification events.
 
-This module provides a helper function to dispatch notification events
-returned by services. It can be used by routes or other services that
-need to trigger notifications based on events.
+⚠️ DEPRECATION NOTICE (v3.0 - 2026-03-13) ⚠️
+
+This module is deprecated as of v3.0 (2026-03-13).
+
+Notifications are now triggered via direct service calls or dedicated API endpoints.
+See FDR-003 v3.0 for the new architecture.
+
+Instead of using dispatch_events(), use one of:
+1. Direct service calls:
+   - notification_service.notify_guide_assignment(conn, schedule_id, guide_id, assignment_type)
+   - notification_service.notify_guide_unassignment(conn, schedule_id, guide_id, reason)
+   - notification_service.notify_schedule_unassignable(conn, schedule_id, reasons)
+   - notification_service.notify_schedule_change(conn, schedule_id, change_type, details, guide_id)
+
+2. Dedicated API endpoints:
+   - POST /notifications/guide-assigned
+   - POST /notifications/guide-unassigned
+   - POST /notifications/schedule-unassignable
+   - POST /notifications/schedule-changed
+
+This file will be removed in a future version.
 """
 
 from __future__ import annotations
 
 import logging
+import warnings
 
 from . import notification as notification_service
 
 logger = logging.getLogger(__name__)
+
+# Issue deprecation warning when this module is imported
+warnings.warn(
+    "notification_dispatcher is deprecated. Use direct notification service calls "
+    "or POST /notifications/* API endpoints. See FDR-003 v3.0 for details.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 def dispatch_events(conn, events: list[dict]) -> None:

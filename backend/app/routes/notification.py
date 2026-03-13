@@ -2,8 +2,11 @@
 
 import json
 import logging
+import os
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from ..db import get_db
@@ -14,6 +17,56 @@ from ..services.error_handlers import handle_domain_exception
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
+
+# Environment check for test endpoints
+# Test endpoints ONLY work in development environment
+IS_DEVELOPMENT = os.getenv("ENV", "production").lower() == "development"
+
+
+# Pydantic models for v3.0 trigger endpoints
+class GuideAssignedRequest(BaseModel):
+    schedule_id: int = Field(..., description="Schedule ID")
+    guide_id: int = Field(..., description="Guide ID who was assigned")
+    assignment_type: str = Field(..., pattern="^(AUTO|MANUAL)$", description="Assignment type: AUTO or MANUAL")
+
+
+class GuideUnassignedRequest(BaseModel):
+    schedule_id: int = Field(..., description="Schedule ID")
+    guide_id: int = Field(..., description="Guide ID who was unassigned")
+    reason: str = Field(..., description="Reason for unassignment")
+    replacement_guide_id: Optional[int] = Field(None, description="Replacement guide ID if applicable")
+
+
+class ScheduleUnassignableRequest(BaseModel):
+    schedule_id: int = Field(..., description="Schedule ID")
+    reasons: list[str] = Field(..., description="List of constraint failures")
+    attempted_guides_count: int = Field(0, description="Number of guides checked")
+
+
+class ScheduleChangedRequest(BaseModel):
+    schedule_id: int = Field(..., description="Schedule ID")
+    change_type: str = Field(..., description="Type of change (e.g., RESERVATION_CANCELLED, RESERVATION_MOVED)")
+    change_details: str = Field(..., description="Description of the change")
+    affected_guide_id: Optional[int] = Field(None, description="Guide affected by the change")
+    old_state: Optional[dict] = Field(None, description="Previous state before change")
+    new_state: Optional[dict] = Field(None, description="New state after change")
+
+
+# Test trigger endpoints with email override (for testing only)
+class TestGuideAssignedRequest(GuideAssignedRequest):
+    override_email: str = Field(..., description="Override email for testing purposes")
+
+
+class TestGuideUnassignedRequest(GuideUnassignedRequest):
+    override_email: str = Field(..., description="Override email for testing purposes")
+
+
+class TestScheduleUnassignableRequest(ScheduleUnassignableRequest):
+    override_email: str = Field(..., description="Override email for testing purposes")
+
+
+class TestScheduleChangedRequest(ScheduleChangedRequest):
+    override_email: str = Field(..., description="Override email for testing purposes")
 
 
 @router.get("")
@@ -551,4 +604,451 @@ def test_email_endpoint(
         import traceback
 
         logger.error(traceback.format_exc())
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/guide-assigned")
+def trigger_guide_assigned_notification(
+    body: GuideAssignedRequest,
+    conn=Depends(get_db),
+    current_user=Depends(require_authenticated_user),
+):
+    """Trigger guide assignment notification (FR-1).
+    
+    Sends notifications to assigned guide and all admins via EMAIL + PORTAL.
+    Respects user notification preferences.
+    """
+    logger.info(f"🔔 Triggering guide assigned notification: schedule={body.schedule_id}, guide={body.guide_id}, type={body.assignment_type}")
+    
+    try:
+        # Call existing notification service
+        notification_service.notify_guide_assignment(
+            conn, body.schedule_id, body.guide_id, body.assignment_type
+        )
+        conn.commit()
+        
+        logger.info(f"✅ Guide assigned notification triggered successfully")
+        
+        # Return success response
+        return {
+            "success": True,
+            "event_type": "GUIDE_ASSIGNED",
+            "schedule_id": body.schedule_id,
+            "guide_id": body.guide_id,
+            "assignment_type": body.assignment_type,
+            "message": f"Notification sent for guide assignment"
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to trigger guide assigned notification: {e}")
+        return handle_domain_exception(e)
+
+
+@router.post("/guide-unassigned")
+def trigger_guide_unassigned_notification(
+    body: GuideUnassignedRequest,
+    conn=Depends(get_db),
+    current_user=Depends(require_authenticated_user),
+):
+    """Trigger guide unassignment notification (FR-2).
+    
+    Sends notifications to unassigned guide and all admins.
+    """
+    logger.info(f"🔔 Triggering guide unassigned notification: schedule={body.schedule_id}, guide={body.guide_id}, reason={body.reason}")
+    
+    try:
+        notification_service.notify_guide_unassignment(
+            conn, body.schedule_id, body.guide_id, body.reason
+        )
+        conn.commit()
+        
+        logger.info(f"✅ Guide unassigned notification triggered successfully")
+        
+        return {
+            "success": True,
+            "event_type": "GUIDE_UNASSIGNED",
+            "schedule_id": body.schedule_id,
+            "guide_id": body.guide_id,
+            "replacement_guide_id": body.replacement_guide_id,
+            "reason": body.reason,
+            "message": f"Notification sent for guide unassignment"
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to trigger guide unassigned notification: {e}")
+        return handle_domain_exception(e)
+
+
+@router.post("/schedule-unassignable")
+def trigger_schedule_unassignable_notification(
+    body: ScheduleUnassignableRequest,
+    conn=Depends(get_db),
+    current_user=Depends(require_authenticated_user),
+):
+    """Trigger URGENT unassignable schedule notification (FR-5).
+    
+    Sends urgent notifications to all admins only.
+    Priority: URGENT, Action Required: True
+    """
+    logger.info(f"🚨 Triggering URGENT unassignable notification: schedule={body.schedule_id}, reasons={body.reasons}")
+    
+    try:
+        notification_service.notify_schedule_unassignable(
+            conn, body.schedule_id, body.reasons
+        )
+        conn.commit()
+        
+        logger.info(f"✅ Schedule unassignable notification triggered successfully")
+        
+        return {
+            "success": True,
+            "event_type": "SCHEDULE_UNASSIGNABLE",
+            "schedule_id": body.schedule_id,
+            "priority": "urgent",
+            "reasons": body.reasons,
+            "attempted_guides_count": body.attempted_guides_count,
+            "message": f"Urgent notification sent to admins"
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to trigger unassignable notification: {e}")
+        return handle_domain_exception(e)
+
+
+@router.post("/schedule-changed")
+def trigger_schedule_changed_notification(
+    body: ScheduleChangedRequest,
+    conn=Depends(get_db),
+    current_user=Depends(require_authenticated_user),
+):
+    """Trigger schedule change notification (FR-3, FR-4).
+    
+    Covers:
+    - Reservation cancellations (RESERVATION_CANCELLED)
+    - Reservation moves (RESERVATION_MOVED)
+    - Schedule modifications (SCHEDULE_MODIFIED)
+    """
+    logger.info(f"🔔 Triggering schedule changed notification: schedule={body.schedule_id}, type={body.change_type}")
+    
+    try:
+        notification_service.notify_schedule_change(
+            conn, body.schedule_id, body.change_type, body.change_details, body.affected_guide_id
+        )
+        conn.commit()
+        
+        logger.info(f"✅ Schedule changed notification triggered successfully")
+        
+        return {
+            "success": True,
+            "event_type": "SCHEDULE_CHANGED",
+            "schedule_id": body.schedule_id,
+            "change_type": body.change_type,
+            "affected_guide_id": body.affected_guide_id,
+            "message": f"Notification sent for schedule change"
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to trigger schedule changed notification: {e}")
+        return handle_domain_exception(e)
+
+
+# ===== TEST ENDPOINTS WITH EMAIL OVERRIDE (Development Only) =====
+# These endpoints ONLY work when ENV=development
+
+
+@router.post("/test-trigger/guide-assigned")
+def test_trigger_guide_assigned_notification(
+    body: TestGuideAssignedRequest,
+    conn=Depends(get_db),
+):
+    """🧪 DEVELOPMENT ONLY: Trigger guide assignment notification with custom email.
+    
+    This endpoint allows you to test notifications by sending to a specific email
+    address instead of using the guide's email from the database.
+    
+    ⚠️ NO AUTHENTICATION REQUIRED
+    ⚠️ ONLY AVAILABLE WHEN ENV=development
+    """
+    if not IS_DEVELOPMENT:
+        raise HTTPException(
+            status_code=404,
+            detail="Test endpoints are only available in development environment"
+        )
+    
+    from ..services import email as email_service
+    from ..services import notification_templates
+    
+    logger.info(f"🧪 TEST: Triggering guide assigned notification to {body.override_email}")
+    
+    try:
+        # Get schedule and guide info from database
+        schedule = conn.execute(
+            text("""
+                SELECT s.id, s.tour_id, s.event_start_datetime, s.language_code,
+                       t.name as tour_name, t.duration_minutes
+                FROM schedule s
+                JOIN tours t ON s.tour_id = t.id
+                WHERE s.id = :schedule_id
+            """),
+            {"schedule_id": body.schedule_id}
+        ).fetchone()
+        
+        if not schedule:
+            return {"success": False, "error": f"Schedule {body.schedule_id} not found"}
+        
+        # Get guide info
+        guide = conn.execute(
+            text("SELECT id, first_name, last_name FROM guides WHERE id = :guide_id"),
+            {"guide_id": body.guide_id}
+        ).fetchone()
+        
+        if not guide:
+            return {"success": False, "error": f"Guide {body.guide_id} not found"}
+        
+        # Prepare template data
+        template_data = {
+            "guide_name": f"{guide.first_name} {guide.last_name}",
+            "tour_name": schedule.tour_name,
+            "schedule_date": schedule.event_start_datetime.strftime("%B %d, %Y"),
+            "schedule_time": schedule.event_start_datetime.strftime("%I:%M %p"),
+            "language": schedule.language_code.upper(),
+            "duration_minutes": schedule.duration_minutes,
+            "assignment_type": body.assignment_type,
+        }
+        
+        # Send email to override address
+        subject, html_content = notification_templates.get_guide_assigned_template(template_data)
+        
+        success = email_service.send_email(
+            to_email=body.override_email,
+            subject=subject,
+            html_content=html_content
+        )
+        
+        if success:
+            logger.info(f"✅ TEST: Email sent successfully to {body.override_email}")
+            return {
+                "success": True,
+                "message": f"Test notification sent to {body.override_email}",
+                "event_type": "GUIDE_ASSIGNED",
+                "schedule_id": body.schedule_id,
+                "guide_id": body.guide_id,
+                "override_email": body.override_email
+            }
+        else:
+            return {"success": False, "error": "Failed to send email - check logs"}
+            
+    except Exception as e:
+        logger.error(f"❌ TEST endpoint error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/test-trigger/guide-unassigned")
+def test_trigger_guide_unassigned_notification(
+    body: TestGuideUnassignedRequest,
+    conn=Depends(get_db),
+):
+    """🧪 DEVELOPMENT ONLY: Trigger guide unassignment notification with custom email.
+    
+    ⚠️ NO AUTHENTICATION REQUIRED
+    ⚠️ ONLY AVAILABLE WHEN ENV=development
+    """
+    if not IS_DEVELOPMENT:
+        raise HTTPException(
+            status_code=404,
+            detail="Test endpoints are only available in development environment"
+        )
+    
+    from ..services import email as email_service
+    from ..services import notification_templates
+    
+    logger.info(f"🧪 TEST: Triggering guide unassigned notification to {body.override_email}")
+    
+    try:
+        # Get schedule info
+        schedule = conn.execute(
+            text("""
+                SELECT s.id, s.tour_id, s.event_start_datetime, s.language_code,
+                       t.name as tour_name
+                FROM schedule s
+                JOIN tours t ON s.tour_id = t.id
+                WHERE s.id = :schedule_id
+            """),
+            {"schedule_id": body.schedule_id}
+        ).fetchone()
+        
+        if not schedule:
+            return {"success": False, "error": f"Schedule {body.schedule_id} not found"}
+        
+        # Get guide info
+        guide = conn.execute(
+            text("SELECT id, first_name, last_name FROM guides WHERE id = :guide_id"),
+            {"guide_id": body.guide_id}
+        ).fetchone()
+        
+        if not guide:
+            return {"success": False, "error": f"Guide {body.guide_id} not found"}
+        
+        template_data = {
+            "guide_name": f"{guide.first_name} {guide.last_name}",
+            "tour_name": schedule.tour_name,
+            "schedule_date": schedule.event_start_datetime.strftime("%B %d, %Y"),
+            "schedule_time": schedule.event_start_datetime.strftime("%I:%M %p"),
+            "reason": body.reason,
+        }
+        
+        subject, html_content = notification_templates.get_guide_unassigned_template(template_data)
+        
+        success = email_service.send_email(
+            to_email=body.override_email,
+            subject=subject,
+            html_content=html_content
+        )
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Test notification sent to {body.override_email}",
+                "event_type": "GUIDE_UNASSIGNED",
+                "override_email": body.override_email
+            }
+        else:
+            return {"success": False, "error": "Failed to send email"}
+            
+    except Exception as e:
+        logger.error(f"❌ TEST endpoint error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/test-trigger/schedule-unassignable")
+def test_trigger_schedule_unassignable_notification(
+    body: TestScheduleUnassignableRequest,
+    conn=Depends(get_db),
+):
+    """🧪 DEVELOPMENT ONLY: Trigger URGENT unassignable schedule notification with custom email.
+    
+    ⚠️ NO AUTHENTICATION REQUIRED
+    ⚠️ ONLY AVAILABLE WHEN ENV=development
+    """
+    if not IS_DEVELOPMENT:
+        raise HTTPException(
+            status_code=404,
+            detail="Test endpoints are only available in development environment"
+        )
+    
+    from ..services import email as email_service
+    from ..services import notification_templates
+    
+    logger.info(f"🧪 TEST: Triggering schedule unassignable notification to {body.override_email}")
+    
+    try:
+        # Get schedule info
+        schedule = conn.execute(
+            text("""
+                SELECT s.id, s.event_start_datetime, s.language_code,
+                       t.name as tour_name
+                FROM schedule s
+                JOIN tours t ON s.tour_id = t.id
+                WHERE s.id = :schedule_id
+            """),
+            {"schedule_id": body.schedule_id}
+        ).fetchone()
+        
+        if not schedule:
+            return {"success": False, "error": f"Schedule {body.schedule_id} not found"}
+        
+        template_data = {
+            "tour_name": schedule.tour_name,
+            "schedule_date": schedule.event_start_datetime.strftime("%B %d, %Y"),
+            "schedule_time": schedule.event_start_datetime.strftime("%I:%M %p"),
+            "language": schedule.language_code.upper(),
+            "reasons": body.reasons,
+            "attempted_guides_count": body.attempted_guides_count,
+        }
+        
+        subject, html_content = notification_templates.get_schedule_unassignable_template(template_data)
+        
+        success = email_service.send_email(
+            to_email=body.override_email,
+            subject=subject,
+            html_content=html_content
+        )
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Test URGENT notification sent to {body.override_email}",
+                "event_type": "SCHEDULE_UNASSIGNABLE",
+                "priority": "urgent",
+                "override_email": body.override_email
+            }
+        else:
+            return {"success": False, "error": "Failed to send email"}
+            
+    except Exception as e:
+        logger.error(f"❌ TEST endpoint error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/test-trigger/schedule-changed")
+def test_trigger_schedule_changed_notification(
+    body: TestScheduleChangedRequest,
+    conn=Depends(get_db),
+):
+    """🧪 DEVELOPMENT ONLY: Trigger schedule change notification with custom email.
+    
+    ⚠️ NO AUTHENTICATION REQUIRED
+    ⚠️ ONLY AVAILABLE WHEN ENV=development
+    """
+    if not IS_DEVELOPMENT:
+        raise HTTPException(
+            status_code=404,
+            detail="Test endpoints are only available in development environment"
+        )
+    
+    from ..services import email as email_service
+    from ..services import notification_templates
+    
+    logger.info(f"🧪 TEST: Triggering schedule changed notification to {body.override_email}")
+    
+    try:
+        # Get schedule info
+        schedule = conn.execute(
+            text("""
+                SELECT s.id, s.event_start_datetime, s.language_code,
+                       t.name as tour_name
+                FROM schedule s
+                JOIN tours t ON s.tour_id = t.id
+                WHERE s.id = :schedule_id
+            """),
+            {"schedule_id": body.schedule_id}
+        ).fetchone()
+        
+        if not schedule:
+            return {"success": False, "error": f"Schedule {body.schedule_id} not found"}
+        
+        template_data = {
+            "tour_name": schedule.tour_name,
+            "schedule_date": schedule.event_start_datetime.strftime("%B %d, %Y"),
+            "schedule_time": schedule.event_start_datetime.strftime("%I:%M %p"),
+            "change_type": body.change_type,
+            "change_details": body.change_details,
+        }
+        
+        subject, html_content = notification_templates.get_schedule_changed_template(template_data)
+        
+        success = email_service.send_email(
+            to_email=body.override_email,
+            subject=subject,
+            html_content=html_content
+        )
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Test notification sent to {body.override_email}",
+                "event_type": "SCHEDULE_CHANGED",
+                "override_email": body.override_email
+            }
+        else:
+            return {"success": False, "error": "Failed to send email"}
+            
+    except Exception as e:
+        logger.error(f"❌ TEST endpoint error: {e}")
         return {"success": False, "error": str(e)}
