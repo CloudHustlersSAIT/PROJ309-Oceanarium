@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -15,7 +16,9 @@ from .firebase_auth import initialize_firebase
 from .routes.auth import router as auth_router
 from .routes.customer import router as customer_router
 from .routes.guide import router as guide_router
+from .routes.guide_availability import router as guide_availability_router
 from .routes.guide_dashboard import router as guide_dashboard_router
+from .routes.guide_languages import router as guide_languages_router
 from .routes.guide_requests import router as guide_requests_router
 from .routes.health import router as health_router
 from .routes.issue import router as issue_router
@@ -62,6 +65,8 @@ app.include_router(mock_router)
 app.include_router(auth_router)
 app.include_router(guide_requests_router)
 app.include_router(guide_dashboard_router)
+app.include_router(guide_availability_router)
+app.include_router(guide_languages_router)
 
 origins = [
     "http://localhost:5173",
@@ -82,14 +87,27 @@ app.add_middleware(
 # Set up background scheduler for poller listener
 scheduler = BackgroundScheduler()
 
+# Throttle DB connection warnings to at most once per minute
+_last_poller_warning_at: float | None = None
+_POLLER_WARNING_INTERVAL = 60.0
+
 
 def run_listener():
-
-    with engine.begin() as conn:
-        processed = process_staging_rows(conn)
-
-        if processed > 0:
-            print(f"Processed {processed} staging rows")
+    global _last_poller_warning_at
+    try:
+        with engine.begin() as conn:
+            processed = process_staging_rows(conn)
+            if processed > 0:
+                print(f"Processed {processed} staging rows")
+        _last_poller_warning_at = None  # reset on success
+    except Exception as e:
+        now = time.monotonic()
+        if _last_poller_warning_at is None or (now - _last_poller_warning_at) >= _POLLER_WARNING_INTERVAL:
+            logger.warning(
+                "Poller listener could not connect to database: %s",
+                e,
+            )
+            _last_poller_warning_at = now
 
 
 scheduler.add_job(run_listener, "interval", seconds=5)
