@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Pre-push hook to run tests and quality checks
+# This hook runs before pushing to remote
+
+set -e
+
+echo "Running pre-push checks..."
+
+# Change to backend directory
+cd backend
+
+# Ensure we're using Python 3.11+
+PYTHON_CMD="python3.11"
+
+# Check if python3.11 is available
+if ! command -v $PYTHON_CMD &> /dev/null; then
+    echo "Error: Python 3.11 is required but not found."
+    echo "Please install Python 3.11 or higher."
+    exit 1
+fi
+
+# Display Python version
+echo "Using Python version:"
+$PYTHON_CMD --version
+
+# Run ruff linter
+echo "Running ruff linter..."
+$PYTHON_CMD -m ruff check .
+
+# Run ruff formatter check
+echo "Checking code formatting..."
+$PYTHON_CMD -m ruff format --check .
+
+# Run pytest with coverage
+echo "Running tests with coverage..."
+$PYTHON_CMD -m pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+
+echo "✅ All pre-push checks passed!"
