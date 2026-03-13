@@ -10,10 +10,44 @@ from app.services.tour import list_tours
 
 class TestGuideService:
     def test_list_guides(self, mock_conn):
-        mock_result = MagicMock()
-        mock_result.keys.return_value = ["id", "first_name"]
-        mock_result.fetchall.return_value = [(1, "Maria"), (2, "João")]
-        mock_conn.execute.return_value = mock_result
+        id_result = MagicMock()
+        id_result.fetchall.return_value = [(1,), (2,)]
+
+        guide_1 = MagicMock()
+        guide_1._mapping = {
+            "id": 1,
+            "first_name": "Maria",
+            "last_name": "Silva",
+            "email": "maria@test.com",
+            "phone": None,
+            "guide_rating": None,
+            "is_active": True,
+        }
+        guide_2 = MagicMock()
+        guide_2._mapping = {
+            "id": 2,
+            "first_name": "João",
+            "last_name": "Costa",
+            "email": "joao@test.com",
+            "phone": None,
+            "guide_rating": None,
+            "is_active": True,
+        }
+
+        empty_rows = MagicMock()
+        empty_rows.fetchall.return_value = []
+
+        mock_conn.execute.side_effect = [
+            id_result,
+            MagicMock(fetchone=MagicMock(return_value=guide_1)),
+            empty_rows,
+            empty_rows,
+            empty_rows,
+            MagicMock(fetchone=MagicMock(return_value=guide_2)),
+            empty_rows,
+            empty_rows,
+            empty_rows,
+        ]
 
         rows = list_guides(mock_conn)
         assert len(rows) == 2
