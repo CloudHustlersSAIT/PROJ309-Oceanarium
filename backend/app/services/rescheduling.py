@@ -148,9 +148,7 @@ def handle_reservation_change(
         {"id": reservation_id},
     )
 
-    new_schedule_id = find_or_create_schedule(
-        conn, new_tour_id, new_language_code, new_event_start, new_event_end
-    )
+    new_schedule_id = find_or_create_schedule(conn, new_tour_id, new_language_code, new_event_start, new_event_end)
 
     conn.execute(
         text("UPDATE reservations SET schedule_id = :sid WHERE id = :id"),

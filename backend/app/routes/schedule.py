@@ -72,16 +72,12 @@ def auto_assign(schedule_id: int, conn=Depends(get_db)):
         result = guide_assignment_service.auto_assign_guide(conn, schedule_id)
 
         # Trigger notification directly
-        notification_service.notify_guide_assignment(
-            conn, schedule_id, result["guide_id"], "AUTO"
-        )
+        notification_service.notify_guide_assignment(conn, schedule_id, result["guide_id"], "AUTO")
 
         return result
     except UnassignableError as e:
         # Trigger unassignable notification
-        notification_service.notify_schedule_unassignable(
-            conn, schedule_id, e.reasons
-        )
+        notification_service.notify_schedule_unassignable(conn, schedule_id, e.reasons)
         return handle_domain_exception(e)
     except Exception as e:
         return handle_domain_exception(e)
@@ -98,9 +94,7 @@ def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(g
         )
 
         # Trigger notification directly
-        notification_service.notify_guide_assignment(
-            conn, schedule_id, payload.guide_id, "MANUAL"
-        )
+        notification_service.notify_guide_assignment(conn, schedule_id, payload.guide_id, "MANUAL")
 
         return result
     except Exception as e:
@@ -115,18 +109,13 @@ def cancel_guide(schedule_id: int, conn=Depends(get_db)):
         # Trigger notifications based on result
         if result.get("old_guide_id"):
             notification_service.notify_guide_unassignment(
-                conn, schedule_id, result["old_guide_id"],
-                "Guide requested cancellation"
+                conn, schedule_id, result["old_guide_id"], "Guide requested cancellation"
             )
 
         if result.get("new_guide_id"):
-            notification_service.notify_guide_assignment(
-                conn, schedule_id, result["new_guide_id"], "AUTO"
-            )
+            notification_service.notify_guide_assignment(conn, schedule_id, result["new_guide_id"], "AUTO")
         elif result.get("status") == "UNASSIGNABLE":
-            notification_service.notify_schedule_unassignable(
-                conn, schedule_id, result.get("reasons", [])
-            )
+            notification_service.notify_schedule_unassignable(conn, schedule_id, result.get("reasons", []))
 
         return result
     except Exception as e:

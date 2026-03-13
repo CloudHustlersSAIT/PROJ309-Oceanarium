@@ -624,9 +624,7 @@ def trigger_guide_assigned_notification(
 
     try:
         # Call existing notification service
-        notification_service.notify_guide_assignment(
-            conn, body.schedule_id, body.guide_id, body.assignment_type
-        )
+        notification_service.notify_guide_assignment(conn, body.schedule_id, body.guide_id, body.assignment_type)
         conn.commit()
 
         logger.info("✅ Guide assigned notification triggered successfully")
@@ -638,7 +636,7 @@ def trigger_guide_assigned_notification(
             "schedule_id": body.schedule_id,
             "guide_id": body.guide_id,
             "assignment_type": body.assignment_type,
-            "message": "Notification sent for guide assignment"
+            "message": "Notification sent for guide assignment",
         }
     except Exception as e:
         logger.error(f"❌ Failed to trigger guide assigned notification: {e}")
@@ -661,9 +659,7 @@ def trigger_guide_unassigned_notification(
     )
 
     try:
-        notification_service.notify_guide_unassignment(
-            conn, body.schedule_id, body.guide_id, body.reason
-        )
+        notification_service.notify_guide_unassignment(conn, body.schedule_id, body.guide_id, body.reason)
         conn.commit()
 
         logger.info("✅ Guide unassigned notification triggered successfully")
@@ -675,7 +671,7 @@ def trigger_guide_unassigned_notification(
             "guide_id": body.guide_id,
             "replacement_guide_id": body.replacement_guide_id,
             "reason": body.reason,
-            "message": "Notification sent for guide unassignment"
+            "message": "Notification sent for guide unassignment",
         }
     except Exception as e:
         logger.error(f"❌ Failed to trigger guide unassigned notification: {e}")
@@ -696,9 +692,7 @@ def trigger_schedule_unassignable_notification(
     logger.info(f"🚨 Triggering URGENT unassignable notification: schedule={body.schedule_id}, reasons={body.reasons}")
 
     try:
-        notification_service.notify_schedule_unassignable(
-            conn, body.schedule_id, body.reasons
-        )
+        notification_service.notify_schedule_unassignable(conn, body.schedule_id, body.reasons)
         conn.commit()
 
         logger.info("✅ Schedule unassignable notification triggered successfully")
@@ -710,7 +704,7 @@ def trigger_schedule_unassignable_notification(
             "priority": "urgent",
             "reasons": body.reasons,
             "attempted_guides_count": body.attempted_guides_count,
-            "message": "Urgent notification sent to admins"
+            "message": "Urgent notification sent to admins",
         }
     except Exception as e:
         logger.error(f"❌ Failed to trigger unassignable notification: {e}")
@@ -746,7 +740,7 @@ def trigger_schedule_changed_notification(
             "schedule_id": body.schedule_id,
             "change_type": body.change_type,
             "affected_guide_id": body.affected_guide_id,
-            "message": "Notification sent for schedule change"
+            "message": "Notification sent for schedule change",
         }
     except Exception as e:
         logger.error(f"❌ Failed to trigger schedule changed notification: {e}")
@@ -771,10 +765,7 @@ def test_trigger_guide_assigned_notification(
     ⚠️ ONLY AVAILABLE WHEN ENV=development
     """
     if not IS_DEVELOPMENT:
-        raise HTTPException(
-            status_code=404,
-            detail="Test endpoints are only available in development environment"
-        )
+        raise HTTPException(status_code=404, detail="Test endpoints are only available in development environment")
 
     from ..services import email as email_service
     from ..services import notification_templates
@@ -791,7 +782,7 @@ def test_trigger_guide_assigned_notification(
                 JOIN tours t ON s.tour_id = t.id
                 WHERE s.id = :schedule_id
             """),
-            {"schedule_id": body.schedule_id}
+            {"schedule_id": body.schedule_id},
         ).fetchone()
 
         if not schedule:
@@ -799,8 +790,7 @@ def test_trigger_guide_assigned_notification(
 
         # Get guide info
         guide = conn.execute(
-            text("SELECT id, first_name, last_name FROM guides WHERE id = :guide_id"),
-            {"guide_id": body.guide_id}
+            text("SELECT id, first_name, last_name FROM guides WHERE id = :guide_id"), {"guide_id": body.guide_id}
         ).fetchone()
 
         if not guide:
@@ -820,11 +810,7 @@ def test_trigger_guide_assigned_notification(
         # Send email to override address
         subject, html_content = notification_templates.get_guide_assigned_template(template_data)
 
-        success = email_service.send_email(
-            to_email=body.override_email,
-            subject=subject,
-            html_content=html_content
-        )
+        success = email_service.send_email(to_email=body.override_email, subject=subject, html_content=html_content)
 
         if success:
             logger.info(f"✅ TEST: Email sent successfully to {body.override_email}")
@@ -834,7 +820,7 @@ def test_trigger_guide_assigned_notification(
                 "event_type": "GUIDE_ASSIGNED",
                 "schedule_id": body.schedule_id,
                 "guide_id": body.guide_id,
-                "override_email": body.override_email
+                "override_email": body.override_email,
             }
         else:
             return {"success": False, "error": "Failed to send email - check logs"}
@@ -855,10 +841,7 @@ def test_trigger_guide_unassigned_notification(
     ⚠️ ONLY AVAILABLE WHEN ENV=development
     """
     if not IS_DEVELOPMENT:
-        raise HTTPException(
-            status_code=404,
-            detail="Test endpoints are only available in development environment"
-        )
+        raise HTTPException(status_code=404, detail="Test endpoints are only available in development environment")
 
     from ..services import email as email_service
     from ..services import notification_templates
@@ -875,7 +858,7 @@ def test_trigger_guide_unassigned_notification(
                 JOIN tours t ON s.tour_id = t.id
                 WHERE s.id = :schedule_id
             """),
-            {"schedule_id": body.schedule_id}
+            {"schedule_id": body.schedule_id},
         ).fetchone()
 
         if not schedule:
@@ -883,8 +866,7 @@ def test_trigger_guide_unassigned_notification(
 
         # Get guide info
         guide = conn.execute(
-            text("SELECT id, first_name, last_name FROM guides WHERE id = :guide_id"),
-            {"guide_id": body.guide_id}
+            text("SELECT id, first_name, last_name FROM guides WHERE id = :guide_id"), {"guide_id": body.guide_id}
         ).fetchone()
 
         if not guide:
@@ -900,18 +882,14 @@ def test_trigger_guide_unassigned_notification(
 
         subject, html_content = notification_templates.get_guide_unassigned_template(template_data)
 
-        success = email_service.send_email(
-            to_email=body.override_email,
-            subject=subject,
-            html_content=html_content
-        )
+        success = email_service.send_email(to_email=body.override_email, subject=subject, html_content=html_content)
 
         if success:
             return {
                 "success": True,
                 "message": f"Test notification sent to {body.override_email}",
                 "event_type": "GUIDE_UNASSIGNED",
-                "override_email": body.override_email
+                "override_email": body.override_email,
             }
         else:
             return {"success": False, "error": "Failed to send email"}
@@ -932,10 +910,7 @@ def test_trigger_schedule_unassignable_notification(
     ⚠️ ONLY AVAILABLE WHEN ENV=development
     """
     if not IS_DEVELOPMENT:
-        raise HTTPException(
-            status_code=404,
-            detail="Test endpoints are only available in development environment"
-        )
+        raise HTTPException(status_code=404, detail="Test endpoints are only available in development environment")
 
     from ..services import email as email_service
     from ..services import notification_templates
@@ -952,7 +927,7 @@ def test_trigger_schedule_unassignable_notification(
                 JOIN tours t ON s.tour_id = t.id
                 WHERE s.id = :schedule_id
             """),
-            {"schedule_id": body.schedule_id}
+            {"schedule_id": body.schedule_id},
         ).fetchone()
 
         if not schedule:
@@ -969,11 +944,7 @@ def test_trigger_schedule_unassignable_notification(
 
         subject, html_content = notification_templates.get_schedule_unassignable_template(template_data)
 
-        success = email_service.send_email(
-            to_email=body.override_email,
-            subject=subject,
-            html_content=html_content
-        )
+        success = email_service.send_email(to_email=body.override_email, subject=subject, html_content=html_content)
 
         if success:
             return {
@@ -981,7 +952,7 @@ def test_trigger_schedule_unassignable_notification(
                 "message": f"Test URGENT notification sent to {body.override_email}",
                 "event_type": "SCHEDULE_UNASSIGNABLE",
                 "priority": "urgent",
-                "override_email": body.override_email
+                "override_email": body.override_email,
             }
         else:
             return {"success": False, "error": "Failed to send email"}
@@ -1002,10 +973,7 @@ def test_trigger_schedule_changed_notification(
     ⚠️ ONLY AVAILABLE WHEN ENV=development
     """
     if not IS_DEVELOPMENT:
-        raise HTTPException(
-            status_code=404,
-            detail="Test endpoints are only available in development environment"
-        )
+        raise HTTPException(status_code=404, detail="Test endpoints are only available in development environment")
 
     from ..services import email as email_service
     from ..services import notification_templates
@@ -1022,7 +990,7 @@ def test_trigger_schedule_changed_notification(
                 JOIN tours t ON s.tour_id = t.id
                 WHERE s.id = :schedule_id
             """),
-            {"schedule_id": body.schedule_id}
+            {"schedule_id": body.schedule_id},
         ).fetchone()
 
         if not schedule:
@@ -1038,18 +1006,14 @@ def test_trigger_schedule_changed_notification(
 
         subject, html_content = notification_templates.get_schedule_changed_template(template_data)
 
-        success = email_service.send_email(
-            to_email=body.override_email,
-            subject=subject,
-            html_content=html_content
-        )
+        success = email_service.send_email(to_email=body.override_email, subject=subject, html_content=html_content)
 
         if success:
             return {
                 "success": True,
                 "message": f"Test notification sent to {body.override_email}",
                 "event_type": "SCHEDULE_CHANGED",
-                "override_email": body.override_email
+                "override_email": body.override_email,
             }
         else:
             return {"success": False, "error": "Failed to send email"}

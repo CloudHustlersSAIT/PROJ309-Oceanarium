@@ -37,7 +37,7 @@ warnings.warn(
     "notification_dispatcher is deprecated. Use direct notification service calls "
     "or POST /notifications/* API endpoints. See FDR-003 v3.0 for details.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 
