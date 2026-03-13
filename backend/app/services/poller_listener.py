@@ -5,6 +5,7 @@ import logging
 from sqlalchemy import text
 
 from .rescheduling import handle_reservation_cancellation, handle_reservation_change
+from .schedule_service import get_or_create_schedule
 
 logger = logging.getLogger(__name__)
 
