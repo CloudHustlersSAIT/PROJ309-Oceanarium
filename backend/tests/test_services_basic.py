@@ -46,7 +46,7 @@ class TestNotificationService:
         mock_result = MagicMock()
         mock_result.fetchone.return_value = (1,)
         mock_conn.execute.return_value = mock_result
-        
+
         result = create_notification(
             mock_conn,
             event_type="GUIDE_ASSIGNED",

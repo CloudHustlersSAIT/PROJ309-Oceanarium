@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 
 from sqlalchemy import text
@@ -73,10 +74,8 @@ def find_or_create_schedule(
     ).fetchone()
     schedule_id = row[0]
 
-    try:
-        result = auto_assign_guide(conn, schedule_id, commit=False)
-    except UnassignableError as e:
-        pass  # Schedule remains UNASSIGNED
+    with contextlib.suppress(UnassignableError):
+        auto_assign_guide(conn, schedule_id, commit=False)
 
     return schedule_id
 
@@ -193,7 +192,7 @@ def handle_reservation_cancellation(
     ).fetchone()
 
     cleanup_result = cleanup_empty_schedule(conn, old_schedule_id)
-    
+
     return {
         "schedule_id": old_schedule_id,
         "affected_guide_id": schedule[0] if schedule and schedule[0] else None,

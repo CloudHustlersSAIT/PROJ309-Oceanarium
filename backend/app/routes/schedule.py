@@ -115,7 +115,7 @@ def cancel_guide(schedule_id: int, conn=Depends(get_db)):
         # Trigger notifications based on result
         if result.get("old_guide_id"):
             notification_service.notify_guide_unassignment(
-                conn, schedule_id, result["old_guide_id"], 
+                conn, schedule_id, result["old_guide_id"],
                 "Guide requested cancellation"
             )
 
