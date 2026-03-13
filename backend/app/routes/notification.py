@@ -503,32 +503,28 @@ def test_email_endpoint(
         elif template_type == "guide_assignment":
             # Test guide assignment template
             schedule = {
-                'id': 42,
-                'tour_name': 'Ocean Discovery Tour',
-                'language_code': 'en',
-                'event_start_datetime': datetime(2026, 3, 15, 10, 0),
-                'ticket_count': 8
+                "id": 42,
+                "tour_name": "Ocean Discovery Tour",
+                "language_code": "en",
+                "event_start_datetime": datetime(2026, 3, 15, 10, 0),
+                "ticket_count": 8,
             }
             subject, text_body, html_body, _, _ = guide_assigned_template(
-                schedule=schedule,
-                guide_name='Test Guide',
-                assignment_type='AUTO'
+                schedule=schedule, guide_name="Test Guide", assignment_type="AUTO"
             )
 
         elif template_type == "admin_alert":
             # Test admin urgent alert template
             schedule = {
-                'id': 99,
-                'tour_name': 'Deep Sea Adventure',
-                'language_code': 'es',
-                'event_start_datetime': datetime(2026, 3, 20, 14, 30),
-                'ticket_count': 12
+                "id": 99,
+                "tour_name": "Deep Sea Adventure",
+                "language_code": "es",
+                "event_start_datetime": datetime(2026, 3, 20, 14, 30),
+                "ticket_count": 12,
             }
-            reasons = ['No guides available for Spanish', 'All guides fully booked']
+            reasons = ["No guides available for Spanish", "All guides fully booked"]
             subject, text_body, html_body, _, _ = schedule_unassignable_admin_template(
-                schedule=schedule,
-                reasons=reasons,
-                attempted_guides_count=5
+                schedule=schedule, reasons=reasons, attempted_guides_count=5
             )
 
         else:
@@ -536,12 +532,7 @@ def test_email_endpoint(
 
         # Send the email
         logger.info(f"📧 Sending test email: {subject}")
-        result = send_email(
-            to_email=to_email,
-            subject=subject,
-            body_text=text_body,
-            body_html=html_body
-        )
+        result = send_email(to_email=to_email, subject=subject, body_text=text_body, body_html=html_body)
 
         if result:
             logger.info(f"✅ Test email sent successfully to {to_email}")
@@ -549,17 +540,15 @@ def test_email_endpoint(
                 "success": True,
                 "message": f"Test email sent to {to_email}",
                 "subject": subject,
-                "template_type": template_type
+                "template_type": template_type,
             }
         else:
             logger.error(f"❌ Failed to send test email to {to_email}")
-            return {
-                "success": False,
-                "error": "Failed to send email - check backend logs for details"
-            }
+            return {"success": False, "error": "Failed to send email - check backend logs for details"}
 
     except Exception as e:
         logger.error(f"❌ Test email endpoint error: {e}")
         import traceback
+
         logger.error(traceback.format_exc())
         return {"success": False, "error": str(e)}

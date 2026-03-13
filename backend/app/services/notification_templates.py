@@ -168,8 +168,11 @@ This is an automated notification from the Oceanarium Scheduling System.
         <p style="margin: 5px 0;"><strong>Date:</strong> {date}</p>
         <p style="margin: 5px 0;"><strong>Time:</strong> {time}</p>
         <p style="margin: 5px 0;"><strong>Reason:</strong> {reason}</p>
-        {f'<p style="margin: 5px 0;"><strong>Replacement:</strong> '
-         f'{replacement_guide_name}</p>' if replacement_guide_name else ""}
+        {
+        f'<p style="margin: 5px 0;"><strong>Replacement:</strong> {replacement_guide_name}</p>'
+        if replacement_guide_name
+        else ""
+    }
       </div>
 
       <p>

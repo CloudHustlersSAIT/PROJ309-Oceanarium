@@ -27,31 +27,21 @@ def dispatch_events(conn, events: list[dict]) -> None:
         try:
             if event_type == "GUIDE_ASSIGNED":
                 notification_service.notify_guide_assignment(
-                    conn,
-                    event["schedule_id"],
-                    event["guide_id"],
-                    event["assignment_type"]
+                    conn, event["schedule_id"], event["guide_id"], event["assignment_type"]
                 )
             elif event_type == "GUIDE_UNASSIGNED":
                 notification_service.notify_guide_unassignment(
-                    conn,
-                    event["schedule_id"],
-                    event["guide_id"],
-                    event["reason"]
+                    conn, event["schedule_id"], event["guide_id"], event["reason"]
                 )
             elif event_type == "SCHEDULE_UNASSIGNABLE":
-                notification_service.notify_schedule_unassignable(
-                    conn,
-                    event["schedule_id"],
-                    event["reasons"]
-                )
+                notification_service.notify_schedule_unassignable(conn, event["schedule_id"], event["reasons"])
             elif event_type == "SCHEDULE_CHANGED":
                 notification_service.notify_schedule_change(
                     conn,
                     event["schedule_id"],
                     event["event_type"],
                     event["reason"],
-                    affected_guide_id=event.get("affected_guide_id")
+                    affected_guide_id=event.get("affected_guide_id"),
                 )
             else:
                 logger.warning(f"Unknown notification event type: {event_type}")

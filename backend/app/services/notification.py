@@ -274,10 +274,8 @@ def notify_guide_assignment(
             admin_channels.append("EMAIL")
 
         if admin_channels:
-            date_str = schedule['event_start_datetime'].strftime('%B %d, %Y')
-            admin_message = (
-                f"Guide {guide_name} assigned to {schedule['tour_name']} on {date_str}"
-            )
+            date_str = schedule["event_start_datetime"].strftime("%B %d, %Y")
+            admin_message = f"Guide {guide_name} assigned to {schedule['tour_name']} on {date_str}"
             notif_ids = create_notification(
                 conn,
                 event_type="GUIDE_ASSIGNED",
@@ -425,7 +423,7 @@ def notify_schedule_change(
     if affected_guide_id:
         guide_prefs = get_notification_preferences(conn, guide_id=affected_guide_id, event_type=change_type)
         if guide_prefs["portal_enabled"]:
-            date_str = schedule['event_start_datetime'].strftime('%B %d, %Y')
+            date_str = schedule["event_start_datetime"].strftime("%B %d, %Y")
             message = f"{change_details}\n\nSchedule: {schedule['tour_name']} on {date_str}"
             notif_ids = create_notification(
                 conn,

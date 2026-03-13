@@ -133,12 +133,14 @@ def cleanup_empty_schedule(conn, schedule_id: int) -> list[dict]:
             ),
             {"schedule_id": schedule_id, "guide_id": old_guide_id},
         )
-        events.append({
-            "type": "GUIDE_UNASSIGNED",
-            "schedule_id": schedule_id,
-            "guide_id": old_guide_id,
-            "reason": "Schedule cancelled (no remaining reservations)",
-        })
+        events.append(
+            {
+                "type": "GUIDE_UNASSIGNED",
+                "schedule_id": schedule_id,
+                "guide_id": old_guide_id,
+                "reason": "Schedule cancelled (no remaining reservations)",
+            }
+        )
 
     return events
 
@@ -178,16 +180,18 @@ def handle_reservation_change(
         {"id": new_schedule_id},
     ).fetchone()
 
-    events.append({
-        "type": "SCHEDULE_CHANGED",
-        "schedule_id": new_schedule_id,
-        "event_type": "RESERVATION_MOVED",
-        "reason": (
-            f"Reservation {reservation_id} moved to this schedule"
-            + (f" from schedule {old_schedule_id}" if old_schedule_id else "")
-        ),
-        "affected_guide_id": new_schedule[0] if new_schedule and new_schedule[0] else None,
-    })
+    events.append(
+        {
+            "type": "SCHEDULE_CHANGED",
+            "schedule_id": new_schedule_id,
+            "event_type": "RESERVATION_MOVED",
+            "reason": (
+                f"Reservation {reservation_id} moved to this schedule"
+                + (f" from schedule {old_schedule_id}" if old_schedule_id else "")
+            ),
+            "affected_guide_id": new_schedule[0] if new_schedule and new_schedule[0] else None,
+        }
+    )
 
     if old_schedule_id is not None:
         cleanup_events = cleanup_empty_schedule(conn, old_schedule_id)
@@ -212,13 +216,15 @@ def handle_reservation_cancellation(
         {"id": old_schedule_id},
     ).fetchone()
 
-    events.append({
-        "type": "SCHEDULE_CHANGED",
-        "schedule_id": old_schedule_id,
-        "event_type": "RESERVATION_CANCELLED",
-        "reason": f"Reservation {reservation_id} was cancelled and removed",
-        "affected_guide_id": schedule[0] if schedule and schedule[0] else None,
-    })
+    events.append(
+        {
+            "type": "SCHEDULE_CHANGED",
+            "schedule_id": old_schedule_id,
+            "event_type": "RESERVATION_CANCELLED",
+            "reason": f"Reservation {reservation_id} was cancelled and removed",
+            "affected_guide_id": schedule[0] if schedule and schedule[0] else None,
+        }
+    )
 
     cleanup_events = cleanup_empty_schedule(conn, old_schedule_id)
     events.extend(cleanup_events)
@@ -270,12 +276,14 @@ def handle_guide_cancellation(conn, schedule_id: int) -> dict:
         ),
         {"schedule_id": schedule_id, "guide_id": old_guide_id},
     )
-    events.append({
-        "type": "GUIDE_UNASSIGNED",
-        "schedule_id": schedule_id,
-        "guide_id": old_guide_id,
-        "reason": "Guide requested cancellation",
-    })
+    events.append(
+        {
+            "type": "GUIDE_UNASSIGNED",
+            "schedule_id": schedule_id,
+            "guide_id": old_guide_id,
+            "reason": "Guide requested cancellation",
+        }
+    )
 
     try:
         result = auto_assign_guide(conn, schedule_id, commit=False)

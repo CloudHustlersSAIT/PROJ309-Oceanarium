@@ -67,7 +67,7 @@ def send_email(
 
         logger.info("🚀 Sending email via Resend API...")
         response = resend.Emails.send(params)
-        email_id = response.get('id', 'unknown')
+        email_id = response.get("id", "unknown")
         logger.info("✅ Email sent successfully!")
         logger.info(f"   Resend Email ID: {email_id}")
         logger.info(f"   To: {to_email}")
@@ -79,5 +79,6 @@ def send_email(
         logger.error(f"   Error: {e}")
         logger.error(f"   Subject: {subject}")
         import traceback
+
         logger.error(f"   Traceback: {traceback.format_exc()}")
         return False
