@@ -1,5 +1,6 @@
 """Enhanced notification routes with authentication, preferences, and detail view."""
 
+from typing import Optional
 import json
 import logging
 import os
@@ -33,7 +34,7 @@ class GuideUnassignedRequest(BaseModel):
     schedule_id: int = Field(..., description="Schedule ID")
     guide_id: int = Field(..., description="Guide ID who was unassigned")
     reason: str = Field(..., description="Reason for unassignment")
-    replacement_guide_id: int | None = Field(None, description="Replacement guide ID if applicable")
+    replacement_guide_id: Optional[int] = Field(None, description="Replacement guide ID if applicable")
 
 
 class ScheduleUnassignableRequest(BaseModel):
@@ -46,9 +47,9 @@ class ScheduleChangedRequest(BaseModel):
     schedule_id: int = Field(..., description="Schedule ID")
     change_type: str = Field(..., description="Type of change (e.g., RESERVATION_CANCELLED, RESERVATION_MOVED)")
     change_details: str = Field(..., description="Description of the change")
-    affected_guide_id: int | None = Field(None, description="Guide affected by the change")
-    old_state: dict | None = Field(None, description="Previous state before change")
-    new_state: dict | None = Field(None, description="New state after change")
+    affected_guide_id: Optional[int] = Field(None, description="Guide affected by the change")
+    old_state: Optional[dict] = Field(None, description="Previous state before change")
+    new_state: Optional[dict] = Field(None, description="New state after change")
 
 
 # Test trigger endpoints with email override (for testing only)

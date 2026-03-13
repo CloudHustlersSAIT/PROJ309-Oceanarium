@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Optional
 import logging
 import os
 
@@ -26,7 +27,7 @@ def send_email(
     to_email: str,
     subject: str,
     body_text: str,
-    body_html: str | None = None,
+    body_html: Optional[str] = None,
 ) -> bool:
     """Send an email using Resend.
 

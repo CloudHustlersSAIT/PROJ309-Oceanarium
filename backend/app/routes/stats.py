@@ -1,3 +1,4 @@
+from typing import Optional
 import logging
 from datetime import date
 
@@ -22,8 +23,8 @@ def read_stats(conn=Depends(get_db)):
 
 @router.get("/admin-dashboard")
 def read_admin_dashboard(
-    selected_date: date | None = Query(default=None, description="Anchor date for dashboard aggregations (YYYY-MM-DD)"),
-    period: str | None = Query(
+    selected_date: Optional[date] = Query(default=None, description="Anchor date for dashboard aggregations (YYYY-MM-DD)"),
+    period: Optional[str] = Query(
         default="all_time",
         description="Aggregation window: all_time, this_month, this_week, this_day",
     ),

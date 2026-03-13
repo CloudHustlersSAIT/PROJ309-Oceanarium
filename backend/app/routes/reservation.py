@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
@@ -14,9 +15,9 @@ class ReservationCreate(BaseModel):
     schedule_id: int
     adult_tickets: int
     child_tickets: int
-    clorian_reservation_id: str | None = None
-    clorian_purchase_id: int | None = None
-    status: str | None = "CONFIRMED"
+    clorian_reservation_id: Optional[str] = None
+    clorian_purchase_id: Optional[int] = None
+    status: Optional[str] = "CONFIRMED"
 
 
 class ReservationReschedule(BaseModel):

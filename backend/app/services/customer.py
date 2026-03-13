@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import text
 
 from .exceptions import ConflictError, ValidationError
@@ -61,7 +63,7 @@ def create_customer(
     first_name: str,
     last_name: str,
     email: str,
-    clorian_client_id: str | None = None,
+    clorian_client_id: Optional[str] = None,
 ):
     normalized_first_name = first_name.strip()
     normalized_last_name = last_name.strip()

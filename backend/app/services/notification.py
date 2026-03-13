@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Optional
 import json
 import logging
 
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_notification_preferences(
-    conn, user_id: int | None = None, guide_id: int | None = None, event_type: str = None
+    conn, user_id: Optional[int] = None, guide_id: Optional[int] = None, event_type: str = None
 ) -> dict:
     """Get notification preferences for a user or guide.
 
@@ -59,8 +60,8 @@ def create_notification(
     conn,
     event_type: str,
     schedule_id: int,
-    guide_id: int | None,
-    user_id: int | None,
+    guide_id: Optional[int],
+    user_id: Optional[int],
     message: str,
     channels: list[str],
     priority: str = "normal",
@@ -413,7 +414,7 @@ def notify_schedule_change(
     schedule_id: int,
     change_type: str,
     change_details: str,
-    affected_guide_id: int | None = None,
+    affected_guide_id: Optional[int] = None,
 ) -> None:
     """Send general schedule change notifications to guide and admins."""
     schedule = fetch_schedule_details(conn, schedule_id)
@@ -496,7 +497,7 @@ def retry_failed_email_notification(conn, notification_id: int) -> bool:
     return False
 
 
-def list_notifications(conn, user_id: int | None = None, guide_id: int | None = None, filters: dict = None):
+def list_notifications(conn, user_id: Optional[int] = None, guide_id: Optional[int] = None, filters: dict = None):
     """List notifications for a user or guide with optional filters."""
     filters = filters or {}
 
