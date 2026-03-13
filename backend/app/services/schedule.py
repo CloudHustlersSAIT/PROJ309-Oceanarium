@@ -48,6 +48,7 @@ def list_schedules(
                 (:start_date IS NULL OR s.event_end_datetime >= CAST(:start_date AS date))
                 AND (:end_date IS NULL OR s.event_start_datetime < (CAST(:end_date AS date) + INTERVAL '1 day'))
                 AND (:status IS NULL OR LOWER(s.status) = LOWER(:status))
+                AND (:guide_id IS NULL OR s.guide_id = :guide_id)
             GROUP BY
                 s.id,
                 s.guide_id,
@@ -68,6 +69,7 @@ def list_schedules(
             "start_date": start_date,
             "end_date": end_date,
             "status": normalized_status,
+            "guide_id": guide_id,
         },
     )
 
