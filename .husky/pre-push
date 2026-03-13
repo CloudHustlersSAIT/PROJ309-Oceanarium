@@ -1,2 +1,7 @@
-cd frontend && npm run lint:check && npm run test
-cd ../backend && python3 -m ruff check app/ && python3 -m ruff format --check app/ && python3 -m pytest tests/ --tb=short -q
+#!/usr/bin/env sh
+
+cd frontend && npm run lint:check && npm run test || exit 1
+
+cd ../backend && ./venv/Scripts/python.exe -m ruff check app/ && ./venv/Scripts/python.exe -m ruff format --check app/ && ./venv/Scripts/python.exe -m pytest tests/ --tb=short -q
+
+ 
