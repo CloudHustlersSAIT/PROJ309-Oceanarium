@@ -37,6 +37,10 @@ Thumbs.db
 firebase-service-account.json
 *.service-account.json
 
+# Coverage
+.coverage
+htmlcov/
+
 #.custom ignore
 .cursor/
 .cursor

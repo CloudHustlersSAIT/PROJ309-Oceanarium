@@ -250,11 +250,8 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
 | PATCH | `/bookings/{id}/reschedule` | `routes/reservation.py` | Deprecated alias of `/reservations/{id}/reschedule` |
 | PATCH | `/bookings/{id}/cancel` | `routes/reservation.py` | Deprecated alias of `/reservations/{id}/cancel` |
 | GET | `/guides` | `routes/guide.py` | List all guides |
-| GET | `/guide/swap-candidates` | `routes/guide_requests.py` | List guides suitable and available to take a given schedule (query: `schedule_id`) |
-| POST | `/guide/swap-request` | `routes/guide_requests.py` | Create a swap request for a schedule (query: `schedule_id`, `guide_id` = requesting guide) |
-| GET | `/guide/swap-requests` | `routes/guide_requests.py` | List swap requests requiring action from the given guide (query: `guide_id` = assigned guide) |
-| POST | `/guide/swap-accept` | `routes/guide_requests.py` | Accept a swap request; reassigns schedule to requesting guide (query: `swap_request_id`) |
-| POST | `/guide/swap-reject` | `routes/guide_requests.py` | Reject a swap request; no schedule change (query: `swap_request_id`) |
+| POST | `/guides` | `routes/guide.py` | Create a guide |
+| PATCH | `/guides/{guide_id}` | `routes/guide.py` | Partially update guide by internal `id` |
 | GET | `/tours` | `routes/tour.py` | List all tours |
 | GET | `/schedules` | `routes/schedule.py` | List calendar events from schedule table (optional: `start_date`, `end_date`, `status`) |
 | GET | `/notifications` | `routes/notification.py` | List recent notifications (last 10) |
@@ -281,6 +278,8 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
     - `GET /auth/me`
     - `POST /customers`
     - `PATCH /customers/{customer_id}`
+    - `POST /guides`
+    - `PATCH /guides/{guide_id}`
     - `POST /reservations`
     - `PATCH /reservations/{id}/reschedule`
     - `PATCH /reservations/{id}/cancel`
