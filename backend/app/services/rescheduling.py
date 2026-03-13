@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 
 from sqlalchemy import text
 
 from .exceptions import NotFoundError, UnassignableError
 from .guide_assignment import auto_assign_guide
-from .notification import create_notification
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,10 @@ def find_or_create_schedule(
     event_start_datetime,
     event_end_datetime,
 ) -> int:
-    """Find a matching schedule or create a new one and attempt guide assignment."""
+    """Find a matching schedule or create a new one and attempt guide assignment.
+
+    Returns: schedule_id
+    """
     schedule_id = find_matching_schedule(conn, tour_id, language_code, event_start_datetime)
     if schedule_id is not None:
         return schedule_id
@@ -71,29 +74,17 @@ def find_or_create_schedule(
     ).fetchone()
     schedule_id = row[0]
 
-    try:
-        result = auto_assign_guide(conn, schedule_id, commit=False)
-        create_notification(
-            conn,
-            event_type="GUIDE_ASSIGNED",
-            schedule_id=schedule_id,
-            guide_id=result["guide_id"],
-            message=f"Guide {result['guide_name']} auto-assigned to new schedule {schedule_id}",
-        )
-    except UnassignableError as exc:
-        create_notification(
-            conn,
-            event_type="SCHEDULE_UNASSIGNABLE",
-            schedule_id=schedule_id,
-            guide_id=None,
-            message=f"No eligible guide for schedule {schedule_id}: {', '.join(exc.reasons)}",
-        )
+    with contextlib.suppress(UnassignableError):
+        auto_assign_guide(conn, schedule_id, commit=False)
 
     return schedule_id
 
 
-def cleanup_empty_schedule(conn, schedule_id: int) -> None:
-    """Cancel a schedule and unassign its guide if no active reservations remain."""
+def cleanup_empty_schedule(conn, schedule_id: int) -> dict:
+    """Cancel a schedule and unassign its guide if no active reservations remain.
+
+    Returns: dict with old_guide_id if guide was unassigned
+    """
     count = conn.execute(
         text(
             """
@@ -106,14 +97,14 @@ def cleanup_empty_schedule(conn, schedule_id: int) -> None:
     ).scalar_one()
 
     if count > 0:
-        return
+        return {}
 
     schedule = conn.execute(
         text("SELECT id, guide_id FROM schedule WHERE id = :id"),
         {"id": schedule_id},
     ).fetchone()
     if not schedule:
-        return
+        return {}
 
     old_guide_id = schedule[1]
 
@@ -134,13 +125,9 @@ def cleanup_empty_schedule(conn, schedule_id: int) -> None:
             ),
             {"schedule_id": schedule_id, "guide_id": old_guide_id},
         )
-        create_notification(
-            conn,
-            event_type="GUIDE_REASSIGNED",
-            schedule_id=schedule_id,
-            guide_id=old_guide_id,
-            message=f"Guide unassigned from cancelled schedule {schedule_id}",
-        )
+        return {"old_guide_id": old_guide_id}
+
+    return {}
 
 
 def handle_reservation_change(
@@ -151,8 +138,11 @@ def handle_reservation_change(
     new_language_code: str,
     new_event_start,
     new_event_end,
-) -> None:
-    """FR-1/FR-2/FR-3: Move a reservation whose tour, language, or time changed."""
+) -> dict:
+    """FR-1/FR-2/FR-3: Move a reservation whose tour, language, or time changed.
+
+    Returns: dict with schedule_ids and affected guide IDs
+    """
     conn.execute(
         text("UPDATE reservations SET schedule_id = NULL WHERE id = :id"),
         {"id": reservation_id},
@@ -165,39 +155,55 @@ def handle_reservation_change(
         {"sid": new_schedule_id, "id": reservation_id},
     )
 
-    create_notification(
-        conn,
-        event_type="RESERVATION_MOVED",
-        schedule_id=new_schedule_id,
-        guide_id=None,
-        message=(
-            f"Reservation {reservation_id} moved to schedule {new_schedule_id}"
-            + (f" from schedule {old_schedule_id}" if old_schedule_id else "")
-        ),
-    )
+    # Get guide info for notification
+    new_schedule = conn.execute(
+        text("SELECT guide_id FROM schedule WHERE id = :id"),
+        {"id": new_schedule_id},
+    ).fetchone()
+
+    result = {
+        "new_schedule_id": new_schedule_id,
+        "affected_guide_id": new_schedule[0] if new_schedule and new_schedule[0] else None,
+    }
 
     if old_schedule_id is not None:
-        cleanup_empty_schedule(conn, old_schedule_id)
+        cleanup_result = cleanup_empty_schedule(conn, old_schedule_id)
+        result["old_schedule_id"] = old_schedule_id
+        result["old_guide_id"] = cleanup_result.get("old_guide_id")
+
+    return result
 
 
 def handle_reservation_cancellation(
     conn,
     reservation_id: int,
     old_schedule_id: int,
-) -> None:
-    """FR-4: Clean up after a reservation is cancelled."""
-    create_notification(
-        conn,
-        event_type="RESERVATION_CANCELLED",
-        schedule_id=old_schedule_id,
-        guide_id=None,
-        message=f"Reservation {reservation_id} cancelled and removed from schedule {old_schedule_id}",
-    )
-    cleanup_empty_schedule(conn, old_schedule_id)
+) -> dict:
+    """FR-4: Clean up after a reservation is cancelled.
+
+    Returns: dict with schedule_id and affected guide_id
+    """
+    # Get guide info for notification
+    schedule = conn.execute(
+        text("SELECT guide_id FROM schedule WHERE id = :id"),
+        {"id": old_schedule_id},
+    ).fetchone()
+
+    cleanup_result = cleanup_empty_schedule(conn, old_schedule_id)
+
+    return {
+        "schedule_id": old_schedule_id,
+        "affected_guide_id": schedule[0] if schedule and schedule[0] else None,
+        "old_guide_id": cleanup_result.get("old_guide_id"),
+    }
 
 
 def handle_guide_cancellation(conn, schedule_id: int) -> dict:
-    """FR-5: Unassign a guide and attempt to find a replacement."""
+    """FR-5: Unassign a guide and attempt to find a replacement.
+
+    Returns: result dict with old_guide_id, new_guide_id, status, and reasons
+    """
+    events = []
     schedule = conn.execute(
         text(
             """
@@ -214,7 +220,11 @@ def handle_guide_cancellation(conn, schedule_id: int) -> dict:
     sched = dict(schedule._mapping)
     old_guide_id = sched["guide_id"]
     if old_guide_id is None:
-        return {"schedule_id": schedule_id, "status": sched["status"], "message": "No guide was assigned"}
+        return {
+            "schedule_id": schedule_id,
+            "status": sched["status"],
+            "message": "No guide was assigned",
+        }
 
     conn.execute(
         text("UPDATE schedule SET guide_id = NULL, status = 'UNASSIGNED' WHERE id = :id"),
@@ -231,23 +241,17 @@ def handle_guide_cancellation(conn, schedule_id: int) -> dict:
         ),
         {"schedule_id": schedule_id, "guide_id": old_guide_id},
     )
-    create_notification(
-        conn,
-        event_type="GUIDE_REASSIGNED",
-        schedule_id=schedule_id,
-        guide_id=old_guide_id,
-        message=f"Guide {old_guide_id} removed from schedule {schedule_id}",
+    events.append(
+        {
+            "type": "GUIDE_UNASSIGNED",
+            "schedule_id": schedule_id,
+            "guide_id": old_guide_id,
+            "reason": "Guide requested cancellation",
+        }
     )
 
     try:
         result = auto_assign_guide(conn, schedule_id, commit=False)
-        create_notification(
-            conn,
-            event_type="GUIDE_ASSIGNED",
-            schedule_id=schedule_id,
-            guide_id=result["guide_id"],
-            message=f"Replacement guide {result['guide_name']} assigned to schedule {schedule_id}",
-        )
         conn.commit()
         return {
             "schedule_id": schedule_id,
@@ -257,13 +261,6 @@ def handle_guide_cancellation(conn, schedule_id: int) -> dict:
             "status": "ASSIGNED",
         }
     except UnassignableError as exc:
-        create_notification(
-            conn,
-            event_type="SCHEDULE_UNASSIGNABLE",
-            schedule_id=schedule_id,
-            guide_id=None,
-            message=f"No replacement guide for schedule {schedule_id}: {', '.join(exc.reasons)}",
-        )
         conn.commit()
         return {
             "schedule_id": schedule_id,

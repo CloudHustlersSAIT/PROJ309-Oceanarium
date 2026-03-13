@@ -15,7 +15,6 @@ const props = defineProps({
 
 const emit = defineEmits([
   'select-event',
-  'move-event',
   'toggle-bulk',
   'navigate-next',
   'navigate-prev',
@@ -100,31 +99,6 @@ function eventsForSlot(dateLike, minuteOfDay) {
   })
 }
 
-function dropToDate(event, dateLike) {
-  const raw = event.dataTransfer.getData('text/plain')
-  if (!raw) return
-
-  const droppedDate = new Date(dateLike)
-  const selected = props.events.find((item) => item.id === raw)
-  if (!selected) return
-
-  const old = new Date(selected.start)
-  droppedDate.setHours(old.getHours(), old.getMinutes(), 0, 0)
-  emit('move-event', { id: selected.id, start: droppedDate.toISOString() })
-}
-
-function dropToSlot(event, dateLike, minuteOfDay) {
-  const raw = event.dataTransfer.getData('text/plain')
-  if (!raw) return
-
-  const droppedDate = new Date(dateLike)
-  const selected = props.events.find((item) => item.id === raw)
-  if (!selected) return
-
-  droppedDate.setHours(Math.floor(minuteOfDay / 60), minuteOfDay % 60, 0, 0)
-  emit('move-event', { id: selected.id, start: droppedDate.toISOString() })
-}
-
 function isToday(dateLike) {
   const date = new Date(dateLike)
   const now = new Date()
@@ -191,8 +165,6 @@ function isSelectedDate(dateLike) {
               : 'border-[#ACBAC4] bg-gray-50'
           "
           @click="cell && emit('select-date', cell)"
-          @dragover.prevent
-          @drop.prevent="cell && dropToDate($event, cell)"
         >
           <div v-if="cell" class="text-[11px] font-semibold text-gray-700 mb-1.5">
             {{ cell.getDate() }}
@@ -206,8 +178,6 @@ function isSelectedDate(dateLike) {
               :conflict="Boolean(conflicts[event.id])"
               :bulk-mode="bulkMode"
               :checked="bulkSelection.includes(event.id)"
-              draggable="true"
-              @dragstart="$event.dataTransfer.setData('text/plain', event.id)"
               @select="emit('select-event', event)"
               @toggle-bulk="emit('toggle-bulk', event.id)"
             />
@@ -244,8 +214,6 @@ function isSelectedDate(dateLike) {
           :key="day.toISOString()"
           class="border rounded p-1.5 min-h-[560px] xl:min-h-[680px] bg-white"
           :class="isToday(day) ? 'border-blue-400' : 'border-[#ACBAC4]'"
-          @dragover.prevent
-          @drop.prevent="dropToDate($event, day)"
         >
           <div class="mb-2 pb-2 border-b border-[#ACBAC4]">
             <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
@@ -268,8 +236,6 @@ function isSelectedDate(dateLike) {
               :conflict="Boolean(conflicts[event.id])"
               :bulk-mode="bulkMode"
               :checked="bulkSelection.includes(event.id)"
-              draggable="true"
-              @dragstart="$event.dataTransfer.setData('text/plain', event.id)"
               @select="emit('select-event', event)"
               @toggle-bulk="emit('toggle-bulk', event.id)"
             />
@@ -294,8 +260,6 @@ function isSelectedDate(dateLike) {
             v-for="slot in daySlots"
             :key="`day-slot-${slot.key}`"
             class="min-h-12 xl:min-h-14 border border-[#ACBAC4] rounded p-1.5 bg-white"
-            @dragover.prevent
-            @drop.prevent="dropToSlot($event, selectedDate, slot.minuteOfDay)"
           >
             <div class="space-y-1">
               <CalendarEventCard
@@ -306,8 +270,6 @@ function isSelectedDate(dateLike) {
                 :conflict="Boolean(conflicts[event.id])"
                 :bulk-mode="bulkMode"
                 :checked="bulkSelection.includes(event.id)"
-                draggable="true"
-                @dragstart="$event.dataTransfer.setData('text/plain', event.id)"
                 @select="emit('select-event', event)"
                 @toggle-bulk="emit('toggle-bulk', event.id)"
               />

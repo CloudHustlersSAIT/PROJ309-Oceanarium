@@ -4,7 +4,9 @@ import logging
 
 from sqlalchemy import text
 
+from .notification_dispatcher import dispatch_events
 from .rescheduling import handle_reservation_cancellation, handle_reservation_change
+from .schedule_service import get_or_create_schedule
 
 logger = logging.getLogger(__name__)
 
@@ -13,12 +15,14 @@ def process_staging_rows(conn):
 
     rows = (
         conn.execute(
-            text("""
+            text(
+                """
         SELECT *
         FROM public.poll_staging
         WHERE processed_at IS NULL
         ORDER BY created_at
-    """)
+        """
+            )
         )
         .mappings()
         .all()
@@ -36,7 +40,8 @@ def process_staging_rows(conn):
         # Insert customer
 
         conn.execute(
-            text("""
+            text(
+                """
             INSERT INTO customers (
                 clorian_client_id,
                 first_name,
@@ -50,7 +55,8 @@ def process_staging_rows(conn):
                 :email
             )
             ON CONFLICT (clorian_client_id) DO NOTHING
-        """),
+        """
+            ),
             {
                 "client_id": customer["clorian_client_id"],
                 "first_name": customer["first_name"],
@@ -62,22 +68,26 @@ def process_staging_rows(conn):
         # Get customer id
 
         customer_id = conn.execute(
-            text("""
+            text(
+                """
             SELECT id
             FROM customers
             WHERE clorian_client_id = :client_id
-        """),
+        """
+            ),
             {"client_id": customer["clorian_client_id"]},
         ).scalar_one()
 
         # Get internal tour_id
 
         tour = conn.execute(
-            text("""
+            text(
+                """
             SELECT id
             FROM tours
             WHERE clorian_product_id = :program_id
-        """),
+        """
+            ),
             {"program_id": reservation["tour"]["program_id"]},
         ).fetchone()
 
@@ -86,21 +96,24 @@ def process_staging_rows(conn):
 
         tour_id = tour[0]
 
-        # Fetch old reservation values before upsert (for change detection)
+        # Fetch existing reservation for change detection
 
         old = conn.execute(
-            text("""
+            text(
+                """
             SELECT id, tour_id, language_code, event_start_datetime, status, schedule_id
             FROM reservations
             WHERE clorian_reservation_id = :rid
-        """),
+        """
+            ),
             {"rid": reservation["clorian_reservation_id"]},
         ).fetchone()
 
         # Upsert reservation
 
         result_row = conn.execute(
-            text("""
+            text(
+                """
             INSERT INTO reservations (
                 clorian_reservation_id,
                 clorian_purchase_id,
@@ -133,7 +146,8 @@ def process_staging_rows(conn):
                 current_ticket_num = EXCLUDED.current_ticket_num,
                 clorian_modified_at = EXCLUDED.clorian_modified_at
             RETURNING id
-        """),
+        """
+            ),
             {
                 "reservation_id": reservation["clorian_reservation_id"],
                 "purchase_id": reservation["clorian_purchase_id"],
@@ -150,11 +164,42 @@ def process_staging_rows(conn):
 
         reservation_id = result_row[0]
 
+        # Assign schedule only for new reservations
+
+        if old is None:
+            event_start = reservation["event_start_datetime"]
+            event_end = reservation.get("event_end_datetime") or event_start
+
+            # Assign schedule
+
+            schedule_id = get_or_create_schedule(
+                conn=conn,
+                tour_id=tour_id,
+                language_code=reservation["language_code"],
+                event_start_datetime=event_start,
+                event_end_datetime=event_end,
+            )
+
+            conn.execute(
+                text(
+                    """
+                    UPDATE reservations
+                    SET schedule_id = :schedule_id
+                    WHERE id = :reservation_id
+                    """
+                ),
+                {
+                    "schedule_id": schedule_id,
+                    "reservation_id": reservation_id,
+                },
+            )
+
         # Insert tickets
 
         for ticket in tickets:
             conn.execute(
-                text("""
+                text(
+                    """
                 INSERT INTO tickets (
                     clorian_ticket_id,
                     reservation_id,
@@ -184,7 +229,8 @@ def process_staging_rows(conn):
                     :modified_at
                 )
                 ON CONFLICT (clorian_ticket_id) DO NOTHING
-            """),
+            """
+                ),
                 {
                     "ticket_id": ticket["clorian_ticket_id"],
                     "reservation_id": reservation_id,
@@ -201,29 +247,28 @@ def process_staging_rows(conn):
                 },
             )
 
-        # Create hash
+        # Create payload hash
 
         payload_string = json.dumps(payload, sort_keys=True)
         hash_value = hashlib.sha256(payload_string.encode()).hexdigest()
 
-        # Check last version hash
-
         latest_hash = conn.execute(
-            text("""
+            text(
+                """
             SELECT hash
             FROM reservation_versions
             WHERE reservation_id = :reservation_id
             ORDER BY id DESC
             LIMIT 1
-        """),
+        """
+            ),
             {"reservation_id": reservation_id},
         ).fetchone()
 
-        # Insert version only if changed
-
         if not latest_hash or latest_hash[0] != hash_value:
             conn.execute(
-                text("""
+                text(
+                    """
                 INSERT INTO reservation_versions (
                     reservation_id,
                     hash,
@@ -242,7 +287,8 @@ def process_staging_rows(conn):
                     :event_start,
                     :poll_execution_id
                 )
-            """),
+            """
+                ),
                 {
                     "reservation_id": reservation_id,
                     "hash": hash_value,
@@ -254,7 +300,7 @@ def process_staging_rows(conn):
                 },
             )
 
-        # Detect changes and trigger re-scheduling (FDR-004)
+        # Detect changes and trigger re-scheduling
 
         if old is not None and old[5] is not None:
             old_tour_id = old[1]
@@ -262,6 +308,7 @@ def process_staging_rows(conn):
             old_event_start = str(old[3]) if old[3] else None
             old_status = (old[4] or "").strip().upper()
             old_schedule_id = old[5]
+
             new_status = (reservation["status"] or "").strip().upper()
 
             if new_status == "CANCELLED" and old_status != "CANCELLED":
@@ -269,13 +316,15 @@ def process_staging_rows(conn):
                     text("UPDATE reservations SET schedule_id = NULL WHERE id = :id"),
                     {"id": reservation_id},
                 )
+
                 handle_reservation_cancellation(conn, reservation_id, old_schedule_id)
+
             elif (
                 old_tour_id != tour_id
                 or (old_language or "").lower() != (reservation["language_code"] or "").lower()
                 or old_event_start != reservation["event_start_datetime"]
             ):
-                handle_reservation_change(
+                events = handle_reservation_change(
                     conn,
                     reservation_id=reservation_id,
                     old_schedule_id=old_schedule_id,
@@ -284,16 +333,19 @@ def process_staging_rows(conn):
                     new_event_start=reservation["event_start_datetime"],
                     new_event_end=reservation.get("event_end_datetime", reservation["event_start_datetime"]),
                 )
+                dispatch_events(conn, events)
 
         # Mark staging row processed
 
         conn.execute(
-            text("""
+            text(
+                """
             UPDATE public.poll_staging
             SET processed_at = NOW(),
                 processed_status = 'SUCCESS'
             WHERE id = :id
-        """),
+        """
+            ),
             {"id": row["id"]},
         )
 

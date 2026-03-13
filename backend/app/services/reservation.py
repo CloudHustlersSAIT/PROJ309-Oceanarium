@@ -6,6 +6,30 @@ from sqlalchemy import text
 from .exceptions import ConflictError, NotFoundError, ValidationError
 
 
+def _is_postgresql_connection(conn) -> bool:
+    dialect_name = getattr(getattr(getattr(conn, "engine", None), "dialect", None), "name", None)
+    return isinstance(dialect_name, str) and dialect_name.lower().startswith("postgres")
+
+
+def _acquire_customer_schedule_create_lock(conn, customer_id: int, schedule_id: int) -> None:
+    if not _is_postgresql_connection(conn):
+        return
+
+    # Prevent concurrent create requests from inserting duplicate active rows
+    # for the same customer/schedule pair within overlapping transactions.
+    conn.execute(
+        text(
+            """
+            SELECT pg_advisory_xact_lock(:customer_lock_key, :schedule_lock_key)
+            """
+        ),
+        {
+            "customer_lock_key": int(customer_id),
+            "schedule_lock_key": int(schedule_id),
+        },
+    )
+
+
 def list_reservations(conn):
     # Read path only: return newest reservations first for dashboard-style views.
     result = conn.execute(text("SELECT * FROM reservations ORDER BY created_at DESC"))
@@ -79,6 +103,8 @@ def create_reservation(conn, data):
     ).fetchone()
     if existing:
         raise ConflictError("Reservation with this clorian_reservation_id already exists")
+
+    _acquire_customer_schedule_create_lock(conn, data.customer_id, schedule_id)
 
     # Prevent duplicate reservations for the same customer in the same schedule.
     duplicate_customer_schedule = conn.execute(

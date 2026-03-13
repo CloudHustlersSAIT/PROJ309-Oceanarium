@@ -13,6 +13,7 @@ Overall the system automates the previously manual task of getting online ticket
 * Back-end : FastAPI (layered architecture — see `backend/README.md`)
 * Database : PostgreSQL
 * Authentication: Firebase
+* Email: Resend.com
 
 # Relevant Links
 
@@ -27,13 +28,20 @@ Jira Board: https://cloudhustler.atlassian.net/jira/software/projects/SCRUM/summ
 
 ### Setup
 
-Before starting, creating a .env file in your backend folder with the following content
+Before starting, create a .env file in your backend folder with the following content
 
 ```bash
 #.env
 
 # Database connection string
 DATABASE_URL=postgresql+psycopg2://USERNAME:PASSWORD@IP/DATABASE #Replace Username, Password, Ip, and Database for the actual data
+
+# Email Configuration (for notifications)
+EMAIL_ENABLED=true
+RESEND_API_KEY=re_your_api_key_here  # Get from https://resend.com/api-keys
+EMAIL_FROM=onboarding@resend.dev      # Use this for testing; verify your domain for production
+EMAIL_FROM_NAME=Oceanarium Scheduling System
+FRONTEND_URL=http://localhost:5173
 ```
 
 Then install the required libraries
@@ -69,8 +77,15 @@ npm run dev
 Frontend runs on http://localhost:5173
 
 ## To Test everything
-1. Start backend (`uvicorn app.main:app --reload`)
+1. **Set up Resend.com** (for email notifications):
+   - Sign up at https://resend.com
+   - Get your API key from https://resend.com/api-keys
+   - Add it to your `backend/.env` file as `RESEND_API_KEY`
+   - For testing, use `EMAIL_FROM=onboarding@resend.dev`
+   - For production, verify your domain at https://resend.com/domains
 
-2. Start frontend (`npm run dev`)
+2. Start backend (`uvicorn app.main:app --reload`)
 
-3. Open http://localhost:5173 (you should see API + DB status)
+3. Start frontend (`npm run dev`)
+
+4. Open http://localhost:5173 (you should see API + DB status)

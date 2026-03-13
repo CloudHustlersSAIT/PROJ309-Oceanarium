@@ -29,6 +29,62 @@ async def test_get_guides_internal_error(client):
 
 
 @pytest.mark.asyncio
+async def test_create_guide_success(client):
+    with patch("app.routes.guide.guide_service") as mock_svc:
+        mock_svc.create_guide.return_value = {
+            "id": 1,
+            "first_name": "Maria",
+            "last_name": "Silva",
+            "email": "maria@test.com",
+        }
+        response = await client.post(
+            "/guides",
+            json={"first_name": "Maria", "last_name": "Silva", "email": "maria@test.com"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == 1
+
+
+@pytest.mark.asyncio
+async def test_create_guide_validation_error(client):
+    from app.services.exceptions import ValidationError
+
+    with patch("app.routes.guide.guide_service") as mock_svc:
+        mock_svc.create_guide.side_effect = ValidationError("email is required")
+        response = await client.post(
+            "/guides",
+            json={"first_name": "Maria", "last_name": "Silva", "email": ""},
+        )
+
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_patch_guide_success(client):
+    with patch("app.routes.guide.guide_service") as mock_svc:
+        mock_svc.update_guide.return_value = {
+            "id": 1,
+            "first_name": "Mariah",
+            "last_name": "Silva",
+            "email": "maria@test.com",
+        }
+        response = await client.patch("/guides/1", json={"first_name": "Mariah"})
+
+    assert response.status_code == 200
+    assert response.json()["first_name"] == "Mariah"
+
+
+@pytest.mark.asyncio
+async def test_patch_guide_not_found(client):
+    with patch("app.routes.guide.guide_service") as mock_svc:
+        mock_svc.update_guide.return_value = None
+        response = await client.patch("/guides/999", json={"first_name": "Maria"})
+
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_swap_accept_success(client):
     with (
         patch("app.routes.guide_requests.engine.connect") as mock_connect,
