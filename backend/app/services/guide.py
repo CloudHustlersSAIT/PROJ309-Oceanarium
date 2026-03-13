@@ -2,7 +2,6 @@ from sqlalchemy import text
 
 from .exceptions import ValidationError
 
-
 VALID_DAYS_OF_WEEK = {
     "monday",
     "tuesday",
