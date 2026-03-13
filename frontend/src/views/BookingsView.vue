@@ -2,6 +2,9 @@
 import { computed, onMounted, ref } from 'vue'
 import AppSidebar from '../components/AppSidebar.vue'
 import CancelButton from '../components/CancelButton.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import PrimaryCreateButton from '../components/PrimaryCreateButton.vue'
+import SaveButton from '../components/SaveButton.vue'
 import { cancelBooking, createBooking, getBookings, getSchedules, rescheduleBooking } from '../services/api'
 import {
   formatScheduleDateTimeForDisplay,
@@ -22,6 +25,7 @@ const availableSchedules = ref([])
 const schedulesLoading = ref(false)
 const schedulesError = ref('')
 const showCreatePopup = ref(false)
+const showConfirmCreatePopup = ref(false)
 
 const CUSTOMER_ID_MAX_LENGTH = 4
 const SHORT_NUMERIC_MAX_LENGTH = 2
@@ -396,11 +400,18 @@ function resetForm() {
 function openCreatePopup() {
   createError.value = ''
   createSuccess.value = ''
+  showConfirmCreatePopup.value = false
   showCreatePopup.value = true
 }
 
 function closeCreatePopup() {
+  showConfirmCreatePopup.value = false
   showCreatePopup.value = false
+}
+
+function requestCreateConfirmation() {
+  if (saving.value) return
+  showConfirmCreatePopup.value = true
 }
 
 function getTodayIsoDate() {
@@ -444,6 +455,7 @@ function handleChildTicketsInput(event) {
 }
 
 async function handleCreateReservation() {
+  showConfirmCreatePopup.value = false
   createError.value = ''
   createSuccess.value = ''
 
@@ -585,7 +597,7 @@ onMounted(async () => {
 
     <main class="flex-1 min-w-0 p-4 md:p-6">
       <div class="flex items-center justify-between gap-4 mb-5">
-        <h1 class="text-4xl font-medium text-gray-800">Reservation</h1>
+        <h1 class="typo-page-title">Reservation</h1>
         <div class="flex w-full max-w-[620px] items-center gap-3">
           <div class="relative flex-1">
             <input
@@ -595,13 +607,7 @@ onMounted(async () => {
               class="w-full rounded-xl border border-gray-400 bg-white py-2.5 px-4 text-sm"
             />
           </div>
-          <button
-            type="button"
-            class="rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-cyan-600"
-            @click="openCreatePopup"
-          >
-            + Create
-          </button>
+          <PrimaryCreateButton @create="openCreatePopup" />
         </div>
       </div>
 
@@ -627,13 +633,13 @@ onMounted(async () => {
             </colgroup>
             <thead class="bg-gray-50 text-gray-800 border-b border-gray-200">
               <tr>
-                <th class="px-5 py-3 text-left font-semibold">Reservation</th>
-                <th class="px-5 py-3 text-center font-semibold">Date</th>
-                <th class="px-5 py-3 text-center font-semibold">Customer</th>
-                <th class="px-5 py-3 text-center font-semibold">Tour</th>
-                <th class="px-5 py-3 text-center font-semibold">Language</th>
-                <th class="px-5 py-3 text-center font-semibold">Status</th>
-                <th class="px-5 py-3 text-center font-semibold">Actions</th>
+                <th class="px-5 py-3 text-left typo-table-head">Reservation</th>
+                <th class="px-5 py-3 text-center typo-table-head">Date</th>
+                <th class="px-5 py-3 text-center typo-table-head">Customer</th>
+                <th class="px-5 py-3 text-center typo-table-head">Tour</th>
+                <th class="px-5 py-3 text-center typo-table-head">Language</th>
+                <th class="px-5 py-3 text-center typo-table-head">Status</th>
+                <th class="px-5 py-3 text-center typo-table-head">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -693,7 +699,7 @@ onMounted(async () => {
       <div v-if="showCreatePopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeCreatePopup">
         <div class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
           <div class="flex items-center justify-between mb-4">
-            <div class="text-sm text-gray-300">Create</div>
+            <div class="typo-modal-eyebrow">Create</div>
             <button class="text-gray-300 hover:text-white text-xl leading-none" aria-label="Close create popup" @click="closeCreatePopup">×</button>
           </div>
 
@@ -852,19 +858,27 @@ onMounted(async () => {
 
             <div class="pt-2 flex items-center justify-end gap-2">
               <CancelButton @cancel="closeCreatePopup" />
-              <button
-                type="button"
-                class="px-5 py-2 rounded text-white font-medium"
-                :class="!saving ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-500/40 cursor-not-allowed'"
+              <SaveButton
+                label="Create"
+                loading-label="Creating..."
+                :loading="saving"
                 :disabled="saving"
-                @click="handleCreateReservation"
-              >
-                {{ saving ? 'Creating...' : 'Create' }}
-              </button>
+                @save="requestCreateConfirmation"
+              />
             </div>
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        :open="showConfirmCreatePopup"
+        title="Confirm creation"
+        message="Do you want to proceed with creating this reservation?"
+        :loading="saving"
+        :disabled="saving"
+        @cancel="showConfirmCreatePopup = false"
+        @confirm="handleCreateReservation"
+      />
     </main>
   </div>
 </template>

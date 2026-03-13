@@ -1,18 +1,53 @@
+from datetime import date
 from unittest.mock import MagicMock
 
 from app.services.guide import list_guides
 from app.services.issue import create_issue
 from app.services.notification import create_notification, list_notifications
-from app.services.stats import get_stats
+from app.services.stats import get_admin_dashboard, get_stats
 from app.services.tour import list_tours
 
 
 class TestGuideService:
     def test_list_guides(self, mock_conn):
-        mock_result = MagicMock()
-        mock_result.keys.return_value = ["id", "first_name"]
-        mock_result.fetchall.return_value = [(1, "Maria"), (2, "João")]
-        mock_conn.execute.return_value = mock_result
+        id_result = MagicMock()
+        id_result.fetchall.return_value = [(1,), (2,)]
+
+        guide_1 = MagicMock()
+        guide_1._mapping = {
+            "id": 1,
+            "first_name": "Maria",
+            "last_name": "Silva",
+            "email": "maria@test.com",
+            "phone": None,
+            "guide_rating": None,
+            "is_active": True,
+        }
+        guide_2 = MagicMock()
+        guide_2._mapping = {
+            "id": 2,
+            "first_name": "João",
+            "last_name": "Costa",
+            "email": "joao@test.com",
+            "phone": None,
+            "guide_rating": None,
+            "is_active": True,
+        }
+
+        empty_rows = MagicMock()
+        empty_rows.fetchall.return_value = []
+
+        mock_conn.execute.side_effect = [
+            id_result,
+            MagicMock(fetchone=MagicMock(return_value=guide_1)),
+            empty_rows,
+            empty_rows,
+            empty_rows,
+            MagicMock(fetchone=MagicMock(return_value=guide_2)),
+            empty_rows,
+            empty_rows,
+            empty_rows,
+        ]
 
         rows = list_guides(mock_conn)
         assert len(rows) == 2
@@ -42,8 +77,21 @@ class TestNotificationService:
         assert len(rows) == 1
 
     def test_create_notification(self, mock_conn):
-        create_notification(mock_conn, "GUIDE_ASSIGNED", schedule_id=1, guide_id=5, message="Test")
-        mock_conn.execute.assert_called_once()
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = (1,)
+        mock_conn.execute.return_value = mock_result
+
+        result = create_notification(
+            mock_conn,
+            event_type="GUIDE_ASSIGNED",
+            schedule_id=1,
+            guide_id=5,
+            user_id=None,
+            message="Test",
+            channels=["PORTAL"],
+        )
+        assert mock_conn.execute.called
+        assert isinstance(result, list)
 
 
 class TestIssueService:
@@ -70,3 +118,59 @@ class TestStatsService:
         assert "customersToday" in result
         assert "cancellations" in result
         assert "avgRating" in result
+
+    def test_get_admin_dashboard(self, mock_conn):
+        kpi_result = MagicMock()
+        kpi_result.mappings.return_value.one.return_value = {
+            "total_tours_conducted": 9,
+            "total_visitors_served": 42,
+            "avg_guide_rating": 4.75,
+        }
+
+        tours_per_year_result = MagicMock()
+        tours_per_year_result.mappings.return_value.all.return_value = [
+            {"year": 2026, "value": 9},
+        ]
+
+        visitors_per_tour_result = MagicMock()
+        visitors_per_tour_result.mappings.return_value.all.return_value = [
+            {"label": "Shark Diving", "value": 42},
+        ]
+
+        tours_by_language_result = MagicMock()
+        tours_by_language_result.mappings.return_value.all.return_value = [
+            {"label": "English", "code": "en", "value": 6},
+        ]
+
+        bookings_vs_cancellations_result = MagicMock()
+        bookings_vs_cancellations_result.mappings.return_value.all.return_value = [
+            {"month": "Mar 2026", "bookings": 11, "cancellations": 2},
+        ]
+
+        top_guides_result = MagicMock()
+        top_guides_result.mappings.return_value.all.return_value = [
+            {"name": "Ana Costa", "tours": 4, "rating": 4.9},
+        ]
+
+        mock_conn.execute.side_effect = [
+            kpi_result,
+            tours_per_year_result,
+            visitors_per_tour_result,
+            tours_by_language_result,
+            bookings_vs_cancellations_result,
+            top_guides_result,
+        ]
+
+        result = get_admin_dashboard(mock_conn, selected_date=date(2026, 3, 12), period="all_time")
+
+        assert result["filters"]["selectedDate"] == "2026-03-12"
+        assert result["kpis"]["totalToursConducted"] == 9
+        assert result["kpis"]["totalVisitorsServed"] == 42
+        assert result["kpis"]["avgGuideRating"] == 4.75
+        assert result["kpis"]["avgOccupancyRate"] is None
+        assert result["toursPerYear"][0]["label"] == "2026"
+        assert result["visitorsPerTour"][0]["label"] == "Shark Diving"
+        assert result["toursByLanguage"][0]["code"] == "en"
+        assert result["bookingsVsCancellations"][0]["month"] == "Mar 2026"
+        assert result["topRatedGuides"][0]["name"] == "Ana Costa"
+        assert result["meta"]["occupancyRateAvailable"] is False

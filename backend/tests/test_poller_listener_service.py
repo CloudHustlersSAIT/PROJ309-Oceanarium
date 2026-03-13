@@ -72,6 +72,8 @@ def _build_mock_conn(staging_rows, old_reservation=None, latest_hash=None):
         execute_returns.append(_fetchone((10,)))  # SELECT tour id
         execute_returns.append(_fetchone(old_reservation))  # SELECT old reservation
         execute_returns.append(_fetchone((100,)))  # INSERT/UPSERT reservation RETURNING id
+        if old_reservation is None:
+            execute_returns.append(MagicMock())  # UPDATE reservations SET schedule_id
         execute_returns.append(MagicMock())  # INSERT ticket
 
         hash_row = (latest_hash,) if latest_hash else None
@@ -98,6 +100,14 @@ def _fetchone(row):
 
 
 class TestProcessStagingRows:
+    @pytest.fixture(autouse=True)
+    def _patch_get_or_create_schedule(self, monkeypatch):
+        # Avoid exercising schedule creation logic in these unit tests.
+        monkeypatch.setattr(
+            "app.services.poller_listener.get_or_create_schedule",
+            lambda *args, **kwargs: 1,
+        )
+
     def test_no_rows_returns_zero(self, mock_conn):
         mappings_result = MagicMock()
         mappings_result.all.return_value = []

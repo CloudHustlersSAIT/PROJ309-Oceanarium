@@ -1,5 +1,6 @@
 ﻿<script setup>
 import { reactive, watch } from 'vue'
+import SaveButton from '../SaveButton.vue'
 
 const props = defineProps({
   event: { type: Object, default: null },
@@ -216,9 +217,7 @@ function save() {
       />
 
       <div class="flex items-center gap-2 pt-2">
-        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded" @click="save">
-          Save
-        </button>
+        <SaveButton @save="save" />
         <button
           class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
           @click="emit('duplicate', event.id)"

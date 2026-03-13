@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import AppSidebar from '../components/AppSidebar.vue'
+import SaveButton from '../components/SaveButton.vue'
 
 const profile = reactive({
   name: 'David Guerrero',
@@ -71,13 +72,7 @@ function openPrototypeLink(label) {
                   class="h-36 w-36 rounded-full object-cover border border-gray-200"
                 />
                 <p class="mt-3 text-sm text-gray-500">Change Profile Picture</p>
-                <button
-                  type="button"
-                  class="mt-3 rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium hover:bg-sky-600"
-                  @click="saveProfile"
-                >
-                  Save Changes
-                </button>
+                <SaveButton class="mt-3" label="Save Changes" @save="saveProfile" />
               </div>
 
               <div class="space-y-3">
@@ -134,13 +129,7 @@ function openPrototypeLink(label) {
                 </div>
 
                 <div class="pt-1">
-                  <button
-                    type="button"
-                    class="rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium hover:bg-sky-600"
-                    @click="saveProfile"
-                  >
-                    Save Profile
-                  </button>
+                  <SaveButton label="Save Profile" @save="saveProfile" />
                 </div>
               </div>
             </div>
@@ -202,13 +191,7 @@ function openPrototypeLink(label) {
                 WhatsApp
               </label>
             </div>
-            <button
-              type="button"
-              class="mt-3 rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium hover:bg-sky-600"
-              @click="saveProfile"
-            >
-              Save Notification Preferences
-            </button>
+            <SaveButton class="mt-3" label="Save Notification Preferences" @save="saveProfile" />
           </div>
 
           <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
@@ -296,13 +279,7 @@ function openPrototypeLink(label) {
               Recovery Email: <span class="text-[#8D97FF]">+55 12345678</span>
             </p>
 
-            <button
-              type="button"
-              class="mt-4 rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium"
-              @click="saveProfile"
-            >
-              Save Security Settings
-            </button>
+            <SaveButton class="mt-4" label="Save Security Settings" @save="saveProfile" />
           </div>
         </section>
       </div>

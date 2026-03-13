@@ -10,4 +10,5 @@ pytest-asyncio>=0.25
 pytest-cov>=6
 httpx>=0.28
 locust>=2.32
+resend==2.0.0
 apscheduler

@@ -1,5 +1,6 @@
 ﻿<script setup>
 import { computed } from 'vue'
+import PrimaryCreateButton from '../PrimaryCreateButton.vue'
 
 const props = defineProps({
   currentView: { type: String, required: true },
@@ -49,12 +50,7 @@ const dateRange = computed(() => {
       <div class="text-3xl font-bold text-gray-800 text-center">{{ dateRange }}</div>
 
       <div class="xl:justify-self-end">
-        <button
-          class="px-3 py-1.5 rounded bg-blue-600 text-white border border-blue-600 hover:bg-blue-700"
-          @click="emit('primary-create')"
-        >
-          + Create
-        </button>
+        <PrimaryCreateButton @create="emit('primary-create')" />
       </div>
     </div>
 

@@ -2,7 +2,7 @@
 
 | Field            | Value                  |
 |------------------|------------------------|
-| **Version**      | 5.0                    |
+| **Version**      | 5.1                    |
 | **Status**       | Active                 |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
@@ -16,10 +16,10 @@
 
 ## Visual ERD
 
-![Oceanarium ERD v5.0](oceanarium-erd-v5.0.png)
+![Oceanarium ERD v5.1](oceanarium-erd-v5.1.png)
 
-> **Source files:** The editable diagram is [`oceanarium-erd-v5.0.drawio`](oceanarium-erd-v5.0.drawio) (open with [draw.io](https://app.diagrams.net)).
-> To regenerate from code, run `python3 generate_erd.py` then `drawio --export --format png --scale 2 --output oceanarium-erd-v5.0.png oceanarium-erd-v5.0.drawio`.
+> **Source files:** The editable diagram is [`oceanarium-erd-v5.1.drawio`](oceanarium-erd-v5.1.drawio) (open with [draw.io](https://app.diagrams.net)).
+> To regenerate from code, run `python3 generate_erd.py` then `drawio --export --format png --scale 2 --output oceanarium-erd-v5.1.png oceanarium-erd-v5.1.drawio`.
 
 ## Diagram
 
@@ -175,9 +175,26 @@ erDiagram
         int user_id FK
         varchar channel
         varchar status
+        varchar priority
+        boolean action_required
         text message
+        jsonb detail_json
+        jsonb actions_json
         timestamptz sent_at
+        timestamptz read_at
+        int retry_count
         timestamptz created_at
+    }
+
+    notification_preferences {
+        int id PK
+        int user_id FK
+        int guide_id FK
+        varchar event_type
+        boolean email_enabled
+        boolean portal_enabled
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     %% ========== SYNC / OPERATIONAL DOMAIN ==========
@@ -270,6 +287,8 @@ erDiagram
     reservations ||--o{ surveys : "reviewed via"
     guides ||--o{ notifications : "notified"
     users ||--o{ notifications : "notified"
+    users ||--o{ notification_preferences : "configures"
+    guides ||--o{ notification_preferences : "configures"
     schedule ||--o{ tour_assignment_logs : "logged for"
     guides ||--o{ tour_assignment_logs : "logged for"
 ```
@@ -331,7 +350,8 @@ erDiagram
 
 | Table | Columns | Notes |
 |-------|---------|-------|
-| **notifications** | `id` PK, `event_type`, `schedule_id` FK→schedule, `guide_id` FK→guides (nullable), `user_id` FK→users (nullable), `channel`, `status`, `message` (TEXT), `sent_at`, `created_at` | Portal + email notifications |
+| **notifications** | `id` PK, `event_type`, `schedule_id` FK→schedule, `guide_id` FK→guides (nullable), `user_id` FK→users (nullable), `channel`, `status`, `priority`, `action_required`, `message` (TEXT), `detail_json` (JSONB), `actions_json` (JSONB), `sent_at`, `read_at`, `retry_count`, `created_at` | Portal + email notifications with rich detail view support |
+| **notification_preferences** | `id` PK, `user_id` FK→users (nullable), `guide_id` FK→guides (nullable), `event_type`, `email_enabled`, `portal_enabled`, `created_at`, `updated_at` | User/guide notification channel preferences per event type |
 
 ### 7. Sync / Operational Domain
 
@@ -384,3 +404,4 @@ erDiagram
 | 4.0     | 2026-03-03 | Evandro Maciel | Renamed `bookings`→`reservations`, `booking_versions`→`reservation_versions`; dropped `purchases` table (denormalized onto reservations); added `clorian_client_id` to customers |
 | 4.1     | 2026-03-11 | Evandro Maciel | Status promoted to Active; aligned with [DB-001](DB-001-initial-schema-migration.md) deployed schema |
 | 5.0     | 2026-03-11 | Evandro Maciel | Aligned with production: added `poll_staging` table; added `seed`, `finished_at`, `generated_*`, `error_message` to `poll_execution`; changed `clorian_client_id`, `clorian_reservation_id`, `clorian_ticket_id` from INTEGER to VARCHAR(100) |
+| 5.1     | 2026-03-11 | Evandro Maciel | Enhanced notification system: added `priority`, `action_required`, `detail_json`, `actions_json`, `read_at`, `retry_count` to `notifications`; added `notification_preferences` table for user channel preferences |

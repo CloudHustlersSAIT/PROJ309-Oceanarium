@@ -1,6 +1,10 @@
 import { useAuth } from '../contexts/authContext'
 
-const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' // FastAPI default port
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+if (import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL) {
+  console.warn('[api] VITE_API_BASE_URL is not set — falling back to http://localhost:8000')
+}
 const RESERVATION_LANGUAGE_CACHE_KEY = 'reservation-language-cache-v1'
 const RESERVATION_LANGUAGE_CACHE_MAX_ENTRIES = 500
 const RESERVATION_LANGUAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -99,16 +103,19 @@ function resolveReservationId(item) {
   return item?.id ?? item?.booking_id ?? item?.bookingId ?? item?.clorian_reservation_id ?? null
 }
 
+const LANGUAGE_CODE_LABELS = {
+  en: 'English',
+  pt: 'Portuguese',
+  es: 'Spanish',
+  fr: 'French',
+  zh: 'Chinese',
+}
+
 function mapLanguageCodeToLabel(code) {
   const normalized = String(code || '')
     .trim()
     .toLowerCase()
-  if (normalized === 'en') return 'English'
-  if (normalized === 'pt') return 'Portuguese'
-  if (normalized === 'es') return 'Spanish'
-  if (normalized === 'fr') return 'French'
-  if (normalized === 'zh') return 'Chinese'
-  return ''
+  return LANGUAGE_CODE_LABELS[normalized] || ''
 }
 
 function formatApiErrorDetail(detail) {
@@ -148,7 +155,7 @@ async function fetchAPI(endpoint, options = {}) {
   if (requiresAuth && !authHeaders.Authorization && !isDevelopmentBypassSession()) {
     throw new Error('Authentication required. Please sign in to continue.')
   }
-  const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
       ...authHeaders,
@@ -184,6 +191,11 @@ export async function getGuides() {
   return fetchAPI('/guides')
 }
 
+// Get all customers
+export async function getCustomers() {
+  return fetchAPI('/customers')
+}
+
 // Get all tours
 export async function getTours() {
   return fetchAPI('/tours')
@@ -191,7 +203,7 @@ export async function getTours() {
 
 // Get all notifications
 export async function getNotifications() {
-  return fetchAPI('/notifications')
+  return fetchAPI('/notifications', { requiresAuth: true })
 }
 
 // Get dashboard stats
