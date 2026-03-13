@@ -41,7 +41,7 @@ async def test_swap_accept_success(client):
             "guide_id": 3,
         }
 
-        response = await client.post("/guide/swap-accept", params={"swap_request_id": 123})
+        response = await client.post("/guide/swap-accept", params={"swap_request_id": 123, "guide_id": 3})
 
     assert response.status_code == 200
     data = response.json()
@@ -62,7 +62,7 @@ async def test_swap_reject_success(client):
             "guide_id": 3,
         }
 
-        response = await client.post("/guide/swap-reject", params={"swap_request_id": 123})
+        response = await client.post("/guide/swap-reject", params={"swap_request_id": 123, "guide_id": 3})
 
     assert response.status_code == 200
     data = response.json()
@@ -79,7 +79,7 @@ async def test_swap_accept_not_found(client):
         mock_connect.return_value.__enter__.return_value = MagicMock()
         mock_svc.accept_swap_request.return_value = {"status": "not_found"}
 
-        response = await client.post("/guide/swap-accept", params={"swap_request_id": 999999})
+        response = await client.post("/guide/swap-accept", params={"swap_request_id": 999999, "guide_id": 1})
 
     assert response.status_code == 200
     data = response.json()
