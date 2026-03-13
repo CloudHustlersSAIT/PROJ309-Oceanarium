@@ -4,6 +4,7 @@ import AppSidebar from '../components/AppSidebar.vue'
 import CalendarToolbar from '../components/calendar/CalendarToolbar.vue'
 import CalendarGrid from '../components/calendar/CalendarGrid.vue'
 import CancelButton from '../components/CancelButton.vue'
+import SaveButton from '../components/SaveButton.vue'
 import { useCalendarStore } from '../stores/calendar'
 import { createSchedule, getTours } from '../services/api'
 import { downloadCsv } from '../utils/calendar'
@@ -14,6 +15,7 @@ import {
 const calendar = useCalendarStore()
 const bulkMode = ref(false)
 const showCreatePopup = ref(false)
+const showConfirmCreatePopup = ref(false)
 const showTourDetailsPopup = ref(false)
 const showDayEventsPopup = ref(false)
 const formError = ref('')
@@ -223,7 +225,13 @@ function closeCreatePopup() {
 
   formError.value = ''
   createDraftSnapshot.value = ''
+  showConfirmCreatePopup.value = false
   showCreatePopup.value = false
+}
+
+function requestCreateConfirmation() {
+  if (creatingSchedule.value || !canSaveCreatedEvent.value) return
+  showConfirmCreatePopup.value = true
 }
 
 function handleGlobalKeydown(event) {
@@ -244,6 +252,7 @@ function handleGlobalKeydown(event) {
 }
 
 function saveCreatedEvent() {
+  showConfirmCreatePopup.value = false
   formError.value = ''
 
   const tourId = Number(createForm.value.tourId)
@@ -321,10 +330,6 @@ function exportVisibleEvents() {
       event.notes,
     ]),
   })
-}
-
-function handleMoveEvent({ id, start }) {
-  calendar.moveEvent(id, start)
 }
 
 function handleSelectDate(date) {
@@ -434,7 +439,6 @@ onBeforeUnmount(() => {
           :bulk-mode="bulkMode"
           :bulk-selection="calendar.bulkSelection"
           @select-event="handleSelectEvent"
-          @move-event="handleMoveEvent"
           @toggle-bulk="calendar.toggleBulkSelection"
           @select-date="handleSelectDate"
           @open-day-events="handleOpenDayEvents"
@@ -570,7 +574,7 @@ onBeforeUnmount(() => {
         class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto"
       >
         <div class="flex items-center justify-between mb-4">
-          <div class="text-sm text-gray-300">Create</div>
+          <div class="typo-modal-eyebrow">Create</div>
           <button
             class="text-gray-300 hover:text-white text-xl leading-none"
             aria-label="Close create popup"
@@ -703,14 +707,31 @@ onBeforeUnmount(() => {
 
         <div class="mt-6 flex items-center justify-end gap-2">
           <CancelButton @cancel="closeCreatePopup" />
-          <button
-            class="px-5 py-2 rounded text-white font-medium"
-            :class="canSaveCreatedEvent && !creatingSchedule ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-500/40 cursor-not-allowed'"
+          <SaveButton
             :disabled="!canSaveCreatedEvent || creatingSchedule"
-            @click="saveCreatedEvent"
-          >
-            {{ creatingSchedule ? 'Saving...' : 'Save' }}
-          </button>
+            :loading="creatingSchedule"
+            @save="requestCreateConfirmation"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showConfirmCreatePopup"
+      class="fixed inset-0 z-[60] bg-black/50 p-4 flex items-center justify-center"
+      @click.self="showConfirmCreatePopup = false"
+    >
+      <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+        <h4 class="typo-modal-title">Confirm creation</h4>
+        <p class="mt-2 typo-body">Do you want to proceed with creating this schedule?</p>
+        <div class="mt-5 flex items-center justify-end gap-2">
+          <CancelButton @cancel="showConfirmCreatePopup = false" />
+          <SaveButton
+            label="Yes, proceed"
+            :loading="creatingSchedule"
+            :disabled="creatingSchedule"
+            @save="saveCreatedEvent"
+          />
         </div>
       </div>
     </div>

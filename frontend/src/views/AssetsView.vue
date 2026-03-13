@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import AppSidebar from '../components/AppSidebar.vue'
+import CancelButton from '../components/CancelButton.vue'
+import SaveButton from '../components/SaveButton.vue'
 import { getCustomers, getGuides } from '../services/api'
 
 const tabs = [
@@ -19,6 +21,16 @@ const currentPage = ref(1)
 const pageSize = 15
 const customerSort = ref('a-z')
 const guideSort = ref('a-z')
+const showEditPopup = ref(false)
+const showConfirmSavePopup = ref(false)
+const editError = ref('')
+const editForm = ref({
+  tab: 'customers',
+  rowId: '',
+  recordKey: '',
+  name: '',
+  email: '',
+})
 
 const pageTitle = computed(() =>
   activeTab.value === 'guides' ? 'Guide Directory' : 'Customer Directory',
@@ -30,8 +42,8 @@ const listTitle = computed(() =>
 
 const searchPlaceholder = computed(() =>
   activeTab.value === 'guides'
-    ? 'Search by guide name, email, phone or status'
-    : 'Search by customer name, email, id or phone',
+    ? 'Search by guide name or email'
+    : 'Search by customer name, email or id',
 )
 
 const sortOptions = computed(() => {
@@ -164,6 +176,16 @@ const paginationLabel = computed(() => {
   return `Showing ${start}-${end} of ${filteredRows.value.length}`
 })
 
+const editTargetLabel = computed(() =>
+  editForm.value.tab === 'guides' ? `Guide #${editForm.value.rowId}` : `Customer ${editForm.value.recordKey}`,
+)
+
+const canSaveEdit = computed(() => {
+  const name = String(editForm.value.name || '').trim()
+  const email = String(editForm.value.email || '').trim()
+  return Boolean(name) && Boolean(email)
+})
+
 const currentColumns = computed(() => {
   if (activeTab.value === 'customers') {
     return [
@@ -172,7 +194,6 @@ const currentColumns = computed(() => {
       { key: 'customerId', label: 'Customer ID' },
       { key: 'totalVisits', label: 'Visits' },
       { key: 'firstTourDate', label: 'First Tour' },
-      { key: 'phone', label: 'Phone' },
     ]
   }
 
@@ -180,7 +201,6 @@ const currentColumns = computed(() => {
     { key: 'id', label: 'Guide ID' },
     { key: 'name', label: 'Guide' },
     { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Phone' },
     { key: 'status', label: 'Status' },
     
   ]
@@ -206,12 +226,20 @@ function normalizeGuideRow(item) {
   const firstName = String(item?.first_name || '').trim()
   const lastName = String(item?.last_name || '').trim()
   const fullName = `${firstName} ${lastName}`.trim()
+  const hasIsActive = typeof item?.is_active === 'boolean'
+  const hasActive = typeof item?.active === 'boolean'
+  const normalizedStatus = hasIsActive
+    ? (item.is_active ? 'active' : 'inactive')
+    : hasActive
+      ? (item.active ? 'active' : 'inactive')
+      : String(item?.status || 'inactive').toLowerCase()
+
   return {
     id: item?.id ?? 'N/A',
     name: fullName || String(item?.name || 'Unknown'),
     email: String(item?.email || 'Not provided'),
     phone: String(item?.phone || 'Not provided'),
-    status: String(item?.active ? 'active' : item?.status || 'inactive').toLowerCase(),
+    status: normalizedStatus,
   }
 }
 
@@ -279,6 +307,66 @@ function statusClasses(status) {
   return 'bg-emerald-100 text-emerald-800 border-emerald-300'
 }
 
+function openEditPopup(row) {
+  const rowId = String(row?.id ?? '')
+  const recordKey = activeTab.value === 'guides' ? rowId : String(row?.customerId || '')
+
+  editForm.value = {
+    tab: activeTab.value,
+    rowId,
+    recordKey,
+    name: String(row?.name || '').trim(),
+    email: String(row?.email || '').trim(),
+  }
+  editError.value = ''
+  showConfirmSavePopup.value = false
+  showEditPopup.value = true
+}
+
+function closeEditPopup() {
+  showConfirmSavePopup.value = false
+  showEditPopup.value = false
+  editError.value = ''
+}
+
+function requestEditConfirmation() {
+  if (!canSaveEdit.value) {
+    editError.value = 'Name and email are required.'
+    return
+  }
+
+  showConfirmSavePopup.value = true
+}
+
+function applyRowEdit() {
+  const normalizedName = String(editForm.value.name || '').trim()
+  const normalizedEmail = String(editForm.value.email || '').trim()
+
+  if (editForm.value.tab === 'customers') {
+    customers.value = customers.value.map((item) => {
+      if (String(item.customerId || '') !== editForm.value.recordKey) return item
+      return {
+        ...item,
+        name: normalizedName,
+        email: normalizedEmail,
+      }
+    })
+  } else {
+    guides.value = guides.value.map((item) => {
+      if (String(item.id ?? '') !== editForm.value.rowId) return item
+      return {
+        ...item,
+        name: normalizedName,
+        email: normalizedEmail,
+      }
+    })
+  }
+
+  showConfirmSavePopup.value = false
+  showEditPopup.value = false
+  editError.value = ''
+}
+
 onMounted(() => {
   loadTabData(activeTab.value)
 })
@@ -292,7 +380,7 @@ onMounted(() => {
       <section class="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 md:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 class="text-2xl md:text-3xl font-semibold text-slate-900">{{ pageTitle }}</h1>
+            <h1 class="typo-page-title">{{ pageTitle }}</h1>
           </div>
 
           <div class="flex flex-wrap gap-2">
@@ -300,11 +388,11 @@ onMounted(() => {
               v-for="tab in tabs"
               :key="tab.key"
               type="button"
-              class="px-4 py-2 rounded-xl text-sm font-medium border transition"
+              class="px-3 py-1.5 rounded text-sm font-semibold border transition-colors"
               :class="
                 activeTab === tab.key
-                  ? 'bg-[#0077B6] text-white border-[#0077B6]'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                  : 'bg-white text-gray-700 border-[#ACBAC4] hover:bg-gray-50'
               "
               @click="switchTab(tab.key)"
             >
@@ -319,8 +407,8 @@ onMounted(() => {
             :key="card.label"
             class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
           >
-            <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ card.label }}</p>
-            <p class="text-2xl font-semibold text-slate-900 mt-1">{{ card.value }}</p>
+            <p class="typo-card-label">{{ card.label }}</p>
+            <p class="typo-card-value">{{ card.value }}</p>
           </article>
         </div>
 
@@ -359,8 +447,8 @@ onMounted(() => {
 
       <section class="mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <header class="px-4 md:px-5 py-4 border-b border-slate-200">
-          <h2 class="text-xl font-semibold text-slate-900">{{ listTitle }}</h2>
-          <p class="text-sm text-slate-500">
+          <h2 class="typo-section-title">{{ listTitle }}</h2>
+          <p class="typo-muted">
             Showing <span class="font-semibold text-slate-900">{{ paginatedRows.length }}</span> of
             <span class="font-semibold text-slate-900">{{ totalCount }}</span>
           </p>
@@ -381,11 +469,12 @@ onMounted(() => {
                   >
                     {{ column.label }}
                   </th>
+                  <th class="px-4 py-3 text-right font-bold whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 text-slate-800">
                 <tr v-if="paginatedRows.length === 0">
-                  <td :colspan="currentColumns.length" class="px-4 py-10 text-center text-slate-500">
+                  <td :colspan="currentColumns.length + 1" class="px-4 py-10 text-center text-slate-500">
                     No records found for the current filters.
                   </td>
                 </tr>
@@ -406,6 +495,27 @@ onMounted(() => {
                     </span>
                     <span v-else>{{ row[column.key] }}</span>
                   </td>
+                  <td class="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-slate-100"
+                      :aria-label="`Edit ${activeTab === 'guides' ? 'guide' : 'customer'} ${row.name}`"
+                      @click="openEditPopup(row)"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        class="h-4 w-4"
+                        aria-hidden="true"
+                      >
+                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4L16.5 3.5Z" />
+                        <path d="M14.5 5.5l4 4" />
+                      </svg>
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -419,13 +529,34 @@ onMounted(() => {
             >
               <div class="flex items-start justify-between gap-3">
                 <h3 class="font-semibold text-slate-900">{{ row.name }}</h3>
-                <span
-                  v-if="row.status"
-                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
-                  :class="statusClasses(row.status)"
-                >
-                  {{ row.status }}
-                </span>
+                <div class="flex items-center gap-2">
+                  <span
+                    v-if="row.status"
+                    class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
+                    :class="statusClasses(row.status)"
+                  >
+                    {{ row.status }}
+                  </span>
+                  <button
+                    type="button"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-slate-100"
+                    :aria-label="`Edit ${activeTab === 'guides' ? 'guide' : 'customer'} ${row.name}`"
+                    @click="openEditPopup(row)"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      class="h-4 w-4"
+                      aria-hidden="true"
+                    >
+                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4L16.5 3.5Z" />
+                      <path d="M14.5 5.5l4 4" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               <div class="mt-2 grid grid-cols-1 gap-1 text-sm text-slate-600">
@@ -456,7 +587,7 @@ onMounted(() => {
               class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
               role="navigation"
             >
-              <p class="text-sm text-slate-500">{{ paginationLabel }}</p>
+              <p class="typo-muted">{{ paginationLabel }}</p>
 
               <div class="flex flex-wrap items-center gap-2">
                 <button
@@ -520,5 +651,61 @@ onMounted(() => {
         </template>
       </section>
     </main>
+
+    <div v-if="showEditPopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeEditPopup">
+      <div class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="typo-modal-eyebrow">Edit</div>
+            <h3 class="typo-modal-title-dark">{{ editTargetLabel }}</h3>
+          </div>
+          <button class="text-gray-300 hover:text-white text-xl leading-none" aria-label="Close edit popup" @click="closeEditPopup">×</button>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="text-gray-300 block mb-1">Name</label>
+            <input
+              v-model="editForm.name"
+              type="text"
+              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+              placeholder="Enter name"
+            />
+          </div>
+
+          <div>
+            <label class="text-gray-300 block mb-1">Email</label>
+            <input
+              v-model="editForm.email"
+              type="email"
+              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+              placeholder="Enter email"
+            />
+          </div>
+
+          <p v-if="editError" class="text-xs text-red-300">{{ editError }}</p>
+
+          <div class="pt-2 flex items-center justify-end gap-2">
+            <CancelButton @cancel="closeEditPopup" />
+            <SaveButton :disabled="!canSaveEdit" @save="requestEditConfirmation" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showConfirmSavePopup"
+      class="fixed inset-0 z-[60] bg-black/50 p-4 flex items-center justify-center"
+      @click.self="showConfirmSavePopup = false"
+    >
+      <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+        <h4 class="typo-modal-title">Confirm changes</h4>
+        <p class="mt-2 typo-body">Do you want to proceed with saving this edit?</p>
+        <div class="mt-5 flex items-center justify-end gap-2">
+          <CancelButton @cancel="showConfirmSavePopup = false" />
+          <SaveButton label="Yes, proceed" @save="applyRowEdit" />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
