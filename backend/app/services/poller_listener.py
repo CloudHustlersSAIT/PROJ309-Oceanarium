@@ -4,6 +4,7 @@ import logging
 
 from sqlalchemy import text
 
+from .notification_dispatcher import dispatch_events
 from .rescheduling import handle_reservation_cancellation, handle_reservation_change
 
 logger = logging.getLogger(__name__)
@@ -269,13 +270,14 @@ def process_staging_rows(conn):
                     text("UPDATE reservations SET schedule_id = NULL WHERE id = :id"),
                     {"id": reservation_id},
                 )
-                handle_reservation_cancellation(conn, reservation_id, old_schedule_id)
+                events = handle_reservation_cancellation(conn, reservation_id, old_schedule_id)
+                dispatch_events(conn, events)
             elif (
                 old_tour_id != tour_id
                 or (old_language or "").lower() != (reservation["language_code"] or "").lower()
                 or old_event_start != reservation["event_start_datetime"]
             ):
-                handle_reservation_change(
+                events = handle_reservation_change(
                     conn,
                     reservation_id=reservation_id,
                     old_schedule_id=old_schedule_id,
@@ -284,6 +286,7 @@ def process_staging_rows(conn):
                     new_event_start=reservation["event_start_datetime"],
                     new_event_end=reservation.get("event_end_datetime", reservation["event_start_datetime"]),
                 )
+                dispatch_events(conn, events)
 
         # Mark staging row processed
 
