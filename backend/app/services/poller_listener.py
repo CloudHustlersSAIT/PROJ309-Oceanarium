@@ -151,6 +151,15 @@ def process_staging_rows(conn):
 
         reservation_id = result_row[0]
 
+        # Assign schedule to reservation
+        schedule_id = get_or_create_schedule(
+            conn=conn,
+            tour_id=tour_id,
+            language_code=reservation["language_code"],
+            event_start_datetime=reservation["event_start_datetime"],
+            event_end_datetime=reservation.get("event_end_datetime", reservation["event_start_datetime"]),
+        )
+
         # Insert tickets
 
         for ticket in tickets:
