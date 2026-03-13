@@ -375,7 +375,7 @@ async def test_mark_all_as_read_with_event_type(client):
 
 @pytest.mark.asyncio
 async def test_get_user_preferences(client):
-    """Test GET /notifications/preferences/{user_id} endpoint."""
+    """Test GET /notifications/preferences endpoint."""
     from app.dependencies.auth import require_authenticated_user
     from app.main import app
 
@@ -385,7 +385,7 @@ async def test_get_user_preferences(client):
     app.dependency_overrides[require_authenticated_user] = mock_auth
 
     try:
-        response = await client.get("/notifications/preferences/1")
+        response = await client.get("/notifications/preferences")
 
         # Should return preferences or empty list
         assert response.status_code in [200, 500]
@@ -395,7 +395,7 @@ async def test_get_user_preferences(client):
 
 @pytest.mark.asyncio
 async def test_update_user_preferences(client):
-    """Test PUT /notifications/preferences/{user_id} endpoint."""
+    """Test PUT /notifications/preferences endpoint."""
     from app.dependencies.auth import require_authenticated_user
     from app.main import app
 
@@ -406,16 +406,14 @@ async def test_update_user_preferences(client):
 
     try:
         response = await client.put(
-            "/notifications/preferences/1",
-            json={
-                "preferences": [
-                    {
-                        "event_type": "GUIDE_ASSIGNED",
-                        "email_enabled": True,
-                        "portal_enabled": True
-                    }
-                ]
-            }
+            "/notifications/preferences",
+            json=[
+                {
+                    "event_type": "GUIDE_ASSIGNED",
+                    "email_enabled": True,
+                    "portal_enabled": True
+                }
+            ]
         )
 
         assert response.status_code in [200, 422, 500]
