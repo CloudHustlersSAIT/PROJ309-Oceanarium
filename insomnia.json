@@ -1,7 +1,7 @@
 {
   "_type": "export",
   "__export_format": 4,
-  "__export_date": "2026-03-11T00:00:00.000Z",
+  "__export_date": "2026-03-13T00:00:00.000Z",
   "__export_source": "insomnia.desktop.app",
   "resources": [
     {
@@ -355,6 +355,182 @@
       "headers": [],
       "body": {},
       "metaSortKey": 1
+    },
+    {
+      "_id": "req_trigger_guide_assigned",
+      "_type": "request",
+      "name": "Trigger Guide Assigned Notification",
+      "description": "Trigger guide assignment notification (EMAIL + PORTAL to guide and admins). FR-1 implementation.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/notifications/guide-assigned",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"schedule_id\": 1,\n  \"guide_id\": 5,\n  \"assignment_type\": \"AUTO\"\n}"
+      },
+      "metaSortKey": 12
+    },
+    {
+      "_id": "req_trigger_guide_unassigned",
+      "_type": "request",
+      "name": "Trigger Guide Unassigned Notification",
+      "description": "Trigger guide unassignment notification. FR-2 implementation.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/notifications/guide-unassigned",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"schedule_id\": 1,\n  \"guide_id\": 5,\n  \"reason\": \"Guide cancellation\",\n  \"replacement_guide_id\": 7\n}"
+      },
+      "metaSortKey": 13
+    },
+    {
+      "_id": "req_trigger_schedule_unassignable",
+      "_type": "request",
+      "name": "Trigger Schedule Unassignable Notification",
+      "description": "Trigger URGENT unassignable schedule notification (admins only). FR-5 implementation.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/notifications/schedule-unassignable",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"schedule_id\": 1,\n  \"reasons\": [\n    \"No guides available with Spanish language\",\n    \"All certified guides already assigned\"\n  ],\n  \"attempted_guides_count\": 12\n}"
+      },
+      "metaSortKey": 14
+    },
+    {
+      "_id": "req_trigger_schedule_changed",
+      "_type": "request",
+      "name": "Trigger Schedule Changed Notification",
+      "description": "Trigger schedule change notification (reservation cancelled, moved, or modified). FR-3 and FR-4 implementation.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/notifications/schedule-changed",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"schedule_id\": 1,\n  \"change_type\": \"RESERVATION_CANCELLED\",\n  \"change_details\": \"Reservation #456 cancelled - 2 tickets removed\",\n  \"affected_guide_id\": 5,\n  \"old_state\": {\n    \"ticket_count\": 10,\n    \"status\": \"CONFIRMED\"\n  },\n  \"new_state\": {\n    \"ticket_count\": 8,\n    \"status\": \"CONFIRMED\"\n  }\n}"
+      },
+      "metaSortKey": 15
+    },
+    {
+      "_id": "req_test_trigger_guide_assigned",
+      "_type": "request",
+      "name": "🧪 Test Trigger Guide Assigned (DEV ONLY)",
+      "description": "⚠️ DEVELOPMENT ONLY: Send guide assignment notification to any email. Only works when ENV=development. No auth required.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/notifications/test-trigger/guide-assigned",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"schedule_id\": 1,\n  \"guide_id\": 5,\n  \"assignment_type\": \"AUTO\",\n  \"override_email\": \"evandro.maciel.silva@gmail.com\"\n}"
+      },
+      "metaSortKey": 16
+    },
+    {
+      "_id": "req_test_trigger_guide_unassigned",
+      "_type": "request",
+      "name": "🧪 Test Trigger Guide Unassigned (DEV ONLY)",
+      "description": "⚠️ DEVELOPMENT ONLY: Send guide unassignment notification to any email. Only works when ENV=development. No auth required.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/notifications/test-trigger/guide-unassigned",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"schedule_id\": 1,\n  \"guide_id\": 5,\n  \"reason\": \"Guide cancellation\",\n  \"override_email\": \"evandro.maciel.silva@gmail.com\"\n}"
+      },
+      "metaSortKey": 17
+    },
+    {
+      "_id": "req_test_trigger_schedule_unassignable",
+      "_type": "request",
+      "name": "🧪 Test Trigger Schedule Unassignable (DEV ONLY)",
+      "description": "⚠️ DEVELOPMENT ONLY: Send URGENT unassignable notification to any email. Only works when ENV=development. No auth required.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/notifications/test-trigger/schedule-unassignable",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"schedule_id\": 1,\n  \"reasons\": [\n    \"No guides available with Spanish language\",\n    \"All certified guides already assigned\"\n  ],\n  \"attempted_guides_count\": 12,\n  \"override_email\": \"evandro.maciel.silva@gmail.com\"\n}"
+      },
+      "metaSortKey": 18
+    },
+    {
+      "_id": "req_test_trigger_schedule_changed",
+      "_type": "request",
+      "name": "🧪 Test Trigger Schedule Changed (DEV ONLY)",
+      "description": "⚠️ DEVELOPMENT ONLY: Send schedule change notification to any email. Only works when ENV=development. No auth required.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/notifications/test-trigger/schedule-changed",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"schedule_id\": 1,\n  \"change_type\": \"RESERVATION_CANCELLED\",\n  \"change_details\": \"Reservation #456 cancelled - 2 tickets removed\",\n  \"affected_guide_id\": 5,\n  \"override_email\": \"evandro.maciel.silva@gmail.com\"\n}"
+      },
+      "metaSortKey": 19
     },
 
     {
