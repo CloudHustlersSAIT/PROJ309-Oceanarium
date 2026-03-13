@@ -160,6 +160,19 @@ def process_staging_rows(conn):
             event_end_datetime=reservation.get("event_end_datetime", reservation["event_start_datetime"]),
         )
 
+        conn.execute(
+            text("""
+                UPDATE reservations
+                SET schedule_id = :schedule_id
+                WHERE id = :reservation_id
+            """),
+            {
+                "schedule_id": schedule_id,
+                "reservation_id": reservation_id
+            }
+)
+
+
         # Insert tickets
 
         for ticket in tickets:
