@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from ..db import engine
 from ..services import guide_requests as request_service
@@ -19,7 +19,7 @@ def read_swap_requests(guide_id: int):
 
     except Exception:
         logger.exception("Error loading swap requests")
-        return {"error": "Internal server error"}
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/swap-request")
@@ -31,7 +31,7 @@ def create_swap_request(schedule_id: int, guide_id: int):
 
     except Exception:
         logger.exception("Error creating swap request")
-        return {"error": "Internal server error"}
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/swap-candidates")
@@ -43,7 +43,7 @@ def read_swap_candidates(schedule_id: int):
 
     except Exception:
         logger.exception("Error loading swap candidates")
-        return {"error": "Internal server error"}
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/swap-accept")
@@ -55,7 +55,7 @@ def accept_swap_request(swap_request_id: int):
 
     except Exception:
         logger.exception("Error accepting swap request")
-        return {"error": "Internal server error"}
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/swap-reject")
@@ -67,4 +67,4 @@ def reject_swap_request(swap_request_id: int):
 
     except Exception:
         logger.exception("Error rejecting swap request")
-        return {"error": "Internal server error"}
+        raise HTTPException(status_code=500, detail="Internal server error")

@@ -47,6 +47,32 @@ def resolve_authenticated_user(conn, decoded_user: dict) -> dict:
             }
 
         if normalized_role == "guide":
+            guide_row = conn.execute(
+                text(
+                    """
+                    SELECT id, first_name, last_name, email, is_active
+                    FROM guides
+                    WHERE LOWER(email) = :email
+                    LIMIT 1
+                    """
+                ),
+                {"email": email},
+            ).fetchone()
+
+            if guide_row:
+                if not guide_row.is_active:
+                    raise ValidationError("Guide account is inactive")
+
+                return {
+                    "uid": uid,
+                    "email": email,
+                    "role": "guide",
+                    "user_id": user_row.id,
+                    "guide_id": guide_row.id,
+                    "first_name": guide_row.first_name,
+                    "last_name": guide_row.last_name,
+                }
+
             full_name = str(user_row.full_name or "").strip()
             name_parts = full_name.split(None, 1) if full_name else []
             first_name = name_parts[0] if name_parts else None
@@ -57,7 +83,7 @@ def resolve_authenticated_user(conn, decoded_user: dict) -> dict:
                 "email": email,
                 "role": "guide",
                 "user_id": user_row.id,
-                "guide_id": user_row.id,
+                "guide_id": None,
                 "first_name": first_name,
                 "last_name": last_name,
             }
