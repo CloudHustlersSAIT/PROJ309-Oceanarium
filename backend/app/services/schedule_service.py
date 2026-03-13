@@ -49,3 +49,25 @@ def get_or_create_schedule(
 
     if existing:
         return existing[0]
+    
+    # Step 2: Create a new schedule if none exists
+        row = conn.execute(
+            text(
+                """
+                INSERT INTO schedule
+                    (tour_id, language_code, event_start_datetime, event_end_datetime, status)
+                VALUES
+                    (:tour_id, :language_code, :event_start, :event_end, :status)
+                RETURNING id
+                """
+            ),
+            {
+                "tour_id": tour_id,
+                "language_code": language,
+                "event_start": event_start_datetime,
+                "event_end": event_end_datetime,
+                "status": status,
+            },
+        ).fetchone()
+
+        return row[0]
