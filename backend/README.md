@@ -129,6 +129,7 @@ backend/
 │   │   ├── health.py        # GET /health, GET /health/db
 │   │   ├── reservation.py   # GET/POST /reservations, PATCH reschedule/cancel (+ deprecated /bookings aliases)
 │   │   ├── guide.py         # GET /guides
+│   │   ├── guide_requests.py  # GET/POST /guide/swap-* (swap candidates, create, list, accept, reject)
 │   │   ├── tour.py          # GET /tours
 │   │   ├── schedule.py      # GET /schedules
 │   │   ├── notification.py  # GET /notifications
@@ -144,6 +145,7 @@ backend/
 │       ├── customer.py      # Customer list/create/update + MANUAL ID generation
 │       ├── reservation.py   # Reservation CRUD + conflict detection
 │       ├── guide.py         # Guide queries
+│       ├── guide_requests.py   # Swap candidates, create/list/accept/reject swap requests
 │       ├── guide_assignment.py  # Auto/manual guide assignment logic
 │       ├── tour.py          # Tour queries
 │       ├── schedule.py      # Schedule queries + filters
@@ -208,6 +210,11 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
 | PATCH | `/bookings/{id}/reschedule` | `routes/reservation.py` | Deprecated alias of `/reservations/{id}/reschedule` |
 | PATCH | `/bookings/{id}/cancel` | `routes/reservation.py` | Deprecated alias of `/reservations/{id}/cancel` |
 | GET | `/guides` | `routes/guide.py` | List all guides |
+| GET | `/guide/swap-candidates` | `routes/guide_requests.py` | List guides suitable and available to take a given schedule (query: `schedule_id`) |
+| POST | `/guide/swap-request` | `routes/guide_requests.py` | Create a swap request for a schedule (query: `schedule_id`, `guide_id` = requesting guide) |
+| GET | `/guide/swap-requests` | `routes/guide_requests.py` | List swap requests requiring action from the given guide (query: `guide_id` = assigned guide) |
+| POST | `/guide/swap-accept` | `routes/guide_requests.py` | Accept a swap request; reassigns schedule to requesting guide (query: `swap_request_id`) |
+| POST | `/guide/swap-reject` | `routes/guide_requests.py` | Reject a swap request; no schedule change (query: `swap_request_id`) |
 | GET | `/tours` | `routes/tour.py` | List all tours |
 | GET | `/schedules` | `routes/schedule.py` | List calendar events from schedule table (optional: `start_date`, `end_date`, `status`) |
 | GET | `/notifications` | `routes/notification.py` | List recent notifications (last 10) |
@@ -272,6 +279,20 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
     - In some error scenarios, the run may not be persisted with a `FAILED` status (e.g., failures inside the transaction can roll back the initial `poll_execution` insert)
 - Returns summary counts:
     - `generated_total`, `generated_created`, `generated_updated`, `generated_unchanged`
+
+### Guide Swap Endpoints
+
+All guide swap endpoints live under `/guide` and are implemented in `routes/guide_requests.py` and `services/guide_requests.py`. Swap requests are stored in `tour_assignment_logs` with `assignment_type = 'SWAP'` and `action` values: `SWAP_REQUEST`, `SWAP_ACCEPTED`, `SWAP_REJECTED`.
+
+| Endpoint | Query params | Description |
+|----------|--------------|-------------|
+| `GET /guide/swap-candidates` | `schedule_id` (required) | Returns active guides who are not the current assignee and have no overlapping ASSIGNED/CONFIRMED schedule. Ordered by `guide_rating` DESC. |
+| `POST /guide/swap-request` | `schedule_id`, `guide_id` (both required) | Creates a swap request; `guide_id` is the **requesting** guide. Inserts a row into `tour_assignment_logs` with `action = 'SWAP_REQUEST'`. Returns `{"swap_request_id": id}`. |
+| `GET /guide/swap-requests` | `guide_id` (required) | Returns swap requests that **require action from** the given guide (i.e. where that guide is currently assigned to the schedule). Response includes `swap_request_id`, `schedule_id`, `tour_name`, event times, and requesting guide name. |
+| `POST /guide/swap-accept` | `swap_request_id` (required) | Looks up the swap request; updates `schedule.guide_id` to the requesting guide; inserts a log row with `action = 'SWAP_ACCEPTED'`. Returns `{"status": "accepted", "schedule_id", "guide_id"}` or `{"status": "not_found"}`. |
+| `POST /guide/swap-reject` | `swap_request_id` (required) | Looks up the swap request; inserts a log row with `action = 'SWAP_REJECTED'`. Does not change the schedule. Returns `{"status": "rejected", ...}` or `{"status": "not_found"}`. |
+
+On any service error, routes return `200` with `{"error": "Internal server error"}` and log the exception.
 
 Frontend integration note:
 - Schedule endpoint quick guide: `docs/SCHEDULE_ENDPOINT_FRONTEND_GUIDE.md`
