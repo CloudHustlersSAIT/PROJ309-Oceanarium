@@ -163,34 +163,35 @@ def process_staging_rows(conn):
 
         reservation_id = result_row[0]
 
-        # Determine event time range
+        # Assign schedule only for new reservations
 
-        event_start = reservation["event_start_datetime"]
-        event_end = reservation.get("event_end_datetime") or event_start
+        if old is None:
+            event_start = reservation["event_start_datetime"]
+            event_end = reservation.get("event_end_datetime") or event_start
 
-        # Assign schedule
+            # Assign schedule
 
-        schedule_id = get_or_create_schedule(
-            conn=conn,
-            tour_id=tour_id,
-            language_code=reservation["language_code"],
-            event_start_datetime=event_start,
-            event_end_datetime=event_end,
-        )
+            schedule_id = get_or_create_schedule(
+                conn=conn,
+                tour_id=tour_id,
+                language_code=reservation["language_code"],
+                event_start_datetime=event_start,
+                event_end_datetime=event_end,
+            )
 
-        conn.execute(
-            text(
-                """
-                UPDATE reservations
-                SET schedule_id = :schedule_id
-                WHERE id = :reservation_id
-                """
-            ),
-            {
-                "schedule_id": schedule_id,
-                "reservation_id": reservation_id,
-            },
-        )
+            conn.execute(
+                text(
+                    """
+                    UPDATE reservations
+                    SET schedule_id = :schedule_id
+                    WHERE id = :reservation_id
+                    """
+                ),
+                {
+                    "schedule_id": schedule_id,
+                    "reservation_id": reservation_id,
+                },
+            )
 
         # Insert tickets
 
