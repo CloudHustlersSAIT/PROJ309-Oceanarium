@@ -65,6 +65,8 @@ async function handleLogout() {
 </script>
 
 <template>
+  <div class="hidden md:block w-80 shrink-0" aria-hidden="true" />
+
   <button
     type="button"
     aria-label="Open menu"
@@ -91,7 +93,7 @@ async function handleLogout() {
 
   <!-- Sidebar: drawer on mobile (fixed, slide-in), normal on md+ -->
   <aside
-    class="w-80 max-w-[85vw] min-h-dvh md:min-h-screen md:h-auto md:max-w-none flex flex-col p-4 bg-linear-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg fixed md:relative inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-out -translate-x-full md:translate-x-0 overflow-y-auto"
+    class="w-80 max-w-[85vw] min-h-dvh md:h-screen md:max-h-screen md:max-w-none flex flex-col p-4 bg-linear-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-out -translate-x-full md:translate-x-0 overflow-y-auto md:overflow-hidden"
     :class="{ 'translate-x-0': mobileOpen }"
   >
     <!-- Close button for mobile (visible only when drawer is open) -->
