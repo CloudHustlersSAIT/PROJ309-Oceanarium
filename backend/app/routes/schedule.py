@@ -45,6 +45,7 @@ def read_schedules(
             start_date=start_date,
             end_date=end_date,
             status=status,
+            guide_id=guide_id,
         )
     except Exception as e:
         return handle_domain_exception(e)
