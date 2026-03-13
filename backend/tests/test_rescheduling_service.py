@@ -65,7 +65,7 @@ class TestFindOrCreateSchedule:
     def test_returns_existing_schedule(self, mock_find, mock_conn):
         mock_find.return_value = 42
         result = find_or_create_schedule(mock_conn, 10, "en", "2026-03-10T10:00:00Z", "2026-03-10T11:00:00Z")
-        assert result == (42, [])  # Returns tuple now
+        assert result == 42  # Returns int, not tuple
         mock_conn.execute.assert_not_called()
 
     @patch("app.services.rescheduling.auto_assign_guide")
@@ -77,9 +77,7 @@ class TestFindOrCreateSchedule:
 
         result = find_or_create_schedule(mock_conn, 10, "en", "2026-03-10T10:00:00Z", "2026-03-10T11:00:00Z")
 
-        schedule_id, events = result
-        assert schedule_id == 99
-        assert isinstance(events, list)
+        assert result == 99  # Returns int
         mock_assign.assert_called_once_with(mock_conn, 99, commit=False)
 
     @patch("app.services.rescheduling.auto_assign_guide")
@@ -91,9 +89,7 @@ class TestFindOrCreateSchedule:
 
         result = find_or_create_schedule(mock_conn, 10, "zh", "2026-03-10T10:00:00Z", "2026-03-10T11:00:00Z")
 
-        schedule_id, events = result
-        assert schedule_id == 99
-        assert isinstance(events, list)
+        assert result == 99  # Returns int even when unassignable
 
 
 class TestCleanupEmptySchedule:
@@ -109,9 +105,10 @@ class TestCleanupEmptySchedule:
             MagicMock(),  # UPDATE schedule
             MagicMock(),  # INSERT tour_assignment_logs
         ]
-        events = cleanup_empty_schedule(mock_conn, 1)
+        result = cleanup_empty_schedule(mock_conn, 1)
         assert mock_conn.execute.call_count == 4
-        assert isinstance(events, list)
+        assert isinstance(result, dict)
+        assert result.get("old_guide_id") == 5
 
     def test_cancels_schedule_without_guide(self, mock_conn):
         mock_conn.execute.side_effect = [
@@ -119,25 +116,25 @@ class TestCleanupEmptySchedule:
             _fetchone((1, None)),  # schedule with no guide
             MagicMock(),  # UPDATE schedule
         ]
-        events = cleanup_empty_schedule(mock_conn, 1)
+        result = cleanup_empty_schedule(mock_conn, 1)
         assert mock_conn.execute.call_count == 3
-        assert events == []
+        assert result == {}
 
     def test_does_nothing_when_schedule_not_found(self, mock_conn):
         mock_conn.execute.side_effect = [
             _scalar_one(0),
             _fetchone(None),
         ]
-        events = cleanup_empty_schedule(mock_conn, 999)
+        result = cleanup_empty_schedule(mock_conn, 999)
         assert mock_conn.execute.call_count == 2
-        assert events == []
+        assert result == {}
 
 
 class TestHandleReservationChange:
     @patch("app.services.rescheduling.cleanup_empty_schedule")
     @patch("app.services.rescheduling.find_or_create_schedule")
     def test_moves_reservation_to_new_schedule(self, mock_find_create, mock_cleanup, mock_conn):
-        mock_find_create.return_value = (50, [])
+        mock_find_create.return_value = 50  # Returns int now
         # Mock the SELECT guide_id query
         mock_guide_result = MagicMock()
         mock_guide_result.fetchone.return_value = (5,)  # guide_id = 5
@@ -160,10 +157,10 @@ class TestHandleReservationChange:
     @patch("app.services.rescheduling.cleanup_empty_schedule")
     @patch("app.services.rescheduling.find_or_create_schedule")
     def test_no_cleanup_when_old_schedule_is_none(self, mock_find_create, mock_cleanup, mock_conn):
-        mock_find_create.return_value = (50, [])
+        mock_find_create.return_value = 50  # Returns int now
 
         handle_reservation_change(
-            mock_conn,
+            conn=mock_conn,
             reservation_id=10,
             old_schedule_id=None,
             new_tour_id=1,
