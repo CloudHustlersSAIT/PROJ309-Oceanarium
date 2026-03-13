@@ -4,6 +4,7 @@ import AppSidebar from '../components/AppSidebar.vue'
 import CalendarToolbar from '../components/calendar/CalendarToolbar.vue'
 import CalendarGrid from '../components/calendar/CalendarGrid.vue'
 import CancelButton from '../components/CancelButton.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import SaveButton from '../components/SaveButton.vue'
 import { useCalendarStore } from '../stores/calendar'
 import { createSchedule, getTours } from '../services/api'
@@ -205,7 +206,7 @@ function reservationDetailsStatusClass(status) {
     .trim()
     .toLowerCase()
   if (normalized === 'confirmed') {
-    return 'sharp-green-300 bg-green-50 text-green-800'
+    return 'border-green-300 bg-green-50 text-green-800'
   }
   if (normalized === 'canceled' || normalized === 'cancelled') {
     return 'border-red-300 bg-red-50 text-red-800'
@@ -716,24 +717,14 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div
-      v-if="showConfirmCreatePopup"
-      class="fixed inset-0 z-[60] bg-black/50 p-4 flex items-center justify-center"
-      @click.self="showConfirmCreatePopup = false"
-    >
-      <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
-        <h4 class="typo-modal-title">Confirm creation</h4>
-        <p class="mt-2 typo-body">Do you want to proceed with creating this schedule?</p>
-        <div class="mt-5 flex items-center justify-end gap-2">
-          <CancelButton @cancel="showConfirmCreatePopup = false" />
-          <SaveButton
-            label="Yes, proceed"
-            :loading="creatingSchedule"
-            :disabled="creatingSchedule"
-            @save="saveCreatedEvent"
-          />
-        </div>
-      </div>
-    </div>
+    <ConfirmDialog
+      :open="showConfirmCreatePopup"
+      title="Confirm creation"
+      message="Do you want to proceed with creating this schedule?"
+      :loading="creatingSchedule"
+      :disabled="creatingSchedule"
+      @cancel="showConfirmCreatePopup = false"
+      @confirm="saveCreatedEvent"
+    />
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import AppSidebar from '../components/AppSidebar.vue'
 import CancelButton from '../components/CancelButton.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import SaveButton from '../components/SaveButton.vue'
 import { getCustomers, getGuides } from '../services/api'
 
@@ -122,14 +123,16 @@ const summaryCards = computed(() => {
 
 const filteredRows = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return currentRows.value
 
   return currentRows.value.filter((row) => {
-    const searchable = Object.values(row)
-      .map((value) => String(value ?? ''))
-      .join(' ')
-      .toLowerCase()
+    const searchable = activeTab.value === 'guides'
+      ? `${row.id ?? ''} ${row.name ?? ''} ${row.email ?? ''} ${row.status ?? ''}`
+      : `${row.name ?? ''} ${row.email ?? ''} ${row.customerId ?? ''} ${row.totalVisits ?? ''} ${row.firstTourDate ?? ''}`
 
-    return searchable.includes(query)
+    const normalizedSearchable = searchable.toLowerCase()
+
+    return normalizedSearchable.includes(query)
   })
 })
 
@@ -684,6 +687,7 @@ onMounted(() => {
           </div>
 
           <p v-if="editError" class="text-xs text-red-300">{{ editError }}</p>
+          <p class="text-xs text-gray-400">Changes are local for now and will not persist after page reload.</p>
 
           <div class="pt-2 flex items-center justify-end gap-2">
             <CancelButton @cancel="closeEditPopup" />
@@ -693,19 +697,13 @@ onMounted(() => {
       </div>
     </div>
 
-    <div
-      v-if="showConfirmSavePopup"
-      class="fixed inset-0 z-[60] bg-black/50 p-4 flex items-center justify-center"
-      @click.self="showConfirmSavePopup = false"
-    >
-      <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
-        <h4 class="typo-modal-title">Confirm changes</h4>
-        <p class="mt-2 typo-body">Do you want to proceed with saving this edit?</p>
-        <div class="mt-5 flex items-center justify-end gap-2">
-          <CancelButton @cancel="showConfirmSavePopup = false" />
-          <SaveButton label="Yes, proceed" @save="applyRowEdit" />
-        </div>
-      </div>
-    </div>
+    <ConfirmDialog
+      :open="showConfirmSavePopup"
+      title="Apply local changes"
+      message="This edit is local only and will reset after page reload. Do you want to proceed?"
+      confirm-label="Apply locally"
+      @cancel="showConfirmSavePopup = false"
+      @confirm="applyRowEdit"
+    />
   </div>
 </template>
