@@ -12,7 +12,7 @@ from ..services import notification as notification_service
 from ..services import rescheduling as rescheduling_service
 from ..services import schedule as schedule_service
 from ..services.error_handlers import handle_domain_exception
-from ..services.exceptions import ValidationError
+from ..services.exceptions import UnassignableError, ValidationError
 
 logger = logging.getLogger(__name__)
 
