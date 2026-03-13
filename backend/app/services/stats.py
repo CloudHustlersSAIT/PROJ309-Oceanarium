@@ -93,9 +93,10 @@ def _to_int(value) -> int:
 def get_admin_dashboard(conn, selected_date: date | None = None, period: str | None = None):
     start_date, end_date, normalized_period = _resolve_window(selected_date, period)
 
-    kpi_row = conn.execute(
-        text(
-            """
+    kpi_row = (
+        conn.execute(
+            text(
+                """
             SELECT
                 (
                     SELECT COUNT(*)
@@ -117,13 +118,17 @@ def get_admin_dashboard(conn, selected_date: date | None = None, period: str | N
                     WHERE g.guide_rating IS NOT NULL
                 ) AS avg_guide_rating
             """
-        ),
-        {"start_date": start_date, "end_date": end_date},
-    ).mappings().one()
+            ),
+            {"start_date": start_date, "end_date": end_date},
+        )
+        .mappings()
+        .one()
+    )
 
-    tours_per_year_rows = conn.execute(
-        text(
-            """
+    tours_per_year_rows = (
+        conn.execute(
+            text(
+                """
             SELECT
                 EXTRACT(YEAR FROM s.event_start_datetime)::int AS year,
                 COUNT(*)::int AS value
@@ -134,13 +139,17 @@ def get_admin_dashboard(conn, selected_date: date | None = None, period: str | N
             GROUP BY EXTRACT(YEAR FROM s.event_start_datetime)
             ORDER BY year ASC
             """
-        ),
-        {"start_date": start_date, "end_date": end_date},
-    ).mappings().all()
+            ),
+            {"start_date": start_date, "end_date": end_date},
+        )
+        .mappings()
+        .all()
+    )
 
-    visitors_per_tour_rows = conn.execute(
-        text(
-            """
+    visitors_per_tour_rows = (
+        conn.execute(
+            text(
+                """
             SELECT
                 t.name AS label,
                 COALESCE(SUM(r.current_ticket_num), 0)::int AS value
@@ -153,13 +162,17 @@ def get_admin_dashboard(conn, selected_date: date | None = None, period: str | N
             ORDER BY value DESC, t.name ASC
             LIMIT 8
             """
-        ),
-        {"start_date": start_date, "end_date": end_date},
-    ).mappings().all()
+            ),
+            {"start_date": start_date, "end_date": end_date},
+        )
+        .mappings()
+        .all()
+    )
 
-    tours_by_language_rows = conn.execute(
-        text(
-            """
+    tours_by_language_rows = (
+        conn.execute(
+            text(
+                """
             SELECT
                 COALESCE(l.name, UPPER(s.language_code)) AS label,
                 LOWER(s.language_code) AS code,
@@ -173,13 +186,17 @@ def get_admin_dashboard(conn, selected_date: date | None = None, period: str | N
             ORDER BY value DESC, label ASC
             LIMIT 8
             """
-        ),
-        {"start_date": start_date, "end_date": end_date},
-    ).mappings().all()
+            ),
+            {"start_date": start_date, "end_date": end_date},
+        )
+        .mappings()
+        .all()
+    )
 
-    bookings_vs_cancellations_rows = conn.execute(
-        text(
-            """
+    bookings_vs_cancellations_rows = (
+        conn.execute(
+            text(
+                """
             WITH booking_counts AS (
                 SELECT
                     DATE_TRUNC('month', r.created_at)::date AS month_start,
@@ -223,13 +240,17 @@ def get_admin_dashboard(conn, selected_date: date | None = None, period: str | N
             FROM limited
             ORDER BY month_start ASC
             """
-        ),
-        {"start_date": start_date, "end_date": end_date},
-    ).mappings().all()
+            ),
+            {"start_date": start_date, "end_date": end_date},
+        )
+        .mappings()
+        .all()
+    )
 
-    top_guides_rows = conn.execute(
-        text(
-            """
+    top_guides_rows = (
+        conn.execute(
+            text(
+                """
             SELECT
                 CONCAT(g.first_name, ' ', g.last_name) AS name,
                 COUNT(s.id)::int AS tours,
@@ -245,17 +266,18 @@ def get_admin_dashboard(conn, selected_date: date | None = None, period: str | N
             ORDER BY rating DESC, tours DESC, name ASC
             LIMIT 5
             """
-        ),
-        {"start_date": start_date, "end_date": end_date},
-    ).mappings().all()
+            ),
+            {"start_date": start_date, "end_date": end_date},
+        )
+        .mappings()
+        .all()
+    )
 
     notes = [
         "Avg occupancy rate remains mocked because the current schema has no capacity field per schedule or tour.",
     ]
     if normalized_period == "all_time":
-        notes.append(
-            "Historical series may look sparse because operational data population only started recently."
-        )
+        notes.append("Historical series may look sparse because operational data population only started recently.")
 
     return {
         "filters": {
@@ -270,14 +292,8 @@ def get_admin_dashboard(conn, selected_date: date | None = None, period: str | N
             "avgOccupancyRate": None,
             "avgGuideRating": _to_float(kpi_row["avg_guide_rating"]),
         },
-        "toursPerYear": [
-            {"label": str(row["year"]), "value": _to_int(row["value"])}
-            for row in tours_per_year_rows
-        ],
-        "visitorsPerTour": [
-            {"label": row["label"], "value": _to_int(row["value"])}
-            for row in visitors_per_tour_rows
-        ],
+        "toursPerYear": [{"label": str(row["year"]), "value": _to_int(row["value"])} for row in tours_per_year_rows],
+        "visitorsPerTour": [{"label": row["label"], "value": _to_int(row["value"])} for row in visitors_per_tour_rows],
         "toursByLanguage": [
             {
                 "label": row["label"],
