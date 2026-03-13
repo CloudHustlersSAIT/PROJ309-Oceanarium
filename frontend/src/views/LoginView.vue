@@ -202,7 +202,8 @@ async function handleSubmit() {
     const code = err?.code || ''
     const message = String(err?.message || '')
 
-    if (code === 'auth/user-not-found') localError.value = 'No account found with this email.'
+    if (code === 'auth/user-not-found')
+      localError.value = 'No account found with this email.'
     else if (code === 'auth/invalid-email') localError.value = 'Please enter a valid email address.'
     else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password')
       localError.value = 'Incorrect email or password.'

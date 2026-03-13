@@ -7,7 +7,7 @@
         <p class="app-subtitle">Here's your next scheduled tour.</p>
       </div>
 
-      <div class="notification-card-unread mt-4 min-h-[112px] p-4">
+      <div class="mt-4 min-h-[112px] rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="space-y-0.5">
             <p class="app-body-title leading-tight">
@@ -28,29 +28,29 @@
       </div>
 
       <!-- Actions -->
-      <div class="mt-5 flex flex-wrap gap-2 rounded-xl border border-black/10 bg-white p-1">
+      <div class="mt-5 grid gap-3 md:grid-cols-3">
         <RouterLink
           to="/guide/schedule"
-          class="app-action-btn rounded-lg"
+          class="inline-flex min-h-12 items-center justify-center rounded-lg px-5 py-3 text-lg font-medium transition hover:-translate-y-0.5"
           :class="tabClass('/guide/schedule')"
         >
-          My Schedule
+          <span>My Schedule</span>
         </RouterLink>
 
         <RouterLink
           to="/guide/requests"
-          class="app-action-btn rounded-lg"
+          class="inline-flex min-h-12 items-center justify-center rounded-lg px-5 py-3 text-lg font-medium transition hover:-translate-y-0.5"
           :class="tabClass('/guide/requests')"
         >
-          Swap Requests
+          <span>Swap Requests</span>
         </RouterLink>
 
         <RouterLink
           to="/guide/notifications"
-          class="app-action-btn rounded-lg"
+          class="inline-flex min-h-12 items-center justify-center rounded-lg px-5 py-3 text-lg font-medium transition hover:-translate-y-0.5"
           :class="tabClass('/guide/notifications')"
         >
-          Notifications
+          <span>Notifications</span>
         </RouterLink>
       </div>
     </section>
@@ -108,17 +108,21 @@
         <div
           v-for="e in todayEvents"
           :key="e.id"
-          class="notification-card flex items-start justify-between gap-4 p-4"
+          class="flex items-center justify-between gap-4 rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4"
         >
-          <div class="flex gap-3">
-            <div class="mt-1 h-3 w-3 rounded-full bg-[#00B4D8]"></div>
+          <div class="flex items-center gap-3">
+            <div class="h-3 w-3 shrink-0 rounded-full bg-[#00B4D8]"></div>
             <div>
               <p class="app-body-title">{{ e.title }}</p>
               <p class="app-subtitle">{{ e.time }} • {{ e.language }}</p>
             </div>
           </div>
 
-          <span class="text-xs font-semibold text-black/60">{{ e.status }}</span>
+          <span
+            class="inline-flex items-center rounded-full border border-[#7DB8CC] bg-white/70 px-3 py-1 text-sm font-semibold text-black"
+          >
+            {{ e.status }}
+          </span>
         </div>
       </div>
     </section>
@@ -133,8 +137,8 @@ const route = useRoute()
 function tabClass(path) {
   const active = route.path === path
   return active
-    ? 'bg-[#CAF0F8] text-[#1C1C1C] ring-1 ring-[#00B4D8]/30 shadow-sm'
-    : 'border border-black/15 text-[#1C1C1C] hover:text-[#005A8A] hover:bg-[#CAF0F8]/40'
+    ? 'border border-[#0077B6] bg-[#0077B6] text-white shadow-[0_8px_18px_rgba(0,119,182,0.24)]'
+    : 'border border-[#0077B6] bg-[#0077B6] text-white shadow-[0_6px_14px_rgba(0,119,182,0.2)] hover:bg-[#0097E7] hover:border-[#0097E7] hover:shadow-[0_10px_20px_rgba(0,119,182,0.28)]'
 }
 
 const nextEvent = {

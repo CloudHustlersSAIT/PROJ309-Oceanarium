@@ -40,7 +40,7 @@ function go() {
   >
     <!-- Icon -->
     <div class="flex items-center justify-center h-8 w-8 rounded-full bg-white/10">
-      <img :src="icon" alt="" class="h-5 w-5" />
+      <img :src="icon" alt="" class="h-5 w-5 brightness-0 invert" />
     </div>
 
     <!-- Label -->
