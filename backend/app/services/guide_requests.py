@@ -1,5 +1,7 @@
 from sqlalchemy import text
 
+from .exceptions import NotFoundError, ValidationError
+
 
 def get_swap_requests(conn, guide_id: int):
     sql = text(
@@ -25,7 +27,17 @@ def get_swap_requests(conn, guide_id: int):
     return result.mappings().all()
 
 
-def create_swap_request(conn, schedule_id: int, requesting_guide_id: int):
+def create_swap_request(conn, schedule_id: int, candidate_guide_id: int, requesting_guide_id: int):
+    """Create a swap request. Validates that the schedule belongs to the requesting guide."""
+    row = conn.execute(
+        text("SELECT guide_id FROM schedule WHERE id = :schedule_id"),
+        {"schedule_id": schedule_id},
+    ).fetchone()
+    if not row:
+        raise NotFoundError("Schedule not found")
+    if row[0] != requesting_guide_id:
+        raise ValidationError("You can only request swaps for your own shifts")
+
     sql = text(
         """
         INSERT INTO tour_assignment_logs
@@ -40,7 +52,7 @@ def create_swap_request(conn, schedule_id: int, requesting_guide_id: int):
         sql,
         {
             "schedule_id": schedule_id,
-            "guide_id": requesting_guide_id,
+            "guide_id": candidate_guide_id,
         },
     )
 
@@ -87,7 +99,8 @@ def get_swap_candidates(conn, schedule_id: int):
     return result.mappings().all()
 
 
-def accept_swap_request(conn, swap_request_id: int):
+def accept_swap_request(conn, swap_request_id: int, caller_guide_id: int):
+    """Accept a swap request. Only the candidate guide (stored in the log) may accept."""
     fetch_sql = text(
         """
         SELECT
@@ -103,6 +116,9 @@ def accept_swap_request(conn, swap_request_id: int):
     row = conn.execute(fetch_sql, {"swap_request_id": swap_request_id}).mappings().first()
     if row is None:
         return {"status": "not_found"}
+
+    if row["guide_id"] != caller_guide_id:
+        raise ValidationError("Only the selected guide can accept this swap request")
 
     schedule_id = row["schedule_id"]
     guide_id = row["guide_id"]
@@ -135,7 +151,8 @@ def accept_swap_request(conn, swap_request_id: int):
     }
 
 
-def reject_swap_request(conn, swap_request_id: int):
+def reject_swap_request(conn, swap_request_id: int, caller_guide_id: int):
+    """Reject a swap request. Only the candidate guide (stored in the log) may reject."""
     fetch_sql = text(
         """
         SELECT
@@ -151,6 +168,9 @@ def reject_swap_request(conn, swap_request_id: int):
     row = conn.execute(fetch_sql, {"swap_request_id": swap_request_id}).mappings().first()
     if row is None:
         return {"status": "not_found"}
+
+    if row["guide_id"] != caller_guide_id:
+        raise ValidationError("Only the selected guide can reject this swap request")
 
     schedule_id = row["schedule_id"]
     guide_id = row["guide_id"]
