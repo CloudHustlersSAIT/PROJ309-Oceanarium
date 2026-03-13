@@ -30,7 +30,7 @@ class TestGuideRequestsService:
             MagicMock(),  # INSERT acceptance log
         ]
 
-        result = accept_swap_request(mock_conn, swap_request_id=123)
+        result = accept_swap_request(mock_conn, swap_request_id=123, caller_guide_id=7)
 
         assert result["status"] == "accepted"
         assert result["schedule_id"] == 42
@@ -43,7 +43,7 @@ class TestGuideRequestsService:
             MagicMock(),  # INSERT rejection log
         ]
 
-        result = reject_swap_request(mock_conn, swap_request_id=123)
+        result = reject_swap_request(mock_conn, swap_request_id=123, caller_guide_id=7)
 
         assert result["status"] == "rejected"
         assert result["schedule_id"] == 42
@@ -53,7 +53,7 @@ class TestGuideRequestsService:
     def test_accept_swap_not_found(self, mock_conn):
         mock_conn.execute.return_value = _swap_not_found_result()
 
-        result = accept_swap_request(mock_conn, swap_request_id=999_999)
+        result = accept_swap_request(mock_conn, swap_request_id=999_999, caller_guide_id=1)
 
         assert result == {"status": "not_found"}
         mock_conn.commit.assert_not_called()
