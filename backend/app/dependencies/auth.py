@@ -6,6 +6,7 @@ from fastapi import Header, HTTPException
 
 from ..firebase_auth import verify_firebase_token
 
+
 def _is_development_bypass_enabled() -> bool:
     env = os.getenv("ENV", "production").lower()
     auth_bypass = os.getenv("AUTH_BYPASS", "false").lower() == "true"
@@ -13,11 +14,7 @@ def _is_development_bypass_enabled() -> bool:
 
 
 def _build_development_bypass_claims(email_override: str | None = None) -> dict:
-    email = (
-        str(email_override or os.getenv("AUTH_BYPASS_EMAIL", "local-dev@oceanarium.local"))
-        .strip()
-        .lower()
-    )
+    email = str(email_override or os.getenv("AUTH_BYPASS_EMAIL", "local-dev@oceanarium.local")).strip().lower()
     return {
         "uid": os.getenv("AUTH_BYPASS_UID", "local-dev-user"),
         "email": email,
