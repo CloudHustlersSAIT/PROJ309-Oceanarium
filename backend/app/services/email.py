@@ -44,7 +44,7 @@ def send_email(
     logger.info(f"   EMAIL_FROM: {EMAIL_FROM}")
     logger.info(f"   EMAIL_FROM_NAME: {EMAIL_FROM_NAME}")
     logger.info(f"   Has HTML: {body_html is not None}")
-    
+
     if not EMAIL_ENABLED:
         logger.warning(f"⚠️  Email disabled - would have sent to {to_email}: {subject}")
         return True  # Consider it successful for testing
@@ -65,10 +65,10 @@ def send_email(
             params["html"] = body_html
             logger.info(f"   HTML body length: {len(body_html)} chars")
 
-        logger.info(f"🚀 Sending email via Resend API...")
+        logger.info("🚀 Sending email via Resend API...")
         response = resend.Emails.send(params)
         email_id = response.get('id', 'unknown')
-        logger.info(f"✅ Email sent successfully!")
+        logger.info("✅ Email sent successfully!")
         logger.info(f"   Resend Email ID: {email_id}")
         logger.info(f"   To: {to_email}")
         logger.info(f"   Subject: {subject}")

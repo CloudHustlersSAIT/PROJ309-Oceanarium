@@ -78,7 +78,7 @@ def read_notifications(
                     )
                     primary = next((a for a in actions if a.get("primary")), None)
                     notif["primary_action"] = primary
-                except:
+                except Exception:
                     notif["primary_action"] = None
 
         return {
@@ -114,7 +114,7 @@ def get_notification_detail(
 
         row = conn.execute(
             text("""
-                SELECT n.*, 
+                SELECT n.*,
                        s.event_start_datetime as schedule_date,
                        t.name as tour_name
                 FROM notifications n
@@ -161,7 +161,7 @@ def get_notification_detail(
                 text("""
                     SELECT id, message, created_at
                     FROM notifications
-                    WHERE schedule_id = :schedule_id 
+                    WHERE schedule_id = :schedule_id
                       AND id != :id
                     ORDER BY created_at DESC
                     LIMIT 5
@@ -268,7 +268,7 @@ def get_notification_summary(
 
         result = conn.execute(
             text(f"""
-                SELECT 
+                SELECT
                     COUNT(*) as total,
                     COUNT(CASE WHEN read_at IS NULL THEN 1 END) as unread,
                     COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as urgent,
@@ -330,7 +330,8 @@ def get_preferences(
         elif guide_id:
             rows = conn.execute(
                 text(
-                    "SELECT event_type, email_enabled, portal_enabled FROM notification_preferences WHERE guide_id = :id"
+                    "SELECT event_type, email_enabled, portal_enabled "
+                    "FROM notification_preferences WHERE guide_id = :id"
                 ),
                 {"id": guide_id},
             ).fetchall()
@@ -462,18 +463,19 @@ def test_email_endpoint(
     template_type: str = Query("system", description="Template type: system, guide_assignment, admin_alert"),
 ):
     """Test endpoint to send email notifications (development only).
-    
+
     This endpoint helps verify email delivery and template rendering.
     """
     from datetime import datetime
+
     from ..services.email import send_email
     from ..services.notification_templates import (
         guide_assigned_template,
         schedule_unassignable_admin_template,
     )
-    
+
     logger.info(f"🧪 Test email endpoint called: to={to_email}, template={template_type}")
-    
+
     try:
         if template_type == "system":
             # Simple system test email
@@ -488,8 +490,8 @@ def test_email_endpoint(
       <p style="margin: 0; color: #155724;"><strong>✅ Email System:</strong> Operational</p>
     </div>
     <p>
-      <a href="http://localhost:5173" 
-         style="display: inline-block; background-color: #0077B6; color: white; 
+      <a href="http://localhost:5173"
+         style="display: inline-block; background-color: #0077B6; color: white;
                 padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
         Open Portal
       </a>
@@ -497,7 +499,7 @@ def test_email_endpoint(
   </div>
 </body>
 </html>"""
-        
+
         elif template_type == "guide_assignment":
             # Test guide assignment template
             schedule = {
@@ -512,7 +514,7 @@ def test_email_endpoint(
                 guide_name='Test Guide',
                 assignment_type='AUTO'
             )
-        
+
         elif template_type == "admin_alert":
             # Test admin urgent alert template
             schedule = {
@@ -528,10 +530,10 @@ def test_email_endpoint(
                 reasons=reasons,
                 attempted_guides_count=5
             )
-        
+
         else:
             return {"error": f"Unknown template type: {template_type}"}
-        
+
         # Send the email
         logger.info(f"📧 Sending test email: {subject}")
         result = send_email(
@@ -540,7 +542,7 @@ def test_email_endpoint(
             body_text=text_body,
             body_html=html_body
         )
-        
+
         if result:
             logger.info(f"✅ Test email sent successfully to {to_email}")
             return {
@@ -555,7 +557,7 @@ def test_email_endpoint(
                 "success": False,
                 "error": "Failed to send email - check backend logs for details"
             }
-    
+
     except Exception as e:
         logger.error(f"❌ Test email endpoint error: {e}")
         import traceback

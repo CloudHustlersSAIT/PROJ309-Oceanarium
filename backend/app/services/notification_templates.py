@@ -73,7 +73,7 @@ This is an automated notification from the Oceanarium Scheduling System.
       <h2 style="color: #0077B6;">New Tour Assignment</h2>
       <p>Hi {guide_name},</p>
       <p>You have been <strong>{assignment_note}</strong> to the following tour:</p>
-      
+
       <div style="background-color: #EAF6FD; border-left: 4px solid #0077B6; padding: 15px; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Tour:</strong> {tour_name}</p>
         <p style="margin: 5px 0;"><strong>Date:</strong> {date}</p>
@@ -81,14 +81,16 @@ This is an automated notification from the Oceanarium Scheduling System.
         <p style="margin: 5px 0;"><strong>Language:</strong> {language}</p>
         <p style="margin: 5px 0;"><strong>Guests:</strong> {ticket_count}</p>
       </div>
-      
+
       <p>
-        <a href="{FRONTEND_URL}/schedule/{schedule_id}" 
-           style="display: inline-block; background-color: #0077B6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        <a href="{FRONTEND_URL}/schedule/{schedule_id}"
+           style="display: inline-block; background-color: #0077B6; color: white;
+                  padding: 12px 24px; text-decoration: none; border-radius: 5px;
+                  font-weight: bold;">
           View Schedule
         </a>
       </p>
-      
+
       <p style="color: #666; font-size: 14px; margin-top: 30px;">
         This is an automated notification from the Oceanarium Scheduling System.
       </p>
@@ -123,7 +125,7 @@ def guide_unassigned_template(
     tour_name = schedule.get("tour_name", "Unknown Tour")
     date = _format_date(schedule["event_start_datetime"])
     time = _format_time(schedule["event_start_datetime"])
-    schedule_id = schedule["id"]
+    schedule["id"]
 
     replacement_note = (
         f"Replacement: {replacement_guide_name}" if replacement_guide_name else "Replacement being assigned"
@@ -160,22 +162,25 @@ This is an automated notification from the Oceanarium Scheduling System.
       <h2 style="color: #E63946;">Tour Assignment Change</h2>
       <p>Hi {guide_name},</p>
       <p>You have been <strong>removed</strong> from the following tour assignment:</p>
-      
+
       <div style="background-color: #FFF1F2; border-left: 4px solid #E63946; padding: 15px; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Tour:</strong> {tour_name}</p>
         <p style="margin: 5px 0;"><strong>Date:</strong> {date}</p>
         <p style="margin: 5px 0;"><strong>Time:</strong> {time}</p>
         <p style="margin: 5px 0;"><strong>Reason:</strong> {reason}</p>
-        {f'<p style="margin: 5px 0;"><strong>Replacement:</strong> {replacement_guide_name}</p>' if replacement_guide_name else ""}
+        {f'<p style="margin: 5px 0;"><strong>Replacement:</strong> '
+         f'{replacement_guide_name}</p>' if replacement_guide_name else ""}
       </div>
-      
+
       <p>
-        <a href="{FRONTEND_URL}/schedule" 
-           style="display: inline-block; background-color: #0077B6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        <a href="{FRONTEND_URL}/schedule"
+           style="display: inline-block; background-color: #0077B6; color: white;
+                  padding: 12px 24px; text-decoration: none; border-radius: 5px;
+                  font-weight: bold;">
           View Your Schedule
         </a>
       </p>
-      
+
       <p style="color: #666; font-size: 14px; margin-top: 30px;">
         This is an automated notification from the Oceanarium Scheduling System.
       </p>
@@ -213,7 +218,11 @@ def schedule_unassignable_admin_template(
     reasons_list = ", ".join(reasons)
 
     # Portal message
-    portal_message = f"🚨 Action required: Schedule #{schedule_id} ({tour_name}, {date}) has no available guide. Checked {attempted_guides_count} guides - Constraints failed: {reasons_list}. Manual assignment needed."
+    portal_message = (
+        f"🚨 Action required: Schedule #{schedule_id} ({tour_name}, {date}) has no "
+        f"available guide. Checked {attempted_guides_count} guides - Constraints failed: "
+        f"{reasons_list}. Manual assignment needed."
+    )
 
     # Email subject
     subject = f"🚨 URGENT: No Guide Available - {tour_name} ({date})"
@@ -245,8 +254,9 @@ View schedule: {FRONTEND_URL}/schedule/{schedule_id}
       </h2>
       <p><strong>Schedule #{schedule_id} requires immediate attention.</strong></p>
       <p>The system was unable to automatically assign a guide to this tour due to constraint failures.</p>
-      
-      <div style="background-color: #FFF1F2; border: 2px solid #E63946; padding: 15px; margin: 20px 0; border-radius: 5px;">
+
+      <div style="background-color: #FFF1F2; border: 2px solid #E63946;
+                  padding: 15px; margin: 20px 0; border-radius: 5px;">
         <p style="margin: 5px 0;"><strong>Tour:</strong> {tour_name}</p>
         <p style="margin: 5px 0;"><strong>Date:</strong> {date}</p>
         <p style="margin: 5px 0;"><strong>Time:</strong> {time}</p>
@@ -254,18 +264,20 @@ View schedule: {FRONTEND_URL}/schedule/{schedule_id}
         <p style="margin: 5px 0;"><strong>Guests:</strong> {ticket_count}</p>
         <p style="margin: 5px 0; color: #E63946;"><strong>Constraints Failed:</strong> {reasons_list}</p>
       </div>
-      
+
       <p style="background-color: #FFF9E6; border-left: 4px solid #FFA500; padding: 10px; margin: 20px 0;">
         <strong>⚠️ Action Required:</strong> Please manually assign a guide to this schedule.
       </p>
-      
+
       <p>
-        <a href="{FRONTEND_URL}/schedule/{schedule_id}" 
-           style="display: inline-block; background-color: #E63946; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        <a href="{FRONTEND_URL}/schedule/{schedule_id}"
+           style="display: inline-block; background-color: #E63946; color: white;
+                  padding: 12px 24px; text-decoration: none; border-radius: 5px;
+                  font-weight: bold;">
           Assign Guide Now
         </a>
       </p>
-      
+
       <p style="color: #666; font-size: 14px; margin-top: 30px;">
         This is an automated urgent notification from the Oceanarium Scheduling System.
       </p>
@@ -305,7 +317,10 @@ def schedule_changed_admin_template(
     status = schedule.get("status", "UNKNOWN")
 
     # Portal message
-    portal_message = f"Schedule change: {change_type} for {tour_name} on {date}. {change_details}. Current status: {status}, Guide: {guide_name}, Guests: {ticket_count}"
+    portal_message = (
+        f"Schedule change: {change_type} for {tour_name} on {date}. {change_details}. "
+        f"Current status: {status}, Guide: {guide_name}, Guests: {ticket_count}"
+    )
 
     # Email subject
     subject = f"Schedule Update: {tour_name} on {date}"
@@ -362,14 +377,14 @@ View schedule: {FRONTEND_URL}/schedule/{schedule_id}
     <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #0077B6;">Schedule Change Notification</h2>
       <p>Schedule #{schedule_id} has been updated.</p>
-      
+
       <div style="background-color: #FFF9E6; border-left: 4px solid #FFA500; padding: 15px; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Change Type:</strong> {change_type}</p>
         <p style="margin: 5px 0;"><strong>Details:</strong> {change_details}</p>
       </div>
-      
+
       {before_after_html}
-      
+
       <h3 style="color: #0077B6; font-size: 16px;">Current Schedule State:</h3>
       <div style="background-color: #EAF6FD; padding: 15px; margin: 20px 0; border-radius: 5px;">
         <p style="margin: 5px 0;"><strong>Tour:</strong> {tour_name}</p>
@@ -379,14 +394,16 @@ View schedule: {FRONTEND_URL}/schedule/{schedule_id}
         <p style="margin: 5px 0;"><strong>Guests:</strong> {ticket_count}</p>
         <p style="margin: 5px 0;"><strong>Status:</strong> {status}</p>
       </div>
-      
+
       <p>
-        <a href="{FRONTEND_URL}/schedule/{schedule_id}" 
-           style="display: inline-block; background-color: #0077B6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        <a href="{FRONTEND_URL}/schedule/{schedule_id}"
+           style="display: inline-block; background-color: #0077B6; color: white;
+                  padding: 12px 24px; text-decoration: none; border-radius: 5px;
+                  font-weight: bold;">
           View Schedule
         </a>
       </p>
-      
+
       <p style="color: #666; font-size: 14px; margin-top: 30px;">
         This is an automated notification from the Oceanarium Scheduling System.
       </p>

@@ -70,12 +70,12 @@ def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
 def auto_assign(schedule_id: int, conn=Depends(get_db)):
     try:
         result = guide_assignment_service.auto_assign_guide(conn, schedule_id)
-        
+
         # Dispatch notification if event exists
         if "_notification_event" in result:
             dispatch_events(conn, [result["_notification_event"]])
             del result["_notification_event"]
-        
+
         return result
     except UnassignableError as e:
         # Dispatch notification from exception if event exists
@@ -95,12 +95,12 @@ def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(g
             payload.guide_id,
             assigned_by="admin",
         )
-        
+
         # Dispatch notification if event exists
         if "_notification_event" in result:
             dispatch_events(conn, [result["_notification_event"]])
             del result["_notification_event"]
-        
+
         return result
     except Exception as e:
         return handle_domain_exception(e)
@@ -110,12 +110,12 @@ def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(g
 def cancel_guide(schedule_id: int, conn=Depends(get_db)):
     try:
         result = rescheduling_service.handle_guide_cancellation(conn, schedule_id)
-        
+
         # Dispatch notifications if events exist
         if "_notification_events" in result:
             dispatch_events(conn, result["_notification_events"])
             del result["_notification_events"]
-        
+
         return result
     except Exception as e:
         return handle_domain_exception(e)

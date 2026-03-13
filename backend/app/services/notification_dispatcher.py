@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 def dispatch_events(conn, events: list[dict]) -> None:
     """Dispatch a list of notification events.
-    
+
     Args:
         conn: Database connection
         events: List of notification event dictionaries with 'type' field
     """
     for event in events:
         event_type = event.get("type")
-        
+
         try:
             if event_type == "GUIDE_ASSIGNED":
                 notification_service.notify_guide_assignment(

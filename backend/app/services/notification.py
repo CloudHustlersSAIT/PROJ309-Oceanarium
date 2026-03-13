@@ -180,8 +180,8 @@ def fetch_schedule_details(conn, schedule_id: int) -> dict:
     """Fetch comprehensive schedule details for notifications."""
     row = conn.execute(
         text("""
-            SELECT 
-                s.id, s.tour_id, s.language_code, s.event_start_datetime, 
+            SELECT
+                s.id, s.tour_id, s.language_code, s.event_start_datetime,
                 s.event_end_datetime, s.status, s.guide_id,
                 t.name as tour_name,
                 g.first_name || ' ' || g.last_name as guide_name,
@@ -274,7 +274,10 @@ def notify_guide_assignment(
             admin_channels.append("EMAIL")
 
         if admin_channels:
-            admin_message = f"Guide {guide_name} assigned to {schedule['tour_name']} on {schedule['event_start_datetime'].strftime('%B %d, %Y')}"
+            date_str = schedule['event_start_datetime'].strftime('%B %d, %Y')
+            admin_message = (
+                f"Guide {guide_name} assigned to {schedule['tour_name']} on {date_str}"
+            )
             notif_ids = create_notification(
                 conn,
                 event_type="GUIDE_ASSIGNED",
@@ -422,7 +425,8 @@ def notify_schedule_change(
     if affected_guide_id:
         guide_prefs = get_notification_preferences(conn, guide_id=affected_guide_id, event_type=change_type)
         if guide_prefs["portal_enabled"]:
-            message = f"{change_details}\n\nSchedule: {schedule['tour_name']} on {schedule['event_start_datetime'].strftime('%B %d, %Y')}"
+            date_str = schedule['event_start_datetime'].strftime('%B %d, %Y')
+            message = f"{change_details}\n\nSchedule: {schedule['tour_name']} on {date_str}"
             notif_ids = create_notification(
                 conn,
                 event_type=change_type,
@@ -532,7 +536,7 @@ def list_notifications(conn, user_id: int | None = None, guide_id: int | None = 
 
     result = conn.execute(
         text(f"""
-            SELECT n.*, 
+            SELECT n.*,
                    s.event_start_datetime as schedule_date,
                    t.name as tour_name
             FROM notifications n

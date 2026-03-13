@@ -4,8 +4,8 @@ import logging
 
 from sqlalchemy import text
 
-from .rescheduling import handle_reservation_cancellation, handle_reservation_change
 from .notification_dispatcher import dispatch_events
+from .rescheduling import handle_reservation_cancellation, handle_reservation_change
 
 logger = logging.getLogger(__name__)
 

@@ -47,7 +47,7 @@ def find_or_create_schedule(
     event_end_datetime,
 ) -> tuple[int, list[dict]]:
     """Find a matching schedule or create a new one and attempt guide assignment.
-    
+
     Returns: (schedule_id, notification_events)
     """
     events = []
@@ -89,7 +89,7 @@ def find_or_create_schedule(
 
 def cleanup_empty_schedule(conn, schedule_id: int) -> list[dict]:
     """Cancel a schedule and unassign its guide if no active reservations remain.
-    
+
     Returns: notification_events
     """
     events = []
@@ -139,7 +139,7 @@ def cleanup_empty_schedule(conn, schedule_id: int) -> list[dict]:
             "guide_id": old_guide_id,
             "reason": "Schedule cancelled (no remaining reservations)",
         })
-    
+
     return events
 
 
@@ -153,7 +153,7 @@ def handle_reservation_change(
     new_event_end,
 ) -> list[dict]:
     """FR-1/FR-2/FR-3: Move a reservation whose tour, language, or time changed.
-    
+
     Returns: notification_events
     """
     events = []
@@ -182,14 +182,17 @@ def handle_reservation_change(
         "type": "SCHEDULE_CHANGED",
         "schedule_id": new_schedule_id,
         "event_type": "RESERVATION_MOVED",
-        "reason": f"Reservation {reservation_id} moved to this schedule" + (f" from schedule {old_schedule_id}" if old_schedule_id else ""),
+        "reason": (
+            f"Reservation {reservation_id} moved to this schedule"
+            + (f" from schedule {old_schedule_id}" if old_schedule_id else "")
+        ),
         "affected_guide_id": new_schedule[0] if new_schedule and new_schedule[0] else None,
     })
 
     if old_schedule_id is not None:
         cleanup_events = cleanup_empty_schedule(conn, old_schedule_id)
         events.extend(cleanup_events)
-    
+
     return events
 
 
@@ -199,7 +202,7 @@ def handle_reservation_cancellation(
     old_schedule_id: int,
 ) -> list[dict]:
     """FR-4: Clean up after a reservation is cancelled.
-    
+
     Returns: notification_events
     """
     events = []
@@ -216,16 +219,16 @@ def handle_reservation_cancellation(
         "reason": f"Reservation {reservation_id} was cancelled and removed",
         "affected_guide_id": schedule[0] if schedule and schedule[0] else None,
     })
-    
+
     cleanup_events = cleanup_empty_schedule(conn, old_schedule_id)
     events.extend(cleanup_events)
-    
+
     return events
 
 
 def handle_guide_cancellation(conn, schedule_id: int) -> dict:
     """FR-5: Unassign a guide and attempt to find a replacement.
-    
+
     Returns: result dict with _notification_events list
     """
     events = []

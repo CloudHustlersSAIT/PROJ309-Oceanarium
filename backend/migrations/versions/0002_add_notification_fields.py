@@ -47,12 +47,12 @@ def upgrade() -> None:
 
     # Create indexes for faster preference lookups
     op.execute("""
-        CREATE INDEX IF NOT EXISTS ix_notification_preferences_user_id 
+        CREATE INDEX IF NOT EXISTS ix_notification_preferences_user_id
         ON notification_preferences(user_id);
     """)
-    
+
     op.execute("""
-        CREATE INDEX IF NOT EXISTS ix_notification_preferences_guide_id 
+        CREATE INDEX IF NOT EXISTS ix_notification_preferences_guide_id
         ON notification_preferences(guide_id);
     """)
 
@@ -60,7 +60,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute("DROP TABLE IF EXISTS notification_preferences CASCADE;")
     op.execute("""
-        ALTER TABLE notifications 
+        ALTER TABLE notifications
         DROP COLUMN IF EXISTS read_at,
         DROP COLUMN IF EXISTS retry_count,
         DROP COLUMN IF EXISTS priority,

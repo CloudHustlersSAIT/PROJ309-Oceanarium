@@ -2,17 +2,15 @@
 
 For comprehensive testing, expand these tests with:
 - Mocked email service tests
-- Notification preference tests  
+- Notification preference tests
 - Integration tests with guide_assignment and rescheduling
 """
 
-import pytest
-from unittest.mock import patch
 
 
 def test_notification_system_placeholder():
     """Placeholder test to verify test infrastructure works.
-    
+
     TODO: Expand with comprehensive tests for:
     - Email service (send_email with mocked Resend)
     - Notification templates (all 4 templates)
