@@ -24,7 +24,7 @@ function formatApiErrorDetail(detail) {
   return ''
 }
 
-export async function getCurrentAuthenticatedUser(idToken) {
+export async function getCurrentAuthenticatedUser(idToken, bypassEmail = null) {
   const headers = {
     'Content-Type': 'application/json',
   }
@@ -33,10 +33,23 @@ export async function getCurrentAuthenticatedUser(idToken) {
     headers.Authorization = `Bearer ${idToken}`
   }
 
-  const response = await fetch(`${VITE_API_BASE_URL}/auth/me`, {
-    method: 'GET',
-    headers,
-  })
+  if (bypassEmail) {
+    headers['X-Dev-Bypass-Email'] = String(bypassEmail).trim().toLowerCase()
+  }
+
+  let response
+  try {
+    response = await fetch(`${VITE_API_BASE_URL}/auth/me`, {
+      method: 'GET',
+      headers,
+    })
+  } catch {
+    const error = new Error(
+      `Cannot reach the authentication API at ${VITE_API_BASE_URL}. Make sure the local backend is running.`,
+    )
+    error.status = 0
+    throw error
+  }
 
   if (!response.ok) {
     let message = 'Failed to resolve the authenticated user.'

@@ -13,10 +13,11 @@ def _is_development_bypass_enabled() -> bool:
     return env == "development" and auth_bypass
 
 
-def _build_development_bypass_claims() -> dict:
+def _build_development_bypass_claims(email_override: str | None = None) -> dict:
+    email = str(email_override or os.getenv("AUTH_BYPASS_EMAIL", "local-dev@oceanarium.local")).strip().lower()
     return {
         "uid": os.getenv("AUTH_BYPASS_UID", "local-dev-user"),
-        "email": os.getenv("AUTH_BYPASS_EMAIL", "local-dev@oceanarium.local").strip().lower(),
+        "email": email,
         "auth_mode": "development-bypass",
     }
 
@@ -46,6 +47,7 @@ def _extract_bearer_token(authorization: str | None) -> str:
 
 def require_authenticated_user(
     authorization: str | None = Header(default=None),
+    x_dev_bypass_email: str | None = Header(default=None),
 ) -> dict:
     """
     Returns decoded Firebase claims for an authenticated user.
@@ -56,7 +58,7 @@ def require_authenticated_user(
     bypass_enabled = _is_development_bypass_enabled()
 
     if bypass_enabled and not authorization:
-        return _build_development_bypass_claims()
+        return _build_development_bypass_claims(x_dev_bypass_email)
 
     bearer_token = _extract_bearer_token(authorization)
 
@@ -65,5 +67,5 @@ def require_authenticated_user(
         return decoded
     except HTTPException:
         if bypass_enabled:
-            return _build_development_bypass_claims()
+            return _build_development_bypass_claims(x_dev_bypass_email)
         raise
