@@ -1,9 +1,10 @@
+from datetime import date
 from unittest.mock import MagicMock
 
 from app.services.guide import list_guides
 from app.services.issue import create_issue
 from app.services.notification import create_notification, list_notifications
-from app.services.stats import get_stats
+from app.services.stats import get_admin_dashboard, get_stats
 from app.services.tour import list_tours
 
 
@@ -70,3 +71,59 @@ class TestStatsService:
         assert "customersToday" in result
         assert "cancellations" in result
         assert "avgRating" in result
+
+    def test_get_admin_dashboard(self, mock_conn):
+        kpi_result = MagicMock()
+        kpi_result.mappings.return_value.one.return_value = {
+            "total_tours_conducted": 9,
+            "total_visitors_served": 42,
+            "avg_guide_rating": 4.75,
+        }
+
+        tours_per_year_result = MagicMock()
+        tours_per_year_result.mappings.return_value.all.return_value = [
+            {"year": 2026, "value": 9},
+        ]
+
+        visitors_per_tour_result = MagicMock()
+        visitors_per_tour_result.mappings.return_value.all.return_value = [
+            {"label": "Shark Diving", "value": 42},
+        ]
+
+        tours_by_language_result = MagicMock()
+        tours_by_language_result.mappings.return_value.all.return_value = [
+            {"label": "English", "code": "en", "value": 6},
+        ]
+
+        bookings_vs_cancellations_result = MagicMock()
+        bookings_vs_cancellations_result.mappings.return_value.all.return_value = [
+            {"month": "Mar 2026", "bookings": 11, "cancellations": 2},
+        ]
+
+        top_guides_result = MagicMock()
+        top_guides_result.mappings.return_value.all.return_value = [
+            {"name": "Ana Costa", "tours": 4, "rating": 4.9},
+        ]
+
+        mock_conn.execute.side_effect = [
+            kpi_result,
+            tours_per_year_result,
+            visitors_per_tour_result,
+            tours_by_language_result,
+            bookings_vs_cancellations_result,
+            top_guides_result,
+        ]
+
+        result = get_admin_dashboard(mock_conn, selected_date=date(2026, 3, 12), period="all_time")
+
+        assert result["filters"]["selectedDate"] == "2026-03-12"
+        assert result["kpis"]["totalToursConducted"] == 9
+        assert result["kpis"]["totalVisitorsServed"] == 42
+        assert result["kpis"]["avgGuideRating"] == 4.75
+        assert result["kpis"]["avgOccupancyRate"] is None
+        assert result["toursPerYear"][0]["label"] == "2026"
+        assert result["visitorsPerTour"][0]["label"] == "Shark Diving"
+        assert result["toursByLanguage"][0]["code"] == "en"
+        assert result["bookingsVsCancellations"][0]["month"] == "Mar 2026"
+        assert result["topRatedGuides"][0]["name"] == "Ana Costa"
+        assert result["meta"]["occupancyRateAvailable"] is False
