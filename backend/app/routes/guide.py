@@ -1,7 +1,8 @@
 import logging
+from datetime import time
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..db import get_db
 from ..dependencies.auth import require_authenticated_user
@@ -13,16 +14,33 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/guides", tags=["Guides"])
 
 
+class AvailabilitySlotPayload(BaseModel):
+    day_of_week: str
+    start_time: time
+    end_time: time
+
+
+class AvailabilityPatternPayload(BaseModel):
+    timezone: str
+    slots: list[AvailabilitySlotPayload] = Field(default_factory=list)
+
+
 class GuideCreate(BaseModel):
     first_name: str
     last_name: str
     email: str
+    language_codes: list[str] = Field(default_factory=list)
+    expertise_tour_ids: list[int] = Field(default_factory=list)
+    availability_patterns: list[AvailabilityPatternPayload] = Field(default_factory=list)
 
 
 class GuideUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
+    language_codes: list[str] | None = None
+    expertise_tour_ids: list[int] | None = None
+    availability_patterns: list[AvailabilityPatternPayload] | None = None
 
 
 @router.get("")
@@ -45,6 +63,9 @@ def create_guide(
             payload.first_name,
             payload.last_name,
             payload.email,
+            payload.language_codes,
+            payload.expertise_tour_ids,
+            [pattern.model_dump() for pattern in payload.availability_patterns],
         )
     except Exception as e:
         return handle_domain_exception(e)

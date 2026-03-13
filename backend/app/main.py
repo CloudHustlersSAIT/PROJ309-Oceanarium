@@ -19,6 +19,7 @@ from .routes.guide_dashboard import router as guide_dashboard_router
 from .routes.guide_requests import router as guide_requests_router
 from .routes.health import router as health_router
 from .routes.issue import router as issue_router
+from .routes.language import router as language_router
 from .routes.mock import router as mock_router
 from .routes.notification import router as notification_router
 from .routes.reservation import router as reservation_router
@@ -54,6 +55,7 @@ app.include_router(customer_router)
 app.include_router(reservation_router)
 app.include_router(guide_router)
 app.include_router(tour_router)
+app.include_router(language_router)
 app.include_router(schedule_router)
 app.include_router(notification_router)
 app.include_router(issue_router)
