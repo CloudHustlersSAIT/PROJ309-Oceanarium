@@ -7,7 +7,12 @@ from sqlalchemy import text
 from .exceptions import NotFoundError, ValidationError
 
 
-def list_schedules(conn, start_date: date | None = None, end_date: date | None = None, status: str | None = None):
+def list_schedules(
+    conn, 
+    start_date: date | None = None, 
+    end_date: date | None = None, 
+    status: str | None = None,
+    guide_id: int | None = None):
     # Guard against impossible range filters before querying.
     if start_date and end_date and start_date > end_date:
         raise ValidationError("start_date cannot be after end_date")
