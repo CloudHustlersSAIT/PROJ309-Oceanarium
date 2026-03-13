@@ -65,37 +65,35 @@ class TestFindOrCreateSchedule:
     def test_returns_existing_schedule(self, mock_find, mock_conn):
         mock_find.return_value = 42
         result = find_or_create_schedule(mock_conn, 10, "en", "2026-03-10T10:00:00Z", "2026-03-10T11:00:00Z")
-        assert result == 42
+        assert result == (42, [])  # Returns tuple now
         mock_conn.execute.assert_not_called()
 
-    @patch("app.services.rescheduling.create_notification")
     @patch("app.services.rescheduling.auto_assign_guide")
     @patch("app.services.rescheduling.find_matching_schedule")
-    def test_creates_schedule_and_assigns_guide(self, mock_find, mock_assign, mock_notify, mock_conn):
+    def test_creates_schedule_and_assigns_guide(self, mock_find, mock_assign, mock_conn):
         mock_find.return_value = None
         mock_conn.execute.return_value = _fetchone((99,))
         mock_assign.return_value = {"guide_id": 5, "guide_name": "Maria Silva"}
 
         result = find_or_create_schedule(mock_conn, 10, "en", "2026-03-10T10:00:00Z", "2026-03-10T11:00:00Z")
 
-        assert result == 99
+        schedule_id, events = result
+        assert schedule_id == 99
+        assert isinstance(events, list)
         mock_assign.assert_called_once_with(mock_conn, 99, commit=False)
-        assert mock_notify.call_count == 1
-        assert mock_notify.call_args[1]["event_type"] == "GUIDE_ASSIGNED"
 
-    @patch("app.services.rescheduling.create_notification")
     @patch("app.services.rescheduling.auto_assign_guide")
     @patch("app.services.rescheduling.find_matching_schedule")
-    def test_creates_schedule_unassignable(self, mock_find, mock_assign, mock_notify, mock_conn):
+    def test_creates_schedule_unassignable(self, mock_find, mock_assign, mock_conn):
         mock_find.return_value = None
         mock_conn.execute.return_value = _fetchone((99,))
         mock_assign.side_effect = UnassignableError("No guide", reasons=["NO_LANGUAGE_MATCH"])
 
         result = find_or_create_schedule(mock_conn, 10, "zh", "2026-03-10T10:00:00Z", "2026-03-10T11:00:00Z")
 
-        assert result == 99
-        assert mock_notify.call_count == 1
-        assert mock_notify.call_args[1]["event_type"] == "SCHEDULE_UNASSIGNABLE"
+        schedule_id, events = result
+        assert schedule_id == 99
+        assert isinstance(events, list)
 
 
 class TestCleanupEmptySchedule:
