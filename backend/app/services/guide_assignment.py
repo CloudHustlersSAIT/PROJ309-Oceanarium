@@ -208,10 +208,18 @@ def auto_assign_guide(conn, schedule_id: int, *, commit: bool = True) -> dict:
         )
         if commit:
             conn.commit()
-        raise UnassignableError(
+
+        # Raise error with event data for the route to dispatch notifications
+        error = UnassignableError(
             "No eligible guide found for this schedule",
             reasons=reasons,
         )
+        error.notification_event = {
+            "type": "SCHEDULE_UNASSIGNABLE",
+            "schedule_id": schedule_id,
+            "reasons": reasons,
+        }
+        raise error
 
     best = ranked[0]
     action = "REASSIGNED" if schedule["guide_id"] is not None else "ASSIGNED"
@@ -248,6 +256,7 @@ def auto_assign_guide(conn, schedule_id: int, *, commit: bool = True) -> dict:
     if commit:
         conn.commit()
 
+    # Return event data for the route to dispatch notifications
     return {
         "schedule_id": schedule_id,
         "guide_id": best["id"],
@@ -257,6 +266,13 @@ def auto_assign_guide(conn, schedule_id: int, *, commit: bool = True) -> dict:
             "language": True,
             "availability": True,
             "expertise": True,
+        },
+        # Event data for notifications
+        "_notification_event": {
+            "type": "GUIDE_ASSIGNED",
+            "schedule_id": schedule_id,
+            "guide_id": best["id"],
+            "assignment_type": "AUTO",
         },
     }
 
@@ -366,10 +382,18 @@ def manual_assign_guide(
     if commit:
         conn.commit()
 
+    # Return event data for the route to dispatch notifications
     return {
         "schedule_id": schedule_id,
         "guide_id": guide_id,
         "guide_name": f"{guide.first_name} {guide.last_name}",
         "assignment_type": "MANUAL",
         "warnings": warnings,
+        # Event data for notifications
+        "_notification_event": {
+            "type": "GUIDE_ASSIGNED",
+            "schedule_id": schedule_id,
+            "guide_id": guide_id,
+            "assignment_type": "MANUAL",
+        },
     }

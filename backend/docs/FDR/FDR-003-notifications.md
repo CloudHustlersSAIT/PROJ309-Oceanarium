@@ -3,11 +3,11 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-003                |
-| **Version**      | 1.1                    |
-| **Status**       | Draft                  |
+| **Version**      | 2.0                    |
+| **Status**       | Implemented            |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
-| **Last Updated** | 2026-03-03             |
+| **Last Updated** | 2026-03-11             |
 
 ---
 
@@ -20,15 +20,19 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 ### In Scope
 
 - In-portal notifications (real-time or near-real-time)
-- Email notifications
+- Email notifications via Resend.com
 - Notification for Admins and Guides
 - Notification lifecycle tracking (pending → sent → failed)
+- User notification preferences per event type and channel
+- Rich notification detail view with full context
+- Priority levels and action-required flags
+- Automatic retry for failed email notifications (max 3 attempts)
 
 ### Out of Scope
 
 - Customer-facing notifications (Clorian handles customer communication)
 - SMS or push notifications (future phase)
-- Notification preferences / opt-out settings (future phase)
+- Real-time WebSocket notifications (using polling for MVP)
 
 ## 3. Actors
 
@@ -182,10 +186,10 @@ Mark a portal notification as read.
 
 | # | Question | Answer | Status |
 |---|----------|--------|--------|
-| 1 | Which email service to use? | TBD | Open |
-| 2 | Should portal notifications be real-time (WebSocket) or polling? | TBD | Open |
-| 3 | Should admins receive email for every change or just critical ones? | TBD | Open |
-| 4 | Notification templates — managed in code or DB? | TBD | Open |
+| 1 | Which email service to use? | Resend.com (easiest setup, 3000 emails/month free) | Resolved |
+| 2 | Should portal notifications be real-time (WebSocket) or polling? | Polling for MVP (simpler implementation) | Resolved |
+| 3 | Should admins receive email for every change or just critical ones? | Every change, but configurable via preferences | Resolved |
+| 4 | Notification templates — managed in code or DB? | Code (notification_templates.py) | Resolved |
 
 ## Changelog
 
@@ -193,3 +197,4 @@ Mark a portal notification as read.
 |---------|------------|-----------------|-------------|
 | 1.0     | 2026-03-03 | Evandro Maciel | Initial draft — portal + email for admin and guide |
 | 1.1     | 2026-03-03 | Evandro Maciel | Renamed bookings→reservations throughout; updated event names |
+| 2.0     | 2026-03-11 | Evandro Maciel | Implemented: Multi-channel notifications with Resend.com, user preferences, rich detail view, priority levels, action buttons, enhanced templates following 2026 best practices |

@@ -6,7 +6,6 @@ from sqlalchemy import text
 
 from .exceptions import NotFoundError, UnassignableError
 from .guide_assignment import auto_assign_guide
-from .notification import create_notification
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +45,15 @@ def find_or_create_schedule(
     language_code: str,
     event_start_datetime,
     event_end_datetime,
-) -> int:
-    """Find a matching schedule or create a new one and attempt guide assignment."""
+) -> tuple[int, list[dict]]:
+    """Find a matching schedule or create a new one and attempt guide assignment.
+    
+    Returns: (schedule_id, notification_events)
+    """
+    events = []
     schedule_id = find_matching_schedule(conn, tour_id, language_code, event_start_datetime)
     if schedule_id is not None:
-        return schedule_id
+        return schedule_id, events
 
     row = conn.execute(
         text(
@@ -73,27 +76,23 @@ def find_or_create_schedule(
 
     try:
         result = auto_assign_guide(conn, schedule_id, commit=False)
-        create_notification(
-            conn,
-            event_type="GUIDE_ASSIGNED",
-            schedule_id=schedule_id,
-            guide_id=result["guide_id"],
-            message=f"Guide {result['guide_name']} auto-assigned to new schedule {schedule_id}",
-        )
-    except UnassignableError as exc:
-        create_notification(
-            conn,
-            event_type="SCHEDULE_UNASSIGNABLE",
-            schedule_id=schedule_id,
-            guide_id=None,
-            message=f"No eligible guide for schedule {schedule_id}: {', '.join(exc.reasons)}",
-        )
+        # Extract notification event from result
+        if "_notification_event" in result:
+            events.append(result["_notification_event"])
+    except UnassignableError as e:
+        # Extract notification event from exception
+        if hasattr(e, "notification_event"):
+            events.append(e.notification_event)
 
-    return schedule_id
+    return schedule_id, events
 
 
-def cleanup_empty_schedule(conn, schedule_id: int) -> None:
-    """Cancel a schedule and unassign its guide if no active reservations remain."""
+def cleanup_empty_schedule(conn, schedule_id: int) -> list[dict]:
+    """Cancel a schedule and unassign its guide if no active reservations remain.
+    
+    Returns: notification_events
+    """
+    events = []
     count = conn.execute(
         text(
             """
@@ -106,14 +105,14 @@ def cleanup_empty_schedule(conn, schedule_id: int) -> None:
     ).scalar_one()
 
     if count > 0:
-        return
+        return events
 
     schedule = conn.execute(
         text("SELECT id, guide_id FROM schedule WHERE id = :id"),
         {"id": schedule_id},
     ).fetchone()
     if not schedule:
-        return
+        return events
 
     old_guide_id = schedule[1]
 
@@ -134,13 +133,14 @@ def cleanup_empty_schedule(conn, schedule_id: int) -> None:
             ),
             {"schedule_id": schedule_id, "guide_id": old_guide_id},
         )
-        create_notification(
-            conn,
-            event_type="GUIDE_REASSIGNED",
-            schedule_id=schedule_id,
-            guide_id=old_guide_id,
-            message=f"Guide unassigned from cancelled schedule {schedule_id}",
-        )
+        events.append({
+            "type": "GUIDE_UNASSIGNED",
+            "schedule_id": schedule_id,
+            "guide_id": old_guide_id,
+            "reason": "Schedule cancelled (no remaining reservations)",
+        })
+    
+    return events
 
 
 def handle_reservation_change(
@@ -151,53 +151,84 @@ def handle_reservation_change(
     new_language_code: str,
     new_event_start,
     new_event_end,
-) -> None:
-    """FR-1/FR-2/FR-3: Move a reservation whose tour, language, or time changed."""
+) -> list[dict]:
+    """FR-1/FR-2/FR-3: Move a reservation whose tour, language, or time changed.
+    
+    Returns: notification_events
+    """
+    events = []
     conn.execute(
         text("UPDATE reservations SET schedule_id = NULL WHERE id = :id"),
         {"id": reservation_id},
     )
 
-    new_schedule_id = find_or_create_schedule(conn, new_tour_id, new_language_code, new_event_start, new_event_end)
+    new_schedule_id, schedule_events = find_or_create_schedule(
+        conn, new_tour_id, new_language_code, new_event_start, new_event_end
+    )
+    events.extend(schedule_events)
 
     conn.execute(
         text("UPDATE reservations SET schedule_id = :sid WHERE id = :id"),
         {"sid": new_schedule_id, "id": reservation_id},
     )
 
-    create_notification(
-        conn,
-        event_type="RESERVATION_MOVED",
-        schedule_id=new_schedule_id,
-        guide_id=None,
-        message=(
-            f"Reservation {reservation_id} moved to schedule {new_schedule_id}"
-            + (f" from schedule {old_schedule_id}" if old_schedule_id else "")
-        ),
-    )
+    # Get guide info for notification
+    new_schedule = conn.execute(
+        text("SELECT guide_id FROM schedule WHERE id = :id"),
+        {"id": new_schedule_id},
+    ).fetchone()
+
+    events.append({
+        "type": "SCHEDULE_CHANGED",
+        "schedule_id": new_schedule_id,
+        "event_type": "RESERVATION_MOVED",
+        "reason": f"Reservation {reservation_id} moved to this schedule" + (f" from schedule {old_schedule_id}" if old_schedule_id else ""),
+        "affected_guide_id": new_schedule[0] if new_schedule and new_schedule[0] else None,
+    })
 
     if old_schedule_id is not None:
-        cleanup_empty_schedule(conn, old_schedule_id)
+        cleanup_events = cleanup_empty_schedule(conn, old_schedule_id)
+        events.extend(cleanup_events)
+    
+    return events
 
 
 def handle_reservation_cancellation(
     conn,
     reservation_id: int,
     old_schedule_id: int,
-) -> None:
-    """FR-4: Clean up after a reservation is cancelled."""
-    create_notification(
-        conn,
-        event_type="RESERVATION_CANCELLED",
-        schedule_id=old_schedule_id,
-        guide_id=None,
-        message=f"Reservation {reservation_id} cancelled and removed from schedule {old_schedule_id}",
-    )
-    cleanup_empty_schedule(conn, old_schedule_id)
+) -> list[dict]:
+    """FR-4: Clean up after a reservation is cancelled.
+    
+    Returns: notification_events
+    """
+    events = []
+    # Get guide info for notification
+    schedule = conn.execute(
+        text("SELECT guide_id FROM schedule WHERE id = :id"),
+        {"id": old_schedule_id},
+    ).fetchone()
+
+    events.append({
+        "type": "SCHEDULE_CHANGED",
+        "schedule_id": old_schedule_id,
+        "event_type": "RESERVATION_CANCELLED",
+        "reason": f"Reservation {reservation_id} was cancelled and removed",
+        "affected_guide_id": schedule[0] if schedule and schedule[0] else None,
+    })
+    
+    cleanup_events = cleanup_empty_schedule(conn, old_schedule_id)
+    events.extend(cleanup_events)
+    
+    return events
 
 
 def handle_guide_cancellation(conn, schedule_id: int) -> dict:
-    """FR-5: Unassign a guide and attempt to find a replacement."""
+    """FR-5: Unassign a guide and attempt to find a replacement.
+    
+    Returns: result dict with _notification_events list
+    """
+    events = []
     schedule = conn.execute(
         text(
             """
@@ -214,7 +245,12 @@ def handle_guide_cancellation(conn, schedule_id: int) -> dict:
     sched = dict(schedule._mapping)
     old_guide_id = sched["guide_id"]
     if old_guide_id is None:
-        return {"schedule_id": schedule_id, "status": sched["status"], "message": "No guide was assigned"}
+        return {
+            "schedule_id": schedule_id,
+            "status": sched["status"],
+            "message": "No guide was assigned",
+            "_notification_events": events,
+        }
 
     conn.execute(
         text("UPDATE schedule SET guide_id = NULL, status = 'UNASSIGNED' WHERE id = :id"),
@@ -231,23 +267,18 @@ def handle_guide_cancellation(conn, schedule_id: int) -> dict:
         ),
         {"schedule_id": schedule_id, "guide_id": old_guide_id},
     )
-    create_notification(
-        conn,
-        event_type="GUIDE_REASSIGNED",
-        schedule_id=schedule_id,
-        guide_id=old_guide_id,
-        message=f"Guide {old_guide_id} removed from schedule {schedule_id}",
-    )
+    events.append({
+        "type": "GUIDE_UNASSIGNED",
+        "schedule_id": schedule_id,
+        "guide_id": old_guide_id,
+        "reason": "Guide requested cancellation",
+    })
 
     try:
         result = auto_assign_guide(conn, schedule_id, commit=False)
-        create_notification(
-            conn,
-            event_type="GUIDE_ASSIGNED",
-            schedule_id=schedule_id,
-            guide_id=result["guide_id"],
-            message=f"Replacement guide {result['guide_name']} assigned to schedule {schedule_id}",
-        )
+        # Extract notification event from result
+        if "_notification_event" in result:
+            events.append(result["_notification_event"])
         conn.commit()
         return {
             "schedule_id": schedule_id,
@@ -255,15 +286,12 @@ def handle_guide_cancellation(conn, schedule_id: int) -> dict:
             "new_guide_id": result["guide_id"],
             "new_guide_name": result["guide_name"],
             "status": "ASSIGNED",
+            "_notification_events": events,
         }
     except UnassignableError as exc:
-        create_notification(
-            conn,
-            event_type="SCHEDULE_UNASSIGNABLE",
-            schedule_id=schedule_id,
-            guide_id=None,
-            message=f"No replacement guide for schedule {schedule_id}: {', '.join(exc.reasons)}",
-        )
+        # Extract notification event from exception
+        if hasattr(exc, "notification_event"):
+            events.append(exc.notification_event)
         conn.commit()
         return {
             "schedule_id": schedule_id,
@@ -271,4 +299,5 @@ def handle_guide_cancellation(conn, schedule_id: int) -> dict:
             "new_guide_id": None,
             "status": "UNASSIGNABLE",
             "reasons": exc.reasons,
+            "_notification_events": events,
         }

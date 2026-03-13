@@ -21,7 +21,47 @@ FIREBASE_SERVICE_ACCOUNT_JSON={...}
 # Optional local-only auth bypass:
 # ENV=development
 # AUTH_BYPASS=true
+
+# Email configuration (for notifications)
+EMAIL_ENABLED=true
+RESEND_API_KEY=re_your_api_key_here  # Get from https://resend.com/api-keys
+EMAIL_FROM=onboarding@resend.dev      # Use this for testing; verify your domain for production
+EMAIL_FROM_NAME=Oceanarium Scheduling System
+FRONTEND_URL=http://localhost:5173
 ```
+
+### Email Setup (for Notifications)
+
+1. **Sign up for Resend.com**: https://resend.com
+2. **Get your API key**: https://resend.com/api-keys
+3. **Add to `.env`**: Set `RESEND_API_KEY` with your API key
+4. **Testing**: Use `EMAIL_FROM=onboarding@resend.dev` (Resend's test domain)
+5. **Production**: Verify your domain at https://resend.com/domains, then update `EMAIL_FROM` to use your domain (e.g., `notifications@yourdomain.com`)
+
+#### Testing Email Delivery
+
+Once your backend is running, test email delivery using the test endpoint:
+
+```bash
+# Test system email
+curl -X POST "http://127.0.0.1:8000/notifications/test-email?to_email=YOUR_EMAIL@gmail.com&template_type=system"
+
+# Test guide assignment template
+curl -X POST "http://127.0.0.1:8000/notifications/test-email?to_email=YOUR_EMAIL@gmail.com&template_type=guide_assignment"
+
+# Test admin urgent alert template
+curl -X POST "http://127.0.0.1:8000/notifications/test-email?to_email=YOUR_EMAIL@gmail.com&template_type=admin_alert"
+```
+
+**Check backend logs** to see detailed email sending information:
+- `📧 send_email() called - To: ...`
+- `🚀 Sending email via Resend API...`
+- `✅ Email sent successfully! Resend Email ID: ...`
+
+**Note:** If emails don't appear in your inbox, check:
+1. Spam/Junk folder
+2. Resend dashboard (https://resend.com/emails) to verify delivery status
+3. Backend logs for any errors
 
 Run the server:
 
@@ -218,6 +258,14 @@ Legacy `/bookings` endpoints are still available as deprecated aliases for backw
 | GET | `/tours` | `routes/tour.py` | List all tours |
 | GET | `/schedules` | `routes/schedule.py` | List calendar events from schedule table (optional: `start_date`, `end_date`, `status`) |
 | GET | `/notifications` | `routes/notification.py` | List recent notifications (last 10) |
+| GET | `/notifications/{id}` | `routes/notification.py` | Get full notification detail (marks as read) |
+| PATCH | `/notifications/{id}/read` | `routes/notification.py` | Mark a notification as read |
+| PATCH | `/notifications/read-all` | `routes/notification.py` | Mark all notifications as read for current user |
+| GET | `/notifications/summary` | `routes/notification.py` | Get notification counts by priority and type |
+| GET | `/notifications/preferences` | `routes/notification.py` | Get user notification channel preferences |
+| PUT | `/notifications/preferences` | `routes/notification.py` | Update notification channel preferences per event type |
+| POST | `/notifications/retry-failed` | `routes/notification.py` | Retry failed email notifications (admin only) |
+| POST | `/notifications/test-email` | `routes/notification.py` | **TEST ENDPOINT:** Send test email (params: `to_email`, `template_type`) |
 | POST | `/issues` | `routes/issue.py` | Report a new issue |
 | GET | `/stats` | `routes/stats.py` | Dashboard stats for today |
 | POST | `/schedules` | `routes/schedule.py` | Create a schedule |

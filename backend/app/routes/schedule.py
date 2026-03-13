@@ -11,6 +11,8 @@ from ..services import guide_assignment as guide_assignment_service
 from ..services import rescheduling as rescheduling_service
 from ..services import schedule as schedule_service
 from ..services.error_handlers import handle_domain_exception
+from ..services.exceptions import UnassignableError
+from ..services.notification_dispatcher import dispatch_events
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +69,19 @@ def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
 @router.post("/{schedule_id}/assign")
 def auto_assign(schedule_id: int, conn=Depends(get_db)):
     try:
-        return guide_assignment_service.auto_assign_guide(conn, schedule_id)
+        result = guide_assignment_service.auto_assign_guide(conn, schedule_id)
+        
+        # Dispatch notification if event exists
+        if "_notification_event" in result:
+            dispatch_events(conn, [result["_notification_event"]])
+            del result["_notification_event"]
+        
+        return result
+    except UnassignableError as e:
+        # Dispatch notification from exception if event exists
+        if hasattr(e, "notification_event"):
+            dispatch_events(conn, [e.notification_event])
+        return handle_domain_exception(e)
     except Exception as e:
         return handle_domain_exception(e)
 
@@ -75,12 +89,19 @@ def auto_assign(schedule_id: int, conn=Depends(get_db)):
 @router.put("/{schedule_id}/assign")
 def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(get_db)):
     try:
-        return guide_assignment_service.manual_assign_guide(
+        result = guide_assignment_service.manual_assign_guide(
             conn,
             schedule_id,
             payload.guide_id,
             assigned_by="admin",
         )
+        
+        # Dispatch notification if event exists
+        if "_notification_event" in result:
+            dispatch_events(conn, [result["_notification_event"]])
+            del result["_notification_event"]
+        
+        return result
     except Exception as e:
         return handle_domain_exception(e)
 
@@ -88,6 +109,13 @@ def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(g
 @router.delete("/{schedule_id}/guide")
 def cancel_guide(schedule_id: int, conn=Depends(get_db)):
     try:
-        return rescheduling_service.handle_guide_cancellation(conn, schedule_id)
+        result = rescheduling_service.handle_guide_cancellation(conn, schedule_id)
+        
+        # Dispatch notifications if events exist
+        if "_notification_events" in result:
+            dispatch_events(conn, result["_notification_events"])
+            del result["_notification_events"]
+        
+        return result
     except Exception as e:
         return handle_domain_exception(e)
