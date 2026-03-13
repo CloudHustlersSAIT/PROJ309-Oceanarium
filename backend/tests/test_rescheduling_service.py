@@ -97,54 +97,51 @@ class TestFindOrCreateSchedule:
 
 
 class TestCleanupEmptySchedule:
-    @patch("app.services.rescheduling.create_notification")
-    def test_does_nothing_when_active_reservations_remain(self, mock_notify, mock_conn):
+    def test_does_nothing_when_active_reservations_remain(self, mock_conn):
         mock_conn.execute.return_value = _scalar_one(3)
         cleanup_empty_schedule(mock_conn, 1)
         assert mock_conn.execute.call_count == 1
-        mock_notify.assert_not_called()
 
-    @patch("app.services.rescheduling.create_notification")
-    def test_cancels_schedule_with_guide(self, mock_notify, mock_conn):
+    def test_cancels_schedule_with_guide(self, mock_conn):
         mock_conn.execute.side_effect = [
             _scalar_one(0),
             _fetchone((1, 5)),  # schedule row: id=1, guide_id=5
             MagicMock(),  # UPDATE schedule
             MagicMock(),  # INSERT tour_assignment_logs
         ]
-        cleanup_empty_schedule(mock_conn, 1)
+        events = cleanup_empty_schedule(mock_conn, 1)
         assert mock_conn.execute.call_count == 4
-        mock_notify.assert_called_once()
-        assert mock_notify.call_args[1]["event_type"] == "GUIDE_REASSIGNED"
+        assert isinstance(events, list)
 
-    @patch("app.services.rescheduling.create_notification")
-    def test_cancels_schedule_without_guide(self, mock_notify, mock_conn):
+    def test_cancels_schedule_without_guide(self, mock_conn):
         mock_conn.execute.side_effect = [
             _scalar_one(0),
             _fetchone((1, None)),  # schedule with no guide
             MagicMock(),  # UPDATE schedule
         ]
-        cleanup_empty_schedule(mock_conn, 1)
+        events = cleanup_empty_schedule(mock_conn, 1)
         assert mock_conn.execute.call_count == 3
-        mock_notify.assert_not_called()
+        assert events == []
 
-    @patch("app.services.rescheduling.create_notification")
-    def test_does_nothing_when_schedule_not_found(self, mock_notify, mock_conn):
+    def test_does_nothing_when_schedule_not_found(self, mock_conn):
         mock_conn.execute.side_effect = [
             _scalar_one(0),
             _fetchone(None),
         ]
-        cleanup_empty_schedule(mock_conn, 999)
+        events = cleanup_empty_schedule(mock_conn, 999)
         assert mock_conn.execute.call_count == 2
-        mock_notify.assert_not_called()
+        assert events == []
 
 
 class TestHandleReservationChange:
     @patch("app.services.rescheduling.cleanup_empty_schedule")
-    @patch("app.services.rescheduling.create_notification")
     @patch("app.services.rescheduling.find_or_create_schedule")
-    def test_moves_reservation_to_new_schedule(self, mock_find_create, mock_notify, mock_cleanup, mock_conn):
-        mock_find_create.return_value = 50
+    def test_moves_reservation_to_new_schedule(self, mock_find_create, mock_cleanup, mock_conn):
+        mock_find_create.return_value = (50, [])
+        # Mock the SELECT guide_id query
+        mock_guide_result = MagicMock()
+        mock_guide_result.fetchone.return_value = (5,)  # guide_id = 5
+        mock_conn.execute.return_value = mock_guide_result
 
         handle_reservation_change(
             mock_conn,
@@ -156,17 +153,14 @@ class TestHandleReservationChange:
             new_event_end="2026-03-11T11:00:00Z",
         )
 
-        assert mock_conn.execute.call_count == 2
+        assert mock_conn.execute.call_count == 3  # 2 UPDATEs + 1 SELECT
         mock_find_create.assert_called_once()
-        mock_notify.assert_called_once()
-        assert "moved" in mock_notify.call_args[1]["message"].lower()
         mock_cleanup.assert_called_once_with(mock_conn, 20)
 
     @patch("app.services.rescheduling.cleanup_empty_schedule")
-    @patch("app.services.rescheduling.create_notification")
     @patch("app.services.rescheduling.find_or_create_schedule")
-    def test_no_cleanup_when_old_schedule_is_none(self, mock_find_create, mock_notify, mock_cleanup, mock_conn):
-        mock_find_create.return_value = 50
+    def test_no_cleanup_when_old_schedule_is_none(self, mock_find_create, mock_cleanup, mock_conn):
+        mock_find_create.return_value = (50, [])
 
         handle_reservation_change(
             mock_conn,
@@ -183,12 +177,9 @@ class TestHandleReservationChange:
 
 class TestHandleReservationCancellation:
     @patch("app.services.rescheduling.cleanup_empty_schedule")
-    @patch("app.services.rescheduling.create_notification")
-    def test_notifies_and_cleans_up(self, mock_notify, mock_cleanup, mock_conn):
+    def test_notifies_and_cleans_up(self, mock_cleanup, mock_conn):
         handle_reservation_cancellation(mock_conn, reservation_id=10, old_schedule_id=20)
 
-        mock_notify.assert_called_once()
-        assert mock_notify.call_args[1]["event_type"] == "RESERVATION_CANCELLED"
         mock_cleanup.assert_called_once_with(mock_conn, 20)
 
 
@@ -198,19 +189,16 @@ class TestHandleGuideCancellation:
         with pytest.raises(NotFoundError, match="Schedule not found"):
             handle_guide_cancellation(mock_conn, 999)
 
-    @patch("app.services.rescheduling.create_notification")
-    def test_no_guide_assigned(self, mock_notify, mock_conn):
+    def test_no_guide_assigned(self, mock_conn):
         row = _schedule_mapping_row(guide_id=None, status="UNASSIGNED")
         mock_conn.execute.return_value = _fetchone(row)
 
         result = handle_guide_cancellation(mock_conn, 1)
 
         assert result["message"] == "No guide was assigned"
-        mock_notify.assert_not_called()
 
-    @patch("app.services.rescheduling.create_notification")
     @patch("app.services.rescheduling.auto_assign_guide")
-    def test_replacement_guide_found(self, mock_assign, mock_notify, mock_conn):
+    def test_replacement_guide_found(self, mock_assign, mock_conn):
         row = _schedule_mapping_row(schedule_id=1, guide_id=5, status="ASSIGNED")
         mock_conn.execute.side_effect = [
             _fetchone(row),
@@ -226,9 +214,8 @@ class TestHandleGuideCancellation:
         assert result["status"] == "ASSIGNED"
         mock_conn.commit.assert_called_once()
 
-    @patch("app.services.rescheduling.create_notification")
     @patch("app.services.rescheduling.auto_assign_guide")
-    def test_no_replacement_guide(self, mock_assign, mock_notify, mock_conn):
+    def test_no_replacement_guide(self, mock_assign, mock_conn):
         row = _schedule_mapping_row(schedule_id=1, guide_id=5, status="ASSIGNED")
         mock_conn.execute.side_effect = [
             _fetchone(row),

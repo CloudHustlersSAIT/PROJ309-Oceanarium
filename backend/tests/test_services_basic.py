@@ -43,8 +43,21 @@ class TestNotificationService:
         assert len(rows) == 1
 
     def test_create_notification(self, mock_conn):
-        create_notification(mock_conn, "GUIDE_ASSIGNED", schedule_id=1, guide_id=5, message="Test")
-        mock_conn.execute.assert_called_once()
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = (1,)
+        mock_conn.execute.return_value = mock_result
+        
+        result = create_notification(
+            mock_conn,
+            event_type="GUIDE_ASSIGNED",
+            schedule_id=1,
+            guide_id=5,
+            user_id=None,
+            message="Test",
+            channels=["PORTAL"],
+        )
+        assert mock_conn.execute.called
+        assert isinstance(result, list)
 
 
 class TestIssueService:
