@@ -199,7 +199,7 @@ export async function getTours() {
 
 // Get all notifications
 export async function getNotifications() {
-  return fetchAPI('/notifications')
+  return fetchAPI('/notifications', { requiresAuth: true })
 }
 
 // Get dashboard stats
