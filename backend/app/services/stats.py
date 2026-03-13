@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -56,14 +55,14 @@ def get_stats(conn):
 _VALID_PERIODS = {"all_time", "this_month", "this_week", "this_day"}
 
 
-def _normalize_period(period: Optional[str]) -> str:
+def _normalize_period(period: str | None) -> str:
     normalized = str(period or "all_time").strip().lower()
     if normalized not in _VALID_PERIODS:
         normalized = "all_time"
     return normalized
 
 
-def _resolve_window(selected_date: Optional[date], period: Optional[str]) -> tuple[Optional[date], date, str]:
+def _resolve_window(selected_date: date | None, period: str | None) -> tuple[date | None, date, str]:
     anchor_date = selected_date or date.today()
     normalized_period = _normalize_period(period)
 
@@ -79,7 +78,7 @@ def _resolve_window(selected_date: Optional[date], period: Optional[str]) -> tup
     return start_date, anchor_date, normalized_period
 
 
-def _to_float(value) -> Optional[float]:
+def _to_float(value) -> float | None:
     if value is None:
         return None
     if isinstance(value, Decimal):
@@ -91,7 +90,7 @@ def _to_int(value) -> int:
     return int(value or 0)
 
 
-def get_admin_dashboard(conn, selected_date: Optional[date] = None, period: Optional[str] = None):
+def get_admin_dashboard(conn, selected_date: date | None = None, period: str | None = None):
     start_date, end_date, normalized_period = _resolve_window(selected_date, period)
 
     kpi_row = (

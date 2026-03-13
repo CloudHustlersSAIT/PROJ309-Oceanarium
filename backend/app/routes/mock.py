@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
 import ipaddress
 import os
 from urllib.parse import urlsplit
@@ -24,7 +23,7 @@ _LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 router = APIRouter(prefix="/mock", tags=["Mock Poller"])
 
 
-def _is_loopback_ip(ip_value: Optional[str]) -> bool:
+def _is_loopback_ip(ip_value: str | None) -> bool:
     if not ip_value:
         return False
 
@@ -38,7 +37,7 @@ def _is_loopback_ip(ip_value: Optional[str]) -> bool:
         return False
 
 
-def _get_originating_ip(request: Request) -> Optional[str]:
+def _get_originating_ip(request: Request) -> str | None:
     x_forwarded_for = request.headers.get("x-forwarded-for")
     if x_forwarded_for:
         return x_forwarded_for.split(",", 1)[0].strip()
@@ -57,7 +56,7 @@ def _get_originating_ip(request: Request) -> Optional[str]:
     return None
 
 
-def _get_request_host(request: Request) -> Optional[str]:
+def _get_request_host(request: Request) -> str | None:
     host_header = request.headers.get("host")
     if not host_header:
         return None
@@ -101,7 +100,7 @@ def run_mock_poller(
     req: MockRunRequest,
     _guard: None = Depends(_require_dev_or_localhost),
 ) -> MockRunResponse:
-    run_id: Optional[int] = None
+    run_id: int | None = None
 
     try:
         with engine.begin() as conn:

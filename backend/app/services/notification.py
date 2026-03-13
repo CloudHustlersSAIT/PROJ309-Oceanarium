@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 import json
 import logging
 
@@ -20,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_notification_preferences(
-    conn, user_id: Optional[int] = None, guide_id: Optional[int] = None, event_type: str = None
+    conn, user_id: int | None = None, guide_id: int | None = None, event_type: str = None
 ) -> dict:
     """Get notification preferences for a user or guide.
 
@@ -60,8 +59,8 @@ def create_notification(
     conn,
     event_type: str,
     schedule_id: int,
-    guide_id: Optional[int],
-    user_id: Optional[int],
+    guide_id: int | None,
+    user_id: int | None,
     message: str,
     channels: list[str],
     priority: str = "normal",
@@ -109,7 +108,7 @@ def create_notification(
 
 
 def send_pending_notification(
-    conn, notification_id: int, email: str = None, subject: str = None, text: str = None, html: str = None
+    conn, notification_id: int, email: str = None, subject: str = None, body_text: str = None, html: str = None
 ) -> bool:
     """Send a pending notification based on its channel.
 
@@ -138,7 +137,7 @@ def send_pending_notification(
         return True
 
     elif channel == "EMAIL":
-        if not email or not subject or not text:
+        if not email or not subject or not body_text:
             logger.error(f"Missing email parameters for notification {notification_id}")
             conn.execute(
                 text("UPDATE notifications SET status = 'FAILED' WHERE id = :id"),
@@ -146,7 +145,7 @@ def send_pending_notification(
             )
             return False
 
-        success = send_email(email, subject, text, html)
+        success = send_email(email, subject, body_text, html)
 
         if success:
             conn.execute(
@@ -414,7 +413,7 @@ def notify_schedule_change(
     schedule_id: int,
     change_type: str,
     change_details: str,
-    affected_guide_id: Optional[int] = None,
+    affected_guide_id: int | None = None,
 ) -> None:
     """Send general schedule change notifications to guide and admins."""
     schedule = fetch_schedule_details(conn, schedule_id)
@@ -497,7 +496,7 @@ def retry_failed_email_notification(conn, notification_id: int) -> bool:
     return False
 
 
-def list_notifications(conn, user_id: Optional[int] = None, guide_id: Optional[int] = None, filters: dict = None):
+def list_notifications(conn, user_id: int | None = None, guide_id: int | None = None, filters: dict = None):
     """List notifications for a user or guide with optional filters."""
     filters = filters or {}
 

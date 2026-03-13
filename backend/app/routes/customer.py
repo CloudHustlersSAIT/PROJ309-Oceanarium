@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -18,13 +17,13 @@ class CustomerCreate(BaseModel):
     first_name: str
     last_name: str
     email: str
-    clorian_client_id: Optional[str] = None
+    clorian_client_id: str | None = None
 
 
 class CustomerUpdate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[str] = None
+    first_name: str | None = None
+    last_name: str | None = None
+    email: str | None = None
 
 
 @router.get("")

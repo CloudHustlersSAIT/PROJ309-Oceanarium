@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
 import contextlib
 import logging
 
@@ -17,7 +16,7 @@ def find_matching_schedule(
     tour_id: int,
     language_code: str,
     event_start_datetime,
-) -> Optional[int]:
+) -> int | None:
     """FR-6: Find an active schedule matching tour + language + timeslot."""
     row = conn.execute(
         text(
@@ -134,7 +133,7 @@ def cleanup_empty_schedule(conn, schedule_id: int) -> dict:
 def handle_reservation_change(
     conn,
     reservation_id: int,
-    old_schedule_id: Optional[int],
+    old_schedule_id: int | None,
     new_tour_id: int,
     new_language_code: str,
     new_event_start,

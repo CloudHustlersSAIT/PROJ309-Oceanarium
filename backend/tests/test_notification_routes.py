@@ -67,12 +67,7 @@ async def test_trigger_guide_assigned_success(client):
             mock_svc.notify_guide_assignment.return_value = None
 
             response = await client.post(
-                "/notifications/guide-assigned",
-                json={
-                    "schedule_id": 1,
-                    "guide_id": 5,
-                    "assignment_type": "AUTO"
-                }
+                "/notifications/guide-assigned", json={"schedule_id": 1, "guide_id": 5, "assignment_type": "AUTO"}
             )
 
         assert response.status_code == 200
@@ -92,20 +87,16 @@ async def test_trigger_guide_assigned_success(client):
 @pytest.mark.asyncio
 async def test_trigger_guide_assigned_auth_required(client):
     """Test POST /notifications/guide-assigned requires authentication.
-    
+
     Note: This test is skipped when AUTH_BYPASS=true (test environment default).
     """
     import os
+
     if os.getenv("AUTH_BYPASS", "false").lower() == "true":
         pytest.skip("AUTH_BYPASS is enabled in test environment")
-    
+
     response = await client.post(
-        "/notifications/guide-assigned",
-        json={
-            "schedule_id": 1,
-            "guide_id": 5,
-            "assignment_type": "AUTO"
-        }
+        "/notifications/guide-assigned", json={"schedule_id": 1, "guide_id": 5, "assignment_type": "AUTO"}
     )
 
     # Should fail without auth
@@ -129,8 +120,8 @@ async def test_trigger_guide_assigned_invalid_assignment_type(client):
             json={
                 "schedule_id": 1,
                 "guide_id": 5,
-                "assignment_type": "INVALID"  # Should only accept AUTO or MANUAL
-            }
+                "assignment_type": "INVALID",  # Should only accept AUTO or MANUAL
+            },
         )
 
         # Should fail validation
@@ -156,12 +147,7 @@ async def test_trigger_guide_unassigned_success(client):
 
             response = await client.post(
                 "/notifications/guide-unassigned",
-                json={
-                    "schedule_id": 1,
-                    "guide_id": 5,
-                    "reason": "Guide cancellation",
-                    "replacement_guide_id": 7
-                }
+                json={"schedule_id": 1, "guide_id": 5, "reason": "Guide cancellation", "replacement_guide_id": 7},
             )
 
         assert response.status_code == 200
@@ -198,8 +184,8 @@ async def test_trigger_schedule_unassignable_success(client):
                 json={
                     "schedule_id": 1,
                     "reasons": ["No guides available", "All certified guides assigned"],
-                    "attempted_guides_count": 12
-                }
+                    "attempted_guides_count": 12,
+                },
             )
 
         assert response.status_code == 200
@@ -237,8 +223,8 @@ async def test_trigger_schedule_changed_success(client):
                     "schedule_id": 1,
                     "change_type": "RESERVATION_CANCELLED",
                     "change_details": "Reservation #456 cancelled - 2 tickets removed",
-                    "affected_guide_id": 5
-                }
+                    "affected_guide_id": 5,
+                },
             )
 
         assert response.status_code == 200
@@ -275,12 +261,7 @@ async def test_trigger_endpoint_handles_service_error(client):
             mock_handler.return_value = {"error": "Failed to send notification"}
 
             response = await client.post(
-                "/notifications/guide-assigned",
-                json={
-                    "schedule_id": 1,
-                    "guide_id": 5,
-                    "assignment_type": "AUTO"
-                }
+                "/notifications/guide-assigned", json={"schedule_id": 1, "guide_id": 5, "assignment_type": "AUTO"}
             )
 
         # Should handle error gracefully
@@ -407,13 +388,7 @@ async def test_update_user_preferences(client):
     try:
         response = await client.put(
             "/notifications/preferences",
-            json=[
-                {
-                    "event_type": "GUIDE_ASSIGNED",
-                    "email_enabled": True,
-                    "portal_enabled": True
-                }
-            ]
+            json=[{"event_type": "GUIDE_ASSIGNED", "email_enabled": True, "portal_enabled": True}],
         )
 
         assert response.status_code in [200, 422, 500]
@@ -490,7 +465,7 @@ async def test_get_notifications_as_guide_with_guide_id(client):
                     "read_at": None,
                     "priority": "urgent",
                     "action_required": True,
-                    "actions_json": '[{"label": "View", "url": "/test", "primary": true}]'
+                    "actions_json": '[{"label": "View", "url": "/test", "primary": true}]',
                 }
             ]
 
@@ -527,7 +502,7 @@ async def test_get_notifications_with_invalid_actions_json(client):
                     "read_at": None,
                     "priority": "normal",
                     "action_required": False,
-                    "actions_json": "invalid json"
+                    "actions_json": "invalid json",
                 }
             ]
 

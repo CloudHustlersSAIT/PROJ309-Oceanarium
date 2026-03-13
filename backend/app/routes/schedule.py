@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
 import logging
 from datetime import date, datetime
 
@@ -22,23 +21,23 @@ router = APIRouter(prefix="/schedules", tags=["Schedules"])
 
 class ScheduleCreate(BaseModel):
     # guide_id is optional because guide assignment can happen later.
-    guide_id: Optional[int] = None
+    guide_id: int | None = None
     tour_id: int
     language_code: str
     event_start_datetime: datetime
     event_end_datetime: datetime
-    status: Optional[str] = "CONFIRMED"
+    status: str | None = "CONFIRMED"
 
 
 @router.get("")
 def read_schedules(
-    start_date: Optional[date] = Query(default=None, description="Filter events ending on/after this date (YYYY-MM-DD)"),
-    end_date: Optional[date] = Query(
+    start_date: date | None = Query(default=None, description="Filter events ending on/after this date (YYYY-MM-DD)"),
+    end_date: date | None = Query(
         default=None,
         description="Filter events starting before next day of this date (YYYY-MM-DD)",
     ),
-    status: Optional[str] = Query(default=None, description="Filter by schedule status (case-insensitive exact match)"),
-    guide_id: Optional[int] = Query(default=None, description="Filter schedules by guide id"),
+    status: str | None = Query(default=None, description="Filter by schedule status (case-insensitive exact match)"),
+    guide_id: int | None = Query(default=None, description="Filter schedules by guide id"),
     conn=Depends(get_db),
 ):
     # Thin route: delegate filtering/query logic to service layer.
@@ -56,7 +55,7 @@ def read_schedules(
 
 class ManualAssignRequest(BaseModel):
     guide_id: int
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 @router.post("")

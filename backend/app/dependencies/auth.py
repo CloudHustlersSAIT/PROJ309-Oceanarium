@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
 import os
 
 from fastapi import Header, HTTPException
@@ -22,7 +21,7 @@ def _build_development_bypass_claims() -> dict:
     }
 
 
-def _extract_bearer_token(authorization: Optional[str]) -> str:
+def _extract_bearer_token(authorization: str | None) -> str:
     if not authorization:
         raise HTTPException(
             status_code=401,
@@ -46,7 +45,7 @@ def _extract_bearer_token(authorization: Optional[str]) -> str:
 
 
 def require_authenticated_user(
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
 ) -> dict:
     """
     Returns decoded Firebase claims for an authenticated user.
