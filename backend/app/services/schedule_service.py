@@ -49,8 +49,9 @@ def get_or_create_schedule(
 
     if existing:
         return existing[0]
-    
+
     # Step 2: Create a new schedule if none exists
+    try:
         row = conn.execute(
             text(
                 """
@@ -71,3 +72,36 @@ def get_or_create_schedule(
         ).fetchone()
 
         return row[0]
+
+    except Exception:
+        """
+        If another process created the schedule between the SELECT and INSERT,
+        we safely re-fetch the existing schedule instead of failing.
+        This protects against race conditions.
+        """
+        logger.warning(
+            "Schedule insert race detected. Attempting to fetch existing schedule."
+        )
+
+        existing = conn.execute(
+            text(
+                """
+                SELECT id
+                FROM schedule
+                WHERE tour_id = :tour_id
+                  AND LOWER(language_code) = LOWER(:language_code)
+                  AND event_start_datetime = :event_start
+                LIMIT 1
+                """
+            ),
+            {
+                "tour_id": tour_id,
+                "language_code": language,
+                "event_start": event_start_datetime,
+            },
+        ).fetchone()
+
+        if existing:
+            return existing[0]
+
+        raise
