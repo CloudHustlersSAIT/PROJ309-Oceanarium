@@ -16,6 +16,9 @@ from .firebase_auth import initialize_firebase
 from .routes.auth import router as auth_router
 from .routes.customer import router as customer_router
 from .routes.guide import router as guide_router
+from .routes.guide_availability import router as guide_availability_router
+from .routes.guide_dashboard import router as guide_dashboard_router
+from .routes.guide_languages import router as guide_languages_router
 from .routes.guide_requests import router as guide_requests_router
 from .routes.health import router as health_router
 from .routes.issue import router as issue_router
