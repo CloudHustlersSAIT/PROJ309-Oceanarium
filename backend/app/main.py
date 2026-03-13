@@ -14,6 +14,7 @@ from app.services.poller_listener import process_staging_rows
 from .firebase_auth import initialize_firebase
 from .routes.auth import router as auth_router
 from .routes.guide import router as guide_router
+from .routes.guide_requests import router as guide_requests_router
 from .routes.health import router as health_router
 from .routes.issue import router as issue_router
 from .routes.mock import router as mock_router
@@ -49,6 +50,7 @@ app = FastAPI(title="My Project API", lifespan=lifespan)
 app.include_router(health_router)
 app.include_router(reservation_router)
 app.include_router(guide_router)
+app.include_router(guide_requests_router)
 app.include_router(tour_router)
 app.include_router(schedule_router)
 app.include_router(notification_router)

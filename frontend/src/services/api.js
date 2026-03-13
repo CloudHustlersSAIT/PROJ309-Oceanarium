@@ -9,7 +9,10 @@ const RESERVATION_LANGUAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 //Author Joao Santiago
 async function getAuthorizationHeader() {
   try {
-    const { getIdToken } = useAuth()
+    const { getIdToken, isDevelopmentBypassSession } = useAuth()
+
+    if (isDevelopmentBypassSession()) return {}
+
     const token = await getIdToken()
 
     if (!token) return {} // No token available, return empty headers
@@ -141,7 +144,8 @@ async function fetchAPI(endpoint, options = {}) {
 
   // Fail early for authenticated requests when no token is available,
   // so callers can prompt login instead of sending an unauthenticated request.
-  if (requiresAuth && !authHeaders.Authorization) {
+  const { isDevelopmentBypassSession } = useAuth()
+  if (requiresAuth && !authHeaders.Authorization && !isDevelopmentBypassSession()) {
     throw new Error('Authentication required. Please sign in to continue.')
   }
   const response = await fetch(`${VITE_API_BASE_URL}${endpoint}`, {
@@ -362,5 +366,62 @@ export async function reportIssue(description) {
     method: 'POST',
     requiresAuth: true,
     body: JSON.stringify({ description }),
+  })
+}
+
+export async function getGuideSwapRequests(guideId) {
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to load swap requests.')
+  }
+
+  return fetchAPI(`/guide/swap-requests?guide_id=${normalizedGuideId}`)
+}
+
+export async function getGuideSwapCandidates(scheduleId) {
+  const normalizedScheduleId = Number(scheduleId)
+  if (!Number.isInteger(normalizedScheduleId) || normalizedScheduleId <= 0) {
+    throw new Error('Schedule ID is required to load swap candidates.')
+  }
+
+  return fetchAPI(`/guide/swap-candidates?schedule_id=${normalizedScheduleId}`)
+}
+
+export async function createGuideSwapRequest(scheduleId, guideId) {
+  const normalizedScheduleId = Number(scheduleId)
+  const normalizedGuideId = Number(guideId)
+
+  if (!Number.isInteger(normalizedScheduleId) || normalizedScheduleId <= 0) {
+    throw new Error('Schedule ID is required to create a swap request.')
+  }
+
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to create a swap request.')
+  }
+
+  return fetchAPI(`/guide/swap-request?schedule_id=${normalizedScheduleId}&guide_id=${normalizedGuideId}`, {
+    method: 'POST',
+  })
+}
+
+export async function acceptGuideSwapRequest(swapRequestId) {
+  const normalizedSwapRequestId = Number(swapRequestId)
+  if (!Number.isInteger(normalizedSwapRequestId) || normalizedSwapRequestId <= 0) {
+    throw new Error('Swap request ID is required to accept a request.')
+  }
+
+  return fetchAPI(`/guide/swap-accept?swap_request_id=${normalizedSwapRequestId}`, {
+    method: 'POST',
+  })
+}
+
+export async function rejectGuideSwapRequest(swapRequestId) {
+  const normalizedSwapRequestId = Number(swapRequestId)
+  if (!Number.isInteger(normalizedSwapRequestId) || normalizedSwapRequestId <= 0) {
+    throw new Error('Swap request ID is required to reject a request.')
+  }
+
+  return fetchAPI(`/guide/swap-reject?swap_request_id=${normalizedSwapRequestId}`, {
+    method: 'POST',
   })
 }

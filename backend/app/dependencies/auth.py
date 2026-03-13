@@ -6,10 +6,23 @@ from fastapi import Header, HTTPException
 
 from ..firebase_auth import verify_firebase_token
 
-# Default to production to ensure the safest behavior when ENV is not explicitly set.
-ENV = os.getenv("ENV", "production").lower()
-# Bypass auth only when explicitly opted in (AUTH_BYPASS=true) AND in development mode.
-AUTH_BYPASS = os.getenv("AUTH_BYPASS", "false").lower() == "true"
+def _is_development_bypass_enabled() -> bool:
+    env = os.getenv("ENV", "production").lower()
+    auth_bypass = os.getenv("AUTH_BYPASS", "false").lower() == "true"
+    return env == "development" and auth_bypass
+
+
+def _build_development_bypass_claims(email_override: str | None = None) -> dict:
+    email = (
+        str(email_override or os.getenv("AUTH_BYPASS_EMAIL", "local-dev@oceanarium.local"))
+        .strip()
+        .lower()
+    )
+    return {
+        "uid": os.getenv("AUTH_BYPASS_UID", "local-dev-user"),
+        "email": email,
+        "auth_mode": "development-bypass",
+    }
 
 
 def _extract_bearer_token(authorization: str | None) -> str:
@@ -37,6 +50,7 @@ def _extract_bearer_token(authorization: str | None) -> str:
 
 def require_authenticated_user(
     authorization: str | None = Header(default=None),
+    x_dev_bypass_email: str | None = Header(default=None),
 ) -> dict:
     """
     Returns decoded Firebase claims for an authenticated user.
@@ -44,13 +58,17 @@ def require_authenticated_user(
     A local bypass is only active when ENV=development AND AUTH_BYPASS=true are both
     explicitly set, preventing accidental bypasses from misconfigured environments.
     """
-    if ENV == "development" and AUTH_BYPASS and not authorization:
-        return {
-            "uid": "local-dev-user",
-            "email": "local-dev@oceanarium.local",
-            "auth_mode": "development-bypass",
-        }
+    bypass_enabled = _is_development_bypass_enabled()
+
+    if bypass_enabled and not authorization:
+        return _build_development_bypass_claims(x_dev_bypass_email)
 
     bearer_token = _extract_bearer_token(authorization)
-    decoded = verify_firebase_token(bearer_token)
-    return decoded
+
+    try:
+        decoded = verify_firebase_token(bearer_token)
+        return decoded
+    except HTTPException:
+        if bypass_enabled:
+            return _build_development_bypass_claims(x_dev_bypass_email)
+        raise
