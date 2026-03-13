@@ -35,6 +35,7 @@ def read_schedules(
         description="Filter events starting before next day of this date (YYYY-MM-DD)",
     ),
     status: str | None = Query(default=None, description="Filter by schedule status (case-insensitive exact match)"),
+    guide_id: int | None = Query(default=None, description="Filter schedules by guide id"),
     conn=Depends(get_db),
 ):
     # Thin route: delegate filtering/query logic to service layer.
