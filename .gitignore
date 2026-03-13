@@ -36,3 +36,7 @@ Thumbs.db
 # Firebase json
 firebase-service-account.json
 *.service-account.json
+
+#.custom ignore
+.cursor/
+.cursor

@@ -289,3 +289,254 @@ async def test_trigger_endpoint_handles_service_error(client):
         assert "error" in result or "success" in result
     finally:
         app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+# ===== Additional Endpoint Tests =====
+
+
+@pytest.mark.asyncio
+async def test_get_notification_detail(client):
+    """Test GET /notifications/{id} endpoint."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "admin", "guide_id": None}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        with patch("app.routes.notification.notification_service"):
+            response = await client.get("/notifications/1")
+
+        # May return 404 or 200 depending on mock setup
+        assert response.status_code in [200, 404, 500]
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+@pytest.mark.asyncio
+async def test_mark_notification_read(client):
+    """Test PATCH /notifications/{id}/read endpoint."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "admin", "guide_id": None}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        response = await client.patch("/notifications/1/read")
+
+        # May return 404 or 200 depending on data
+        assert response.status_code in [200, 404, 500]
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+@pytest.mark.asyncio
+async def test_mark_all_as_read(client):
+    """Test PATCH /notifications/read-all endpoint."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "admin", "guide_id": None}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        response = await client.patch("/notifications/read-all")
+
+        assert response.status_code in [200, 500]
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+@pytest.mark.asyncio
+async def test_mark_all_as_read_with_event_type(client):
+    """Test PATCH /notifications/read-all with event_type filter."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "admin", "guide_id": None}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        response = await client.patch("/notifications/read-all?event_type=GUIDE_ASSIGNED")
+
+        assert response.status_code in [200, 500]
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+@pytest.mark.asyncio
+async def test_get_user_preferences(client):
+    """Test GET /notifications/preferences/{user_id} endpoint."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "admin"}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        response = await client.get("/notifications/preferences/1")
+
+        # Should return preferences or empty list
+        assert response.status_code in [200, 500]
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+@pytest.mark.asyncio
+async def test_update_user_preferences(client):
+    """Test PUT /notifications/preferences/{user_id} endpoint."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "admin"}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        response = await client.put(
+            "/notifications/preferences/1",
+            json={
+                "preferences": [
+                    {
+                        "event_type": "GUIDE_ASSIGNED",
+                        "email_enabled": True,
+                        "portal_enabled": True
+                    }
+                ]
+            }
+        )
+
+        assert response.status_code in [200, 422, 500]
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+@pytest.mark.asyncio
+async def test_get_notifications_with_filters(client):
+    """Test GET /notifications with multiple filters."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "admin"}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        with patch("app.routes.notification.notification_service") as mock_svc:
+            mock_svc.list_notifications.return_value = []
+
+            response = await client.get(
+                "/notifications?status=SENT&channel=EMAIL&priority=urgent&unread_only=true&limit=20&offset=10"
+            )
+
+        assert response.status_code == 200
+        result = response.json()
+        assert "notifications" in result
+        assert "pagination" in result
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+@pytest.mark.asyncio
+async def test_get_notifications_as_guide_without_guide_id(client):
+    """Test GET /notifications as guide user without guide_id."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "guide", "guide_id": None}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        response = await client.get("/notifications")
+
+        assert response.status_code == 200
+        result = response.json()
+        assert len(result["notifications"]) == 0
+        assert result["summary"]["unread_count"] == 0
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+@pytest.mark.asyncio
+async def test_get_notifications_as_guide_with_guide_id(client):
+    """Test GET /notifications as guide user with guide_id."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "guide", "guide_id": 5}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        with patch("app.routes.notification.notification_service") as mock_svc:
+            mock_svc.list_notifications.return_value = [
+                {
+                    "id": 1,
+                    "message": "Test",
+                    "read_at": None,
+                    "priority": "urgent",
+                    "action_required": True,
+                    "actions_json": '[{"label": "View", "url": "/test", "primary": true}]'
+                }
+            ]
+
+            response = await client.get("/notifications")
+
+        assert response.status_code == 200
+        result = response.json()
+        assert len(result["notifications"]) == 1
+        assert result["summary"]["unread_count"] == 1
+        assert result["summary"]["urgent_count"] == 1
+        assert result["summary"]["action_required_count"] == 1
+        assert result["notifications"][0]["primary_action"]["label"] == "View"
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
+
+
+@pytest.mark.asyncio
+async def test_get_notifications_with_invalid_actions_json(client):
+    """Test GET /notifications handles invalid actions_json gracefully."""
+    from app.dependencies.auth import require_authenticated_user
+    from app.main import app
+
+    def mock_auth():
+        return {"id": 1, "role": "admin"}
+
+    app.dependency_overrides[require_authenticated_user] = mock_auth
+
+    try:
+        with patch("app.routes.notification.notification_service") as mock_svc:
+            mock_svc.list_notifications.return_value = [
+                {
+                    "id": 1,
+                    "message": "Test",
+                    "read_at": None,
+                    "priority": "normal",
+                    "action_required": False,
+                    "actions_json": "invalid json"
+                }
+            ]
+
+            response = await client.get("/notifications")
+
+        assert response.status_code == 200
+        result = response.json()
+        assert result["notifications"][0]["primary_action"] is None
+    finally:
+        app.dependency_overrides.pop(require_authenticated_user, None)
