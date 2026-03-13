@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from ..db import engine
 from ..services import guide_requests as request_service
