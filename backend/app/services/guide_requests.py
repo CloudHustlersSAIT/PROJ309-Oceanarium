@@ -208,4 +208,3 @@ def reject_swap_request(conn, swap_request_id: int, caller_guide_id: int):
         "schedule_id": schedule_id,
         "guide_id": guide_id,
     }
-
