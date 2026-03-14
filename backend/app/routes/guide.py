@@ -29,6 +29,7 @@ class GuideCreate(BaseModel):
     first_name: str
     last_name: str
     email: str
+    phone: str | None = None
     language_codes: list[str] = Field(default_factory=list)
     expertise_tour_ids: list[int] = Field(default_factory=list)
     availability_patterns: list[AvailabilityPatternPayload] = Field(default_factory=list)
@@ -38,6 +39,7 @@ class GuideUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
+    phone: str | None = None
     language_codes: list[str] | None = None
     expertise_tour_ids: list[int] | None = None
     availability_patterns: list[AvailabilityPatternPayload] | None = None
@@ -63,6 +65,7 @@ def create_guide(
             payload.first_name,
             payload.last_name,
             payload.email,
+            payload.phone,
             payload.language_codes,
             payload.expertise_tour_ids,
             [pattern.model_dump() for pattern in payload.availability_patterns],

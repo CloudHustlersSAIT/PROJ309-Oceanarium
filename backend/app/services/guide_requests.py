@@ -1,6 +1,6 @@
 from sqlalchemy import text
 
-from .exceptions import NotFoundError, ValidationError
+from .exceptions import ValidationError
 
 
 def get_swap_requests(conn, guide_id: int):
@@ -17,9 +17,9 @@ def get_swap_requests(conn, guide_id: int):
         FROM tour_assignment_logs tal
         JOIN schedule s ON s.id = tal.schedule_id
         JOIN tours t ON t.id = s.tour_id
-        JOIN guides g ON g.id = tal.guide_id
         JOIN guides requester ON requester.id = s.guide_id
         WHERE tal.action = 'SWAP_REQUEST'
+          AND tal.assignment_type = 'SWAP'
           AND tal.guide_id = :guide_id
           AND NOT EXISTS (
               SELECT 1
@@ -30,7 +30,6 @@ def get_swap_requests(conn, guide_id: int):
                 AND resolved.action IN ('SWAP_ACCEPTED', 'SWAP_REJECTED')
                 AND resolved.assigned_at >= tal.assigned_at
           )
-        ORDER BY s.event_start_datetime, tal.assigned_at DESC
         """
     )
 
@@ -38,16 +37,20 @@ def get_swap_requests(conn, guide_id: int):
     return result.mappings().all()
 
 
-def create_swap_request(conn, schedule_id: int, candidate_guide_id: int, requesting_guide_id: int):
-    """Create a swap request. Validates that the schedule belongs to the requesting guide."""
-    row = conn.execute(
-        text("SELECT guide_id FROM schedule WHERE id = :schedule_id"),
-        {"schedule_id": schedule_id},
-    ).fetchone()
-    if not row:
-        raise NotFoundError("Schedule not found")
-    if row[0] != requesting_guide_id:
-        raise ValidationError("You can only request swaps for your own shifts")
+def create_swap_request(conn, schedule_id: int, guide_id: int, requesting_guide_id: int | None = None):
+    schedule_sql = text(
+        """
+        SELECT id, guide_id
+        FROM schedule
+        WHERE id = :schedule_id
+        """
+    )
+    schedule_row = conn.execute(schedule_sql, {"schedule_id": schedule_id}).mappings().first()
+    if schedule_row is None:
+        raise ValueError("Schedule not found")
+
+    if requesting_guide_id is not None and schedule_row["guide_id"] != requesting_guide_id:
+        raise ValueError("Swap request can only be created by the assigned guide")
 
     sql = text(
         """
@@ -63,7 +66,7 @@ def create_swap_request(conn, schedule_id: int, candidate_guide_id: int, request
         sql,
         {
             "schedule_id": schedule_id,
-            "guide_id": candidate_guide_id,
+            "guide_id": guide_id,
         },
     )
 
