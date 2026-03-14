@@ -94,3 +94,20 @@ def edit_guide(
         raise
     except Exception as e:
         return handle_domain_exception(e)
+
+
+@router.delete("/{guide_id}")
+def delete_guide(
+    guide_id: int,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
+    try:
+        deleted = guide_service.soft_delete_guide(conn, guide_id)
+        if deleted is None:
+            raise HTTPException(status_code=404, detail="Guide not found")
+        return deleted
+    except HTTPException:
+        raise
+    except Exception as e:
+        return handle_domain_exception(e)

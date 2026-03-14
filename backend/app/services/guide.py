@@ -405,3 +405,23 @@ def update_guide(conn, guide_id: int, fields: dict):
     conn.commit()
 
     return _fetch_guide_profile(conn, guide_id)
+
+
+def soft_delete_guide(conn, guide_id: int):
+    result = conn.execute(
+        text(
+            """
+            UPDATE guides
+            SET is_active = false
+            WHERE id = :guide_id
+            RETURNING id
+            """
+        ),
+        {"guide_id": guide_id},
+    ).fetchone()
+
+    if not result:
+        return None
+
+    conn.commit()
+    return _fetch_guide_profile(conn, guide_id)
