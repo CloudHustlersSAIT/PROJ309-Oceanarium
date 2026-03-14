@@ -231,19 +231,6 @@ export async function getNotificationSummary() {
   return fetchAPI('/notifications/summary', { requiresAuth: true })
 }
 
-export async function markNotificationRead(id) {
-  return fetchAPI(`/notifications/${id}/read`, { method: 'PATCH', requiresAuth: true })
-}
-
-export async function markAllNotificationsRead(eventType) {
-  const params = eventType ? `?event_type=${encodeURIComponent(eventType)}` : ''
-  return fetchAPI(`/notifications/read-all${params}`, { method: 'PATCH', requiresAuth: true })
-}
-
-export async function getNotificationSummary() {
-  return fetchAPI('/notifications/summary', { requiresAuth: true })
-}
-
 export async function markNotificationRead(notificationId) {
   const normalizedNotificationId = Number(notificationId)
   if (!Number.isInteger(normalizedNotificationId) || normalizedNotificationId <= 0) {
