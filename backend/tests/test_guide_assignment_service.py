@@ -1,12 +1,15 @@
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from app.services.exceptions import NotFoundError, UnassignableError, ValidationError
 from app.services.guide_assignment import (
+    auto_assign_all_unassigned,
+    auto_assign_and_notify,
     auto_assign_guide,
     find_eligible_guides,
+    manual_assign_and_notify,
     manual_assign_guide,
 )
 
@@ -393,3 +396,122 @@ class TestManualAssignGuide:
         assert params["assigned_by"] == "admin_user"
         assert params["assignment_type"] == "MANUAL"
         assert params["action"] == "ASSIGNED"
+
+
+# ===== Orchestration (and_notify) Tests =====
+
+
+class TestAutoAssignAndNotify:
+    def test_success_sends_notification(self):
+        with (
+            patch("app.services.guide_assignment.auto_assign_guide") as mock_assign,
+            patch("app.services.guide_assignment.notification_service") as mock_notif,
+        ):
+            mock_assign.return_value = {"guide_id": 2, "guide_name": "Ana"}
+            conn = MagicMock()
+
+            result = auto_assign_and_notify(conn, 1)
+
+        assert result["guide_id"] == 2
+        mock_notif.notify_guide_assignment.assert_called_once_with(conn, 1, 2, "AUTO")
+
+    def test_unassignable_sends_notification_and_reraises(self):
+        with (
+            patch("app.services.guide_assignment.auto_assign_guide") as mock_assign,
+            patch("app.services.guide_assignment.notification_service") as mock_notif,
+        ):
+            mock_assign.side_effect = UnassignableError("no guide", reasons=["NO_LANGUAGE_MATCH"])
+            conn = MagicMock()
+
+            with pytest.raises(UnassignableError):
+                auto_assign_and_notify(conn, 1)
+
+        mock_notif.notify_schedule_unassignable.assert_called_once_with(conn, 1, ["NO_LANGUAGE_MATCH"])
+
+    def test_notification_failure_does_not_break_flow(self):
+        with (
+            patch("app.services.guide_assignment.auto_assign_guide") as mock_assign,
+            patch("app.services.guide_assignment.notification_service") as mock_notif,
+        ):
+            mock_assign.return_value = {"guide_id": 2, "guide_name": "Ana"}
+            mock_notif.notify_guide_assignment.side_effect = RuntimeError("email down")
+            conn = MagicMock()
+
+            result = auto_assign_and_notify(conn, 1)
+
+        assert result["guide_id"] == 2
+
+
+class TestManualAssignAndNotify:
+    def test_success_sends_notification(self):
+        with (
+            patch("app.services.guide_assignment.manual_assign_guide") as mock_assign,
+            patch("app.services.guide_assignment.notification_service") as mock_notif,
+        ):
+            mock_assign.return_value = {"guide_id": 3, "warnings": []}
+            conn = MagicMock()
+
+            result = manual_assign_and_notify(conn, 1, 3, "admin")
+
+        assert result["guide_id"] == 3
+        mock_notif.notify_guide_assignment.assert_called_once_with(conn, 1, 3, "MANUAL")
+
+    def test_notification_failure_does_not_break_flow(self):
+        with (
+            patch("app.services.guide_assignment.manual_assign_guide") as mock_assign,
+            patch("app.services.guide_assignment.notification_service") as mock_notif,
+        ):
+            mock_assign.return_value = {"guide_id": 3, "warnings": []}
+            mock_notif.notify_guide_assignment.side_effect = RuntimeError("email down")
+            conn = MagicMock()
+
+            result = manual_assign_and_notify(conn, 1, 3, "admin")
+
+        assert result["guide_id"] == 3
+
+
+class TestAutoAssignAllUnassigned:
+    def test_mixed_results(self):
+        with (
+            patch("app.services.guide_assignment.auto_assign_guide") as mock_assign,
+            patch("app.services.guide_assignment.notification_service"),
+        ):
+            mock_conn = MagicMock()
+            mock_conn.execute.return_value = MagicMock(fetchall=MagicMock(return_value=[(1,), (2,), (3,)]))
+            mock_assign.side_effect = [
+                {"guide_id": 10, "guide_name": "Marina Costa"},
+                UnassignableError("No guide", reasons=["NO_LANGUAGE_MATCH"]),
+                {"guide_id": 11, "guide_name": "Carlos Santos"},
+            ]
+
+            result = auto_assign_all_unassigned(mock_conn)
+
+        assert result["total"] == 3
+        assert result["assigned"] == 2
+        assert result["unassignable"] == 1
+        assert result["errors"] == 0
+
+    def test_no_unassigned(self):
+        mock_conn = MagicMock()
+        mock_conn.execute.return_value = MagicMock(fetchall=MagicMock(return_value=[]))
+
+        result = auto_assign_all_unassigned(mock_conn)
+
+        assert result["total"] == 0
+        assert result["assigned"] == 0
+        assert result["details"] == []
+
+    def test_unexpected_error_counted(self):
+        with (
+            patch("app.services.guide_assignment.auto_assign_guide") as mock_assign,
+            patch("app.services.guide_assignment.notification_service"),
+        ):
+            mock_conn = MagicMock()
+            mock_conn.execute.return_value = MagicMock(fetchall=MagicMock(return_value=[(1,)]))
+            mock_assign.side_effect = RuntimeError("db gone")
+
+            result = auto_assign_all_unassigned(mock_conn)
+
+        assert result["total"] == 1
+        assert result["errors"] == 1
+        assert result["details"][0]["status"] == "error"
