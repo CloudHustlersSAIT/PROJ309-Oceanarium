@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -210,3 +210,78 @@ async def test_get_eligible_guides_schedule_not_found(client):
         response = await client.get("/schedules/999/eligible-guides")
 
     assert response.status_code == 404
+
+
+# ===== Auto-Assign All Tests =====
+
+
+@pytest.mark.asyncio
+async def test_auto_assign_all_mixed_results(client):
+    """Test POST /schedules/auto-assign-all with a mix of assigned and unassignable."""
+    from app.db import get_db
+    from app.main import app
+
+    mock_conn = MagicMock()
+    mock_conn.execute.return_value = MagicMock(fetchall=MagicMock(return_value=[(1,), (2,), (3,)]))
+
+    def override_db():
+        yield mock_conn
+
+    app.dependency_overrides[get_db] = override_db
+
+    try:
+        with (
+            patch("app.routes.schedule.guide_assignment_service") as mock_assign,
+            patch("app.routes.schedule.notification_service") as mock_notif,
+        ):
+            mock_assign.auto_assign_guide.side_effect = [
+                {"guide_id": 10, "guide_name": "Marina Costa"},
+                UnassignableError("No eligible guide", reasons=["NO_LANGUAGE_MATCH"]),
+                {"guide_id": 11, "guide_name": "Carlos Santos"},
+            ]
+
+            response = await client.post("/schedules/auto-assign-all")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 3
+        assert data["assigned"] == 2
+        assert data["unassignable"] == 1
+        assert data["errors"] == 0
+        assert len(data["details"]) == 3
+
+        assert mock_notif.notify_guide_assignment.call_count == 2
+        assert mock_notif.notify_schedule_unassignable.call_count == 1
+    finally:
+        from tests.conftest import _mock_get_db
+
+        app.dependency_overrides[get_db] = _mock_get_db
+
+
+@pytest.mark.asyncio
+async def test_auto_assign_all_no_unassigned(client):
+    """Test POST /schedules/auto-assign-all when no schedules need assignment."""
+    from app.db import get_db
+    from app.main import app
+
+    mock_conn = MagicMock()
+    mock_conn.execute.return_value = MagicMock(fetchall=MagicMock(return_value=[]))
+
+    def override_db():
+        yield mock_conn
+
+    app.dependency_overrides[get_db] = override_db
+
+    try:
+        response = await client.post("/schedules/auto-assign-all")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 0
+        assert data["assigned"] == 0
+        assert data["unassignable"] == 0
+        assert data["details"] == []
+    finally:
+        from tests.conftest import _mock_get_db
+
+        app.dependency_overrides[get_db] = _mock_get_db

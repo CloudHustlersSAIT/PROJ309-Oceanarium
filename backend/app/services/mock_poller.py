@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from .exceptions import ValidationError
+from .mock_seed import load_guide_capabilities
 
 # =========================================================
 # Constants
@@ -263,10 +264,14 @@ def _build_reservation_payload(
     rng: random.Random,
     tours: list[dict[str, Any]],
     scenario: Scenario = "CREATE",
+    assignable_pair: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Builds a realistic reservation payload aligned with the reservations table
     and expected external/source data structure.
+
+    When assignable_pair is provided, uses that tour+language combo to guarantee
+    the resulting schedule can be assigned to a guide with matching capabilities.
     """
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     event_start, event_end = _generate_event_window(rng)
@@ -274,8 +279,14 @@ def _build_reservation_payload(
     first = rng.choice(FIRST_NAMES)
     last = rng.choice(LAST_NAMES)
 
-    selected_tour = rng.choice(tours)
-    language_code = rng.choice(LANGUAGES)
+    if assignable_pair:
+        cpid = assignable_pair["clorian_product_id"]
+        selected_tour = next((t for t in tours if t["clorian_product_id"] == cpid), rng.choice(tours))
+        language_code = assignable_pair["language_code"]
+    else:
+        selected_tour = rng.choice(tours)
+        language_code = rng.choice(LANGUAGES)
+
     venue = rng.choice(VENUES)
 
     adult_count = rng.randint(1, 4)
@@ -483,6 +494,7 @@ def generate_records(
     rng = random.Random(seed)
 
     tours = load_tours(conn)
+    guide_caps = load_guide_capabilities(conn)
     existing_reservations = load_existing_reservations(conn)
     existing_ids = list(existing_reservations.keys())
     rng.shuffle(existing_ids)
@@ -508,11 +520,13 @@ def generate_records(
                 used_ids.add(res_id)
                 break
 
+        pair = rng.choice(guide_caps) if guide_caps else None
         res_payload = _build_reservation_payload(
             clorian_reservation_id=res_id,
             rng=rng,
             tours=tours,
             scenario="CREATE",
+            assignable_pair=pair,
         )
 
         staged.append(

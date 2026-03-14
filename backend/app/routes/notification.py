@@ -2,24 +2,19 @@
 
 import json
 import logging
-import os
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from ..db import get_db
-from ..dependencies.auth import require_authenticated_user
+from ..dependencies.auth import require_resolved_user
 from ..services import notification as notification_service
 from ..services.error_handlers import handle_domain_exception
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
-
-# Environment check for test endpoints
-# Test endpoints ONLY work in development environment
-IS_DEVELOPMENT = os.getenv("ENV", "production").lower() == "development"
 
 
 # Pydantic models for v3.0 trigger endpoints
@@ -51,33 +46,17 @@ class ScheduleChangedRequest(BaseModel):
     new_state: dict | None = Field(None, description="New state after change")
 
 
-# Test trigger endpoints with email override (for testing only)
-class TestGuideAssignedRequest(GuideAssignedRequest):
-    override_email: str = Field(..., description="Override email for testing purposes")
-
-
-class TestGuideUnassignedRequest(GuideUnassignedRequest):
-    override_email: str = Field(..., description="Override email for testing purposes")
-
-
-class TestScheduleUnassignableRequest(ScheduleUnassignableRequest):
-    override_email: str = Field(..., description="Override email for testing purposes")
-
-
-class TestScheduleChangedRequest(ScheduleChangedRequest):
-    override_email: str = Field(..., description="Override email for testing purposes")
-
-
 @router.get("")
 def read_notifications(
     status: str = Query(None),
     channel: str = Query(None),
+    event_type: str = Query(None),
     unread_only: bool = Query(False),
     priority: str = Query(None),
     limit: int = Query(50, le=100),
     offset: int = Query(0),
     conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
+    current_user=Depends(require_resolved_user),
 ):
     """List notifications for the authenticated user with enhanced filtering.
 
@@ -87,6 +66,7 @@ def read_notifications(
         filters = {
             "status": status,
             "channel": channel,
+            "event_type": event_type,
             "unread_only": unread_only,
             "priority": priority,
             "limit": limit,
@@ -98,7 +78,7 @@ def read_notifications(
 
         if user_role == "admin":
             # Admin sees notifications for their user_id
-            user_id = current_user.get("id")
+            user_id = current_user.get("user_id")
             notifications = notification_service.list_notifications(conn, user_id=user_id, filters=filters)
         else:
             # Guide sees their guide-specific notifications
@@ -152,26 +132,163 @@ def read_notifications(
         return handle_domain_exception(e)
 
 
+@router.get("/summary")
+def get_notification_summary(
+    conn=Depends(get_db),
+    current_user=Depends(require_resolved_user),
+):
+    """Get notification counts and summary for current user."""
+    try:
+        user_id = current_user.get("user_id")
+        guide_id = current_user.get("guide_id")
+
+        where_clause = "(user_id = :user_id OR guide_id = :guide_id) AND channel = 'PORTAL'"
+        params = {"user_id": user_id, "guide_id": guide_id}
+
+        result = conn.execute(
+            text(f"""
+                SELECT
+                    COUNT(*) as total,
+                    COUNT(CASE WHEN read_at IS NULL THEN 1 END) as unread,
+                    COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as urgent,
+                    COUNT(CASE WHEN priority = 'high' THEN 1 END) as high,
+                    COUNT(CASE WHEN priority = 'normal' THEN 1 END) as normal,
+                    COUNT(CASE WHEN priority = 'low' THEN 1 END) as low,
+                    COUNT(CASE WHEN action_required = true THEN 1 END) as action_required
+                FROM notifications
+                WHERE {where_clause}
+            """),
+            params,
+        ).fetchone()
+
+        summary = dict(result._mapping)
+
+        event_counts = conn.execute(
+            text(f"""
+                SELECT event_type, COUNT(*) as count
+                FROM notifications
+                WHERE {where_clause}
+                GROUP BY event_type
+            """),
+            params,
+        ).fetchall()
+
+        summary["by_event_type"] = {row[0]: row[1] for row in event_counts}
+        summary["by_priority"] = {
+            "urgent": summary.pop("urgent"),
+            "high": summary.pop("high"),
+            "normal": summary.pop("normal"),
+            "low": summary.pop("low"),
+        }
+
+        return summary
+
+    except Exception as e:
+        return handle_domain_exception(e)
+
+
+@router.get("/preferences")
+def get_preferences(
+    conn=Depends(get_db),
+    current_user=Depends(require_resolved_user),
+):
+    """Get notification preferences for current user."""
+    try:
+        user_role = current_user.get("role", "guide")
+        user_id = current_user.get("user_id") if user_role == "admin" else None
+        guide_id = current_user.get("guide_id") if user_role != "admin" else None
+
+        if user_id:
+            rows = conn.execute(
+                text(
+                    "SELECT event_type, email_enabled, portal_enabled FROM notification_preferences WHERE user_id = :id"
+                ),
+                {"id": user_id},
+            ).fetchall()
+        elif guide_id:
+            rows = conn.execute(
+                text(
+                    "SELECT event_type, email_enabled, portal_enabled "
+                    "FROM notification_preferences WHERE guide_id = :id"
+                ),
+                {"id": guide_id},
+            ).fetchall()
+        else:
+            return []
+
+        return [
+            {
+                "event_type": r[0],
+                "email_enabled": r[1],
+                "portal_enabled": r[2],
+            }
+            for r in rows
+        ]
+
+    except Exception as e:
+        return handle_domain_exception(e)
+
+
+@router.patch("/read-all")
+def mark_all_as_read(
+    event_type: str = Query(None),
+    conn=Depends(get_db),
+    current_user=Depends(require_resolved_user),
+):
+    """Mark all unread notifications as read for current user."""
+    try:
+        user_id = current_user.get("user_id")
+        guide_id = current_user.get("guide_id")
+
+        where_clauses = ["read_at IS NULL"]
+        params = {"user_id": user_id, "guide_id": guide_id}
+
+        where_clauses.append("(user_id = :user_id OR guide_id = :guide_id)")
+
+        if event_type:
+            where_clauses.append("event_type = :event_type")
+            params["event_type"] = event_type
+
+        where_sql = " AND ".join(where_clauses)
+
+        result = conn.execute(
+            text(f"UPDATE notifications SET read_at = NOW() WHERE {where_sql} RETURNING id"),
+            params,
+        )
+        count = len(result.fetchall())
+        conn.commit()
+
+        return {"success": True, "count": count}
+
+    except Exception as e:
+        return handle_domain_exception(e)
+
+
 @router.get("/{notification_id}")
 def get_notification_detail(
     notification_id: int,
     conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
+    current_user=Depends(require_resolved_user),
 ):
     """Get full notification detail and mark as read."""
     try:
         # Fetch notification with ownership verification
-        user_id = current_user.get("id")
+        user_id = current_user.get("user_id")
         guide_id = current_user.get("guide_id")
 
         row = conn.execute(
             text("""
                 SELECT n.*,
                        s.event_start_datetime as schedule_date,
-                       t.name as tour_name
+                       t.name as tour_name,
+                       email_n.status as email_status,
+                       email_n.sent_at as email_sent_at
                 FROM notifications n
                 LEFT JOIN schedule s ON s.id = n.schedule_id
                 LEFT JOIN tours t ON t.id = s.tour_id
+                LEFT JOIN notifications email_n
+                    ON email_n.group_id = n.group_id
+                    AND email_n.channel = 'EMAIL'
                 WHERE n.id = :id
                   AND (n.user_id = :user_id OR n.guide_id = :guide_id)
             """),
@@ -232,11 +349,11 @@ def get_notification_detail(
 def mark_notification_read(
     notification_id: int,
     conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
+    current_user=Depends(require_resolved_user),
 ):
     """Mark a notification as read."""
     try:
-        user_id = current_user.get("id")
+        user_id = current_user.get("user_id")
         guide_id = current_user.get("guide_id")
 
         # Verify notification belongs to current user
@@ -269,145 +386,11 @@ def mark_notification_read(
         return handle_domain_exception(e)
 
 
-@router.patch("/read-all")
-def mark_all_as_read(
-    event_type: str = Query(None),
-    conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
-):
-    """Mark all unread notifications as read for current user."""
-    try:
-        user_id = current_user.get("id")
-        guide_id = current_user.get("guide_id")
-
-        where_clauses = ["read_at IS NULL"]
-        params = {"user_id": user_id, "guide_id": guide_id}
-
-        where_clauses.append("(user_id = :user_id OR guide_id = :guide_id)")
-
-        if event_type:
-            where_clauses.append("event_type = :event_type")
-            params["event_type"] = event_type
-
-        where_sql = " AND ".join(where_clauses)
-
-        result = conn.execute(
-            text(f"UPDATE notifications SET read_at = NOW() WHERE {where_sql} RETURNING id"),
-            params,
-        )
-        count = len(result.fetchall())
-        conn.commit()
-
-        return {"success": True, "count": count}
-
-    except Exception as e:
-        return handle_domain_exception(e)
-
-
-@router.get("/summary")
-def get_notification_summary(
-    conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
-):
-    """Get notification counts and summary for current user."""
-    try:
-        user_id = current_user.get("id")
-        guide_id = current_user.get("guide_id")
-
-        # Build query based on user role
-        where_clause = "(user_id = :user_id OR guide_id = :guide_id)"
-        params = {"user_id": user_id, "guide_id": guide_id}
-
-        result = conn.execute(
-            text(f"""
-                SELECT
-                    COUNT(*) as total,
-                    COUNT(CASE WHEN read_at IS NULL THEN 1 END) as unread,
-                    COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as urgent,
-                    COUNT(CASE WHEN priority = 'high' THEN 1 END) as high,
-                    COUNT(CASE WHEN priority = 'normal' THEN 1 END) as normal,
-                    COUNT(CASE WHEN priority = 'low' THEN 1 END) as low,
-                    COUNT(CASE WHEN action_required = true THEN 1 END) as action_required
-                FROM notifications
-                WHERE {where_clause}
-            """),
-            params,
-        ).fetchone()
-
-        summary = dict(result._mapping)
-
-        # Get counts by event type
-        event_counts = conn.execute(
-            text(f"""
-                SELECT event_type, COUNT(*) as count
-                FROM notifications
-                WHERE {where_clause}
-                GROUP BY event_type
-            """),
-            params,
-        ).fetchall()
-
-        summary["by_event_type"] = {row[0]: row[1] for row in event_counts}
-        summary["by_priority"] = {
-            "urgent": summary.pop("urgent"),
-            "high": summary.pop("high"),
-            "normal": summary.pop("normal"),
-            "low": summary.pop("low"),
-        }
-
-        return summary
-
-    except Exception as e:
-        return handle_domain_exception(e)
-
-
-@router.get("/preferences")
-def get_preferences(
-    conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
-):
-    """Get notification preferences for current user."""
-    try:
-        user_role = current_user.get("role", "guide")
-        user_id = current_user.get("id") if user_role == "admin" else None
-        guide_id = current_user.get("guide_id") if user_role != "admin" else None
-
-        if user_id:
-            rows = conn.execute(
-                text(
-                    "SELECT event_type, email_enabled, portal_enabled FROM notification_preferences WHERE user_id = :id"
-                ),
-                {"id": user_id},
-            ).fetchall()
-        elif guide_id:
-            rows = conn.execute(
-                text(
-                    "SELECT event_type, email_enabled, portal_enabled "
-                    "FROM notification_preferences WHERE guide_id = :id"
-                ),
-                {"id": guide_id},
-            ).fetchall()
-        else:
-            return []
-
-        return [
-            {
-                "event_type": r[0],
-                "email_enabled": r[1],
-                "portal_enabled": r[2],
-            }
-            for r in rows
-        ]
-
-    except Exception as e:
-        return handle_domain_exception(e)
-
-
 @router.put("/preferences")
 def update_preferences(
     preferences: list[dict],
     conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
+    current_user=Depends(require_resolved_user),
 ):
     """Update notification preferences for current user.
 
@@ -415,7 +398,7 @@ def update_preferences(
     """
     try:
         user_role = current_user.get("role", "guide")
-        user_id = current_user.get("id") if user_role == "admin" else None
+        user_id = current_user.get("user_id") if user_role == "admin" else None
         guide_id = current_user.get("guide_id") if user_role != "admin" else None
 
         for pref in preferences:
@@ -474,7 +457,7 @@ def update_preferences(
 @router.post("/retry-failed")
 def retry_failed_notifications(
     conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
+    current_user=Depends(require_resolved_user),
 ):
     """Retry all failed email notifications (admin only)."""
     try:
@@ -610,7 +593,7 @@ def test_email_endpoint(
 def trigger_guide_assigned_notification(
     body: GuideAssignedRequest,
     conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
+    current_user=Depends(require_resolved_user),
 ):
     """Trigger guide assignment notification (FR-1).
 
@@ -647,7 +630,7 @@ def trigger_guide_assigned_notification(
 def trigger_guide_unassigned_notification(
     body: GuideUnassignedRequest,
     conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
+    current_user=Depends(require_resolved_user),
 ):
     """Trigger guide unassignment notification (FR-2).
 
@@ -682,7 +665,7 @@ def trigger_guide_unassigned_notification(
 def trigger_schedule_unassignable_notification(
     body: ScheduleUnassignableRequest,
     conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
+    current_user=Depends(require_resolved_user),
 ):
     """Trigger URGENT unassignable schedule notification (FR-5).
 
@@ -715,7 +698,7 @@ def trigger_schedule_unassignable_notification(
 def trigger_schedule_changed_notification(
     body: ScheduleChangedRequest,
     conn=Depends(get_db),
-    current_user=Depends(require_authenticated_user),
+    current_user=Depends(require_resolved_user),
 ):
     """Trigger schedule change notification (FR-3, FR-4).
 
@@ -745,279 +728,3 @@ def trigger_schedule_changed_notification(
     except Exception as e:
         logger.error(f"❌ Failed to trigger schedule changed notification: {e}")
         return handle_domain_exception(e)
-
-
-# ===== TEST ENDPOINTS WITH EMAIL OVERRIDE (Development Only) =====
-# These endpoints ONLY work when ENV=development
-
-
-@router.post("/test-trigger/guide-assigned")
-def test_trigger_guide_assigned_notification(
-    body: TestGuideAssignedRequest,
-    conn=Depends(get_db),
-):
-    """🧪 DEVELOPMENT ONLY: Trigger guide assignment notification with custom email.
-
-    This endpoint allows you to test notifications by sending to a specific email
-    address instead of using the guide's email from the database.
-
-    ⚠️ NO AUTHENTICATION REQUIRED
-    ⚠️ ONLY AVAILABLE WHEN ENV=development
-    """
-    if not IS_DEVELOPMENT:
-        raise HTTPException(status_code=404, detail="Test endpoints are only available in development environment")
-
-    from ..services import email as email_service
-    from ..services import notification_templates
-
-    logger.info(f"🧪 TEST: Triggering guide assigned notification to {body.override_email}")
-
-    try:
-        # Get schedule and guide info from database
-        schedule = conn.execute(
-            text("""
-                SELECT s.id, s.tour_id, s.event_start_datetime, s.language_code,
-                       t.name as tour_name, t.duration_minutes
-                FROM schedule s
-                JOIN tours t ON s.tour_id = t.id
-                WHERE s.id = :schedule_id
-            """),
-            {"schedule_id": body.schedule_id},
-        ).fetchone()
-
-        if not schedule:
-            return {"success": False, "error": f"Schedule {body.schedule_id} not found"}
-
-        # Get guide info
-        guide = conn.execute(
-            text("SELECT id, first_name, last_name FROM guides WHERE id = :guide_id"), {"guide_id": body.guide_id}
-        ).fetchone()
-
-        if not guide:
-            return {"success": False, "error": f"Guide {body.guide_id} not found"}
-
-        # Prepare template data
-        template_data = {
-            "guide_name": f"{guide.first_name} {guide.last_name}",
-            "tour_name": schedule.tour_name,
-            "schedule_date": schedule.event_start_datetime.strftime("%B %d, %Y"),
-            "schedule_time": schedule.event_start_datetime.strftime("%I:%M %p"),
-            "language": schedule.language_code.upper(),
-            "duration_minutes": schedule.duration_minutes,
-            "assignment_type": body.assignment_type,
-        }
-
-        # Send email to override address
-        subject, html_content = notification_templates.get_guide_assigned_template(template_data)
-
-        success = email_service.send_email(to_email=body.override_email, subject=subject, html_content=html_content)
-
-        if success:
-            logger.info(f"✅ TEST: Email sent successfully to {body.override_email}")
-            return {
-                "success": True,
-                "message": f"Test notification sent to {body.override_email}",
-                "event_type": "GUIDE_ASSIGNED",
-                "schedule_id": body.schedule_id,
-                "guide_id": body.guide_id,
-                "override_email": body.override_email,
-            }
-        else:
-            return {"success": False, "error": "Failed to send email - check logs"}
-
-    except Exception as e:
-        logger.error(f"❌ TEST endpoint error: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@router.post("/test-trigger/guide-unassigned")
-def test_trigger_guide_unassigned_notification(
-    body: TestGuideUnassignedRequest,
-    conn=Depends(get_db),
-):
-    """🧪 DEVELOPMENT ONLY: Trigger guide unassignment notification with custom email.
-
-    ⚠️ NO AUTHENTICATION REQUIRED
-    ⚠️ ONLY AVAILABLE WHEN ENV=development
-    """
-    if not IS_DEVELOPMENT:
-        raise HTTPException(status_code=404, detail="Test endpoints are only available in development environment")
-
-    from ..services import email as email_service
-    from ..services import notification_templates
-
-    logger.info(f"🧪 TEST: Triggering guide unassigned notification to {body.override_email}")
-
-    try:
-        # Get schedule info
-        schedule = conn.execute(
-            text("""
-                SELECT s.id, s.tour_id, s.event_start_datetime, s.language_code,
-                       t.name as tour_name
-                FROM schedule s
-                JOIN tours t ON s.tour_id = t.id
-                WHERE s.id = :schedule_id
-            """),
-            {"schedule_id": body.schedule_id},
-        ).fetchone()
-
-        if not schedule:
-            return {"success": False, "error": f"Schedule {body.schedule_id} not found"}
-
-        # Get guide info
-        guide = conn.execute(
-            text("SELECT id, first_name, last_name FROM guides WHERE id = :guide_id"), {"guide_id": body.guide_id}
-        ).fetchone()
-
-        if not guide:
-            return {"success": False, "error": f"Guide {body.guide_id} not found"}
-
-        template_data = {
-            "guide_name": f"{guide.first_name} {guide.last_name}",
-            "tour_name": schedule.tour_name,
-            "schedule_date": schedule.event_start_datetime.strftime("%B %d, %Y"),
-            "schedule_time": schedule.event_start_datetime.strftime("%I:%M %p"),
-            "reason": body.reason,
-        }
-
-        subject, html_content = notification_templates.get_guide_unassigned_template(template_data)
-
-        success = email_service.send_email(to_email=body.override_email, subject=subject, html_content=html_content)
-
-        if success:
-            return {
-                "success": True,
-                "message": f"Test notification sent to {body.override_email}",
-                "event_type": "GUIDE_UNASSIGNED",
-                "override_email": body.override_email,
-            }
-        else:
-            return {"success": False, "error": "Failed to send email"}
-
-    except Exception as e:
-        logger.error(f"❌ TEST endpoint error: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@router.post("/test-trigger/schedule-unassignable")
-def test_trigger_schedule_unassignable_notification(
-    body: TestScheduleUnassignableRequest,
-    conn=Depends(get_db),
-):
-    """🧪 DEVELOPMENT ONLY: Trigger URGENT unassignable schedule notification with custom email.
-
-    ⚠️ NO AUTHENTICATION REQUIRED
-    ⚠️ ONLY AVAILABLE WHEN ENV=development
-    """
-    if not IS_DEVELOPMENT:
-        raise HTTPException(status_code=404, detail="Test endpoints are only available in development environment")
-
-    from ..services import email as email_service
-    from ..services import notification_templates
-
-    logger.info(f"🧪 TEST: Triggering schedule unassignable notification to {body.override_email}")
-
-    try:
-        # Get schedule info
-        schedule = conn.execute(
-            text("""
-                SELECT s.id, s.event_start_datetime, s.language_code,
-                       t.name as tour_name
-                FROM schedule s
-                JOIN tours t ON s.tour_id = t.id
-                WHERE s.id = :schedule_id
-            """),
-            {"schedule_id": body.schedule_id},
-        ).fetchone()
-
-        if not schedule:
-            return {"success": False, "error": f"Schedule {body.schedule_id} not found"}
-
-        template_data = {
-            "tour_name": schedule.tour_name,
-            "schedule_date": schedule.event_start_datetime.strftime("%B %d, %Y"),
-            "schedule_time": schedule.event_start_datetime.strftime("%I:%M %p"),
-            "language": schedule.language_code.upper(),
-            "reasons": body.reasons,
-            "attempted_guides_count": body.attempted_guides_count,
-        }
-
-        subject, html_content = notification_templates.get_schedule_unassignable_template(template_data)
-
-        success = email_service.send_email(to_email=body.override_email, subject=subject, html_content=html_content)
-
-        if success:
-            return {
-                "success": True,
-                "message": f"Test URGENT notification sent to {body.override_email}",
-                "event_type": "SCHEDULE_UNASSIGNABLE",
-                "priority": "urgent",
-                "override_email": body.override_email,
-            }
-        else:
-            return {"success": False, "error": "Failed to send email"}
-
-    except Exception as e:
-        logger.error(f"❌ TEST endpoint error: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@router.post("/test-trigger/schedule-changed")
-def test_trigger_schedule_changed_notification(
-    body: TestScheduleChangedRequest,
-    conn=Depends(get_db),
-):
-    """🧪 DEVELOPMENT ONLY: Trigger schedule change notification with custom email.
-
-    ⚠️ NO AUTHENTICATION REQUIRED
-    ⚠️ ONLY AVAILABLE WHEN ENV=development
-    """
-    if not IS_DEVELOPMENT:
-        raise HTTPException(status_code=404, detail="Test endpoints are only available in development environment")
-
-    from ..services import email as email_service
-    from ..services import notification_templates
-
-    logger.info(f"🧪 TEST: Triggering schedule changed notification to {body.override_email}")
-
-    try:
-        # Get schedule info
-        schedule = conn.execute(
-            text("""
-                SELECT s.id, s.event_start_datetime, s.language_code,
-                       t.name as tour_name
-                FROM schedule s
-                JOIN tours t ON s.tour_id = t.id
-                WHERE s.id = :schedule_id
-            """),
-            {"schedule_id": body.schedule_id},
-        ).fetchone()
-
-        if not schedule:
-            return {"success": False, "error": f"Schedule {body.schedule_id} not found"}
-
-        template_data = {
-            "tour_name": schedule.tour_name,
-            "schedule_date": schedule.event_start_datetime.strftime("%B %d, %Y"),
-            "schedule_time": schedule.event_start_datetime.strftime("%I:%M %p"),
-            "change_type": body.change_type,
-            "change_details": body.change_details,
-        }
-
-        subject, html_content = notification_templates.get_schedule_changed_template(template_data)
-
-        success = email_service.send_email(to_email=body.override_email, subject=subject, html_content=html_content)
-
-        if success:
-            return {
-                "success": True,
-                "message": f"Test notification sent to {body.override_email}",
-                "event_type": "SCHEDULE_CHANGED",
-                "override_email": body.override_email,
-            }
-        else:
-            return {"success": False, "error": "Failed to send email"}
-
-    except Exception as e:
-        logger.error(f"❌ TEST endpoint error: {e}")
-        return {"success": False, "error": str(e)}

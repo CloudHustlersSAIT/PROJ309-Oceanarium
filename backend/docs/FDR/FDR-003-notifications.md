@@ -3,11 +3,11 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-003                |
-| **Version**      | 3.0                    |
-| **Status**       | Refactoring in Progress |
+| **Version**      | 4.0                    |
+| **Status**       | Active                 |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
-| **Last Updated** | 2026-03-13             |
+| **Last Updated** | 2026-03-14             |
 
 ---
 
@@ -172,20 +172,29 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 - **Business Rules**:
   - `status` transitions: `PENDING` → `SENT` or `FAILED`
   - Each channel (portal, email) creates its own `notifications` row
+  - All rows created for the same logical event share a `group_id` UUID, correlating PORTAL and EMAIL rows
+  - The portal only displays PORTAL-channel notifications; the corresponding EMAIL status (`email_status`, `email_sent_at`) is embedded via a LEFT JOIN on `group_id`
   - Failed email notifications should be retried up to 3 times
   - `sent_at` is set when the notification is successfully delivered
 - **Acceptance Criteria**:
   - Every notification has a trackable lifecycle
+  - Portal shows only PORTAL notifications, with embedded email delivery status
   - Failed notifications are visible to admins in the portal
 
 ## 5. Data Model Impact
 
 | Table | Impact |
 |-------|--------|
-| `notifications` | New row per notification per channel per recipient |
+| `notifications` | New row per notification per channel per recipient. Includes `group_id UUID` (nullable, indexed) to correlate PORTAL and EMAIL rows for the same logical event. |
 | `users` | Read — identify active admins |
 | `guides` | Read — guide email for email notifications |
 | `schedule` | Read — schedule details for notification content |
+
+### notifications table — key columns
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `group_id` | `UUID` | Nullable. Generated once per `create_notification` call and shared by all channel rows in that batch. Used to LEFT JOIN email status into portal view. Indexed (`idx_notifications_group_id`). |
 
 ## 6. API Contracts
 
@@ -193,7 +202,7 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
 
 #### `GET /notifications`
 
-List notifications for the authenticated user (admin or guide).
+List portal notifications for the authenticated user (admin or guide). By default returns only `channel = 'PORTAL'` rows with embedded email delivery status.
 
 **Response (200):**
 ```json
@@ -204,10 +213,14 @@ List notifications for the authenticated user (admin or guide).
     "message": "You have been assigned to Ocean Discovery Tour on Mar 15 at 10:00 (en)",
     "channel": "PORTAL",
     "status": "SENT",
+    "email_status": "SENT",
+    "email_sent_at": "2026-03-10T14:30:05Z",
     "created_at": "2026-03-10T14:30:00Z"
   }
 ]
 ```
+
+`email_status` and `email_sent_at` are derived from the correlated EMAIL row via `group_id` LEFT JOIN. They are `null` when no EMAIL row exists for the event.
 
 #### `PATCH /notifications/{id}/read`
 
@@ -466,3 +479,4 @@ await api.post('/notifications/guide-assigned', {
 | 1.1     | 2026-03-03 | Evandro Maciel | Renamed bookings→reservations throughout; updated event names |
 | 2.0     | 2026-03-11 | Evandro Maciel | Implemented: Multi-channel notifications with Resend.com, user preferences, rich detail view, priority levels, action buttons, enhanced templates following 2026 best practices |
 | 3.0     | 2026-03-13 | Evandro Maciel | Architecture refactor: API-first notification triggering, decoupled from domain services, added POST endpoints for manual/programmatic notification triggering, updated trigger mechanism from events to explicit API calls |
+| 4.0     | 2026-03-14 | Evandro Maciel | Notification deduplication: added `group_id` UUID to correlate PORTAL/EMAIL rows, portal shows only PORTAL channel with embedded email status, removed dev-only test-trigger endpoints |

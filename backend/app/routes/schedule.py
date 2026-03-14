@@ -5,6 +5,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
+from sqlalchemy import text
 
 from ..db import get_db
 from ..services import guide_assignment as guide_assignment_service
@@ -70,6 +71,69 @@ def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
         return schedule_service.create_schedule(conn, payload)
     except Exception as e:
         return handle_domain_exception(e)
+
+
+@router.post("/auto-assign-all")
+def auto_assign_all(conn=Depends(get_db)):
+    """Run auto_assign_guide on every unassigned, non-cancelled schedule.
+
+    For each schedule: assigns the best eligible guide and triggers a
+    GUIDE_ASSIGNED notification, or triggers a SCHEDULE_UNASSIGNABLE
+    notification if no guide qualifies.
+    """
+    rows = conn.execute(
+        text("""
+            SELECT id FROM schedule
+            WHERE guide_id IS NULL
+              AND status NOT IN ('CANCELLED')
+            ORDER BY event_start_datetime
+        """)
+    ).fetchall()
+
+    results = {
+        "total": len(rows),
+        "assigned": 0,
+        "unassignable": 0,
+        "errors": 0,
+        "details": [],
+    }
+
+    for row in rows:
+        sid = row[0]
+        try:
+            result = guide_assignment_service.auto_assign_guide(conn, sid)
+            notification_service.notify_guide_assignment(conn, sid, result["guide_id"], "AUTO")
+            results["assigned"] += 1
+            results["details"].append(
+                {
+                    "schedule_id": sid,
+                    "status": "assigned",
+                    "guide_id": result["guide_id"],
+                    "guide_name": result.get("guide_name"),
+                }
+            )
+        except UnassignableError as e:
+            notification_service.notify_schedule_unassignable(conn, sid, e.reasons)
+            results["unassignable"] += 1
+            results["details"].append(
+                {
+                    "schedule_id": sid,
+                    "status": "unassignable",
+                    "reasons": e.reasons,
+                }
+            )
+        except Exception as e:
+            logger.error(f"auto-assign-all error for schedule {sid}: {e}")
+            results["errors"] += 1
+            results["details"].append(
+                {
+                    "schedule_id": sid,
+                    "status": "error",
+                    "error": str(e),
+                }
+            )
+
+    return results
 
 
 @router.post("/{schedule_id}/assign")
