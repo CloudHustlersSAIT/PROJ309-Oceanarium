@@ -31,9 +31,18 @@ def get_dashboard(conn, guide_id: int):
 
     pending_requests_sql = text("""
         SELECT COUNT(*) AS total
-        FROM tour_assignment_logs
-        WHERE guide_id = :guide_id
-        AND action = 'SWAP_REQUEST'
+        FROM tour_assignment_logs tal
+        WHERE tal.guide_id = :guide_id
+        AND tal.action = 'SWAP_REQUEST'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM tour_assignment_logs resolved
+            WHERE resolved.schedule_id = tal.schedule_id
+              AND resolved.guide_id = tal.guide_id
+              AND resolved.assignment_type = 'SWAP'
+              AND resolved.action IN ('SWAP_ACCEPTED', 'SWAP_REJECTED')
+              AND resolved.assigned_at >= tal.assigned_at
+        )
     """)
 
     pending_requests = conn.execute(pending_requests_sql, {"guide_id": guide_id}).scalar()

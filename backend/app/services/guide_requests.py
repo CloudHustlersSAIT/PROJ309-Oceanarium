@@ -12,14 +12,25 @@ def get_swap_requests(conn, guide_id: int):
             t.name AS tour_name,
             s.event_start_datetime,
             s.event_end_datetime,
-            g.first_name AS requesting_guide_first_name,
-            g.last_name AS requesting_guide_last_name
+            requester.first_name AS requesting_guide_first_name,
+            requester.last_name AS requesting_guide_last_name
         FROM tour_assignment_logs tal
         JOIN schedule s ON s.id = tal.schedule_id
         JOIN tours t ON t.id = s.tour_id
         JOIN guides g ON g.id = tal.guide_id
+        JOIN guides requester ON requester.id = s.guide_id
         WHERE tal.action = 'SWAP_REQUEST'
-          AND s.guide_id = :guide_id
+          AND tal.guide_id = :guide_id
+          AND NOT EXISTS (
+              SELECT 1
+              FROM tour_assignment_logs resolved
+              WHERE resolved.schedule_id = tal.schedule_id
+                AND resolved.guide_id = tal.guide_id
+                AND resolved.assignment_type = 'SWAP'
+                AND resolved.action IN ('SWAP_ACCEPTED', 'SWAP_REJECTED')
+                AND resolved.assigned_at >= tal.assigned_at
+          )
+        ORDER BY s.event_start_datetime, tal.assigned_at DESC
         """
     )
 
