@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppSidebar from '../components/AppSidebar.vue'
 import CancelButton from '../components/CancelButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -21,6 +21,8 @@ const createSuccess = ref('')
 const searchText = ref('')
 const reservations = ref([])
 const actionState = ref({ id: null, type: '' })
+const currentPage = ref(1)
+const pageSize = 15
 const availableSchedules = ref([])
 const schedulesLoading = ref(false)
 const schedulesError = ref('')
@@ -86,6 +88,66 @@ const knownCustomerIds = computed(() => {
   }
 
   return Array.from(ids).sort((a, b) => Number(a) - Number(b))
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredReservations.value.length / pageSize)))
+
+const paginatedReservations = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredReservations.value.slice(start, start + pageSize)
+})
+
+const paginationRange = computed(() => {
+  const pages = []
+  const total = totalPages.value
+  const page = currentPage.value
+
+  if (total <= 7) {
+    for (let index = 1; index <= total; index += 1) pages.push(index)
+    return pages
+  }
+
+  pages.push(1)
+
+  if (page > 3) pages.push('ellipsis-left')
+
+  const rangeStart = Math.max(2, page - 1)
+  const rangeEnd = Math.min(total - 1, page + 1)
+
+  for (let index = rangeStart; index <= rangeEnd; index += 1) {
+    pages.push(index)
+  }
+
+  if (page < total - 2) pages.push('ellipsis-right')
+
+  pages.push(total)
+
+  return pages
+})
+
+const paginationLabel = computed(() => {
+  const total = filteredReservations.value.length
+  const start = (currentPage.value - 1) * pageSize + 1
+  const end = Math.min(currentPage.value * pageSize, total)
+  return `Showing ${start}–${end} of ${total}`
+})
+
+function goToPage(page) {
+  currentPage.value = Math.min(Math.max(1, page), totalPages.value)
+}
+
+let searchDebounceTimer = null
+watch(searchText, () => {
+  clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    currentPage.value = 1
+  }, 250)
+})
+
+watch(filteredReservations, () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value
+  }
 })
 
 function formatShortDate(value) {
@@ -589,7 +651,10 @@ async function handleRescheduleReservation(reservation) {
 onMounted(async () => {
   await Promise.all([loadReservations(), loadCreateSchedules()])
 })
-</script>
+
+onUnmounted(() => {
+  clearTimeout(searchDebounceTimer)
+})</script>
 
 <template>
   <div class="flex min-h-screen bg-gray-100 overflow-x-hidden">
@@ -644,7 +709,7 @@ onMounted(async () => {
             </thead>
             <tbody>
               <tr
-                v-for="(reservation, index) in filteredReservations"
+                v-for="(reservation, index) in paginatedReservations"
                 :key="getRowKey(reservation, index)"
                 class="border-b border-gray-200 hover:bg-gray-50"
               >
@@ -693,6 +758,77 @@ onMounted(async () => {
               </tr>
             </tbody>
           </table>
+
+          <footer
+            v-if="filteredReservations.length > pageSize"
+            class="border-t border-gray-200 px-4 py-4"
+          >
+            <div
+              role="navigation"
+              aria-label="Pagination"
+              class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <p class="typo-muted">{{ paginationLabel }}</p>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition"
+                  :class="
+                    currentPage === 1
+                      ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  "
+                  :disabled="currentPage === 1"
+                  @click="goToPage(currentPage - 1)"
+                >
+                  <span aria-hidden="true">&#8249;</span>
+                  Previous
+                </button>
+
+                <template v-for="item in paginationRange" :key="item">
+                  <span
+                    v-if="String(item).includes('ellipsis')"
+                    class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-transparent px-2 text-sm text-gray-400"
+                    aria-hidden="true"
+                  >
+                    ...
+                  </span>
+
+                  <button
+                    v-else
+                    type="button"
+                    class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border px-3 text-sm font-medium transition"
+                    :class="
+                      currentPage === item
+                        ? 'border-[#0077B6] bg-[#0077B6] text-white'
+                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    "
+                    :aria-current="currentPage === item ? 'page' : undefined"
+                    :aria-label="`Go to page ${item}`"
+                    @click="goToPage(item)"
+                  >
+                    {{ item }}
+                  </button>
+                </template>
+
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition"
+                  :class="
+                    currentPage === totalPages
+                      ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  "
+                  :disabled="currentPage === totalPages"
+                  @click="goToPage(currentPage + 1)"
+                >
+                  Next
+                  <span aria-hidden="true">&#8250;</span>
+                </button>
+              </div>
+            </div>
+          </footer>
         </div>
       </section>
 
