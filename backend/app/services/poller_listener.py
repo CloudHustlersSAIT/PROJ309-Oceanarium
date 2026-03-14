@@ -317,14 +317,37 @@ def process_staging_rows(conn):
                     {"id": reservation_id},
                 )
 
-                handle_reservation_cancellation(conn, reservation_id, old_schedule_id)
+                cancel_result = handle_reservation_cancellation(conn, reservation_id, old_schedule_id)
+
+                cancel_events = []
+                if cancel_result.get("affected_guide_id"):
+                    cancel_events.append(
+                        {
+                            "type": "SCHEDULE_CHANGED",
+                            "schedule_id": old_schedule_id,
+                            "event_type": "RESERVATION_CANCELLED",
+                            "reason": f"Reservation {reservation_id} was cancelled",
+                            "affected_guide_id": cancel_result["affected_guide_id"],
+                        }
+                    )
+                if cancel_result.get("old_guide_id"):
+                    cancel_events.append(
+                        {
+                            "type": "GUIDE_UNASSIGNED",
+                            "schedule_id": old_schedule_id,
+                            "guide_id": cancel_result["old_guide_id"],
+                            "reason": "Schedule cancelled — no remaining reservations",
+                        }
+                    )
+                if cancel_events:
+                    dispatch_events(conn, cancel_events)
 
             elif (
                 old_tour_id != tour_id
                 or (old_language or "").lower() != (reservation["language_code"] or "").lower()
                 or old_event_start != reservation["event_start_datetime"]
             ):
-                events = handle_reservation_change(
+                change_result = handle_reservation_change(
                     conn,
                     reservation_id=reservation_id,
                     old_schedule_id=old_schedule_id,
@@ -333,7 +356,29 @@ def process_staging_rows(conn):
                     new_event_start=reservation["event_start_datetime"],
                     new_event_end=reservation.get("event_end_datetime", reservation["event_start_datetime"]),
                 )
-                dispatch_events(conn, events)
+
+                change_events = []
+                if change_result.get("affected_guide_id"):
+                    change_events.append(
+                        {
+                            "type": "SCHEDULE_CHANGED",
+                            "schedule_id": change_result.get("old_schedule_id") or old_schedule_id,
+                            "event_type": "RESERVATION_MOVED",
+                            "reason": f"Reservation moved to schedule {change_result.get('new_schedule_id')}",
+                            "affected_guide_id": change_result["affected_guide_id"],
+                        }
+                    )
+                if change_result.get("old_guide_id"):
+                    change_events.append(
+                        {
+                            "type": "GUIDE_UNASSIGNED",
+                            "schedule_id": old_schedule_id,
+                            "guide_id": change_result["old_guide_id"],
+                            "reason": "Old schedule emptied after reservation move",
+                        }
+                    )
+                if change_events:
+                    dispatch_events(conn, change_events)
 
         # Mark staging row processed
 

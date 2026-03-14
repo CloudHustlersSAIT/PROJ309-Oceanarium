@@ -4,22 +4,17 @@ from __future__ import annotations
 
 import logging
 import os
+import traceback
+
+import resend
 
 logger = logging.getLogger(__name__)
 
-# Initialize Resend (lazy import to avoid errors if not installed)
-try:
-    import resend
-
-    resend.api_key = os.getenv("RESEND_API_KEY")
-    EMAIL_ENABLED = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
-except ImportError:
-    logger.warning("Resend not installed - email functionality disabled")
-    EMAIL_ENABLED = False
-
+EMAIL_ENABLED = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
 EMAIL_FROM = os.getenv("EMAIL_FROM", "notifications@oceanarium.com")
 EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "Oceanarium Scheduling")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+resend.api_key = os.getenv("RESEND_API_KEY")
 
 
 def send_email(
@@ -78,7 +73,5 @@ def send_email(
         logger.error(f"❌ Failed to send email to {to_email}")
         logger.error(f"   Error: {e}")
         logger.error(f"   Subject: {subject}")
-        import traceback
-
         logger.error(f"   Traceback: {traceback.format_exc()}")
         return False

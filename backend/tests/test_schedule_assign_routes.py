@@ -8,7 +8,7 @@ from app.services.exceptions import NotFoundError, UnassignableError, Validation
 @pytest.mark.asyncio
 async def test_auto_assign_success(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
-        mock_svc.auto_assign_guide.return_value = {
+        mock_svc.auto_assign_and_notify.return_value = {
             "schedule_id": 1,
             "guide_id": 2,
             "guide_name": "Maria Silva",
@@ -31,7 +31,7 @@ async def test_auto_assign_success(client):
 @pytest.mark.asyncio
 async def test_auto_assign_schedule_not_found(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
-        mock_svc.auto_assign_guide.side_effect = NotFoundError("Schedule not found")
+        mock_svc.auto_assign_and_notify.side_effect = NotFoundError("Schedule not found")
         response = await client.post("/schedules/999/assign")
 
     assert response.status_code == 404
@@ -40,7 +40,7 @@ async def test_auto_assign_schedule_not_found(client):
 @pytest.mark.asyncio
 async def test_auto_assign_unassignable(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
-        mock_svc.auto_assign_guide.side_effect = UnassignableError(
+        mock_svc.auto_assign_and_notify.side_effect = UnassignableError(
             "No eligible guide found for this schedule",
             reasons=["NO_LANGUAGE_MATCH"],
         )
@@ -54,7 +54,7 @@ async def test_auto_assign_unassignable(client):
 @pytest.mark.asyncio
 async def test_auto_assign_internal_error(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
-        mock_svc.auto_assign_guide.side_effect = RuntimeError("unexpected")
+        mock_svc.auto_assign_and_notify.side_effect = RuntimeError("unexpected")
         response = await client.post("/schedules/1/assign")
 
     assert response.status_code == 500
@@ -63,7 +63,7 @@ async def test_auto_assign_internal_error(client):
 @pytest.mark.asyncio
 async def test_manual_assign_success(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
-        mock_svc.manual_assign_guide.return_value = {
+        mock_svc.manual_assign_and_notify.return_value = {
             "schedule_id": 1,
             "guide_id": 3,
             "guide_name": "Ana Costa",
@@ -84,7 +84,7 @@ async def test_manual_assign_success(client):
 @pytest.mark.asyncio
 async def test_manual_assign_with_warnings(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
-        mock_svc.manual_assign_guide.return_value = {
+        mock_svc.manual_assign_and_notify.return_value = {
             "schedule_id": 1,
             "guide_id": 7,
             "guide_name": "John Doe",
@@ -105,7 +105,7 @@ async def test_manual_assign_with_warnings(client):
 @pytest.mark.asyncio
 async def test_manual_assign_schedule_not_found(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
-        mock_svc.manual_assign_guide.side_effect = NotFoundError("Schedule not found")
+        mock_svc.manual_assign_and_notify.side_effect = NotFoundError("Schedule not found")
         response = await client.put(
             "/schedules/999/assign",
             json={"guide_id": 3},
@@ -117,7 +117,7 @@ async def test_manual_assign_schedule_not_found(client):
 @pytest.mark.asyncio
 async def test_manual_assign_guide_not_found(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
-        mock_svc.manual_assign_guide.side_effect = NotFoundError("Guide not found")
+        mock_svc.manual_assign_and_notify.side_effect = NotFoundError("Guide not found")
         response = await client.put(
             "/schedules/1/assign",
             json={"guide_id": 999},
@@ -129,7 +129,7 @@ async def test_manual_assign_guide_not_found(client):
 @pytest.mark.asyncio
 async def test_manual_assign_inactive_guide(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
-        mock_svc.manual_assign_guide.side_effect = ValidationError("Guide is inactive")
+        mock_svc.manual_assign_and_notify.side_effect = ValidationError("Guide is inactive")
         response = await client.put(
             "/schedules/1/assign",
             json={"guide_id": 3},
@@ -208,5 +208,108 @@ async def test_get_eligible_guides_schedule_not_found(client):
     with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
         mock_svc.find_eligible_guides.side_effect = NotFoundError("Schedule not found")
         response = await client.get("/schedules/999/eligible-guides")
+
+    assert response.status_code == 404
+
+
+# ===== Auto-Assign All Tests =====
+
+
+@pytest.mark.asyncio
+async def test_auto_assign_all_mixed_results(client):
+    """Test POST /schedules/auto-assign-all with a mix of assigned and unassignable."""
+    with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
+        mock_svc.auto_assign_all_unassigned.return_value = {
+            "total": 3,
+            "assigned": 2,
+            "unassignable": 1,
+            "errors": 0,
+            "details": [
+                {"schedule_id": 1, "status": "assigned", "guide_id": 10, "guide_name": "Marina Costa"},
+                {"schedule_id": 2, "status": "unassignable", "reasons": ["NO_LANGUAGE_MATCH"]},
+                {"schedule_id": 3, "status": "assigned", "guide_id": 11, "guide_name": "Carlos Santos"},
+            ],
+        }
+        response = await client.post("/schedules/auto-assign-all")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 3
+    assert data["assigned"] == 2
+    assert data["unassignable"] == 1
+    assert data["errors"] == 0
+    assert len(data["details"]) == 3
+
+
+@pytest.mark.asyncio
+async def test_auto_assign_all_no_unassigned(client):
+    """Test POST /schedules/auto-assign-all when no schedules need assignment."""
+    with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
+        mock_svc.auto_assign_all_unassigned.return_value = {
+            "total": 0,
+            "assigned": 0,
+            "unassignable": 0,
+            "errors": 0,
+            "details": [],
+        }
+        response = await client.post("/schedules/auto-assign-all")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 0
+    assert data["assigned"] == 0
+    assert data["unassignable"] == 0
+    assert data["details"] == []
+
+
+# ===== Cancel Guide Tests =====
+
+
+@pytest.mark.asyncio
+async def test_cancel_guide_with_replacement(client):
+    """Test DELETE /schedules/{id}/guide when a replacement is found."""
+    with patch("app.routes.schedule.rescheduling_service") as mock_svc:
+        mock_svc.handle_guide_cancellation_and_notify.return_value = {
+            "schedule_id": 1,
+            "old_guide_id": 5,
+            "new_guide_id": 8,
+            "new_guide_name": "Ana Costa",
+            "status": "ASSIGNED",
+        }
+        response = await client.delete("/schedules/1/guide")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["old_guide_id"] == 5
+    assert data["new_guide_id"] == 8
+    assert data["status"] == "ASSIGNED"
+
+
+@pytest.mark.asyncio
+async def test_cancel_guide_unassignable(client):
+    """Test DELETE /schedules/{id}/guide when no replacement is found."""
+    with patch("app.routes.schedule.rescheduling_service") as mock_svc:
+        mock_svc.handle_guide_cancellation_and_notify.return_value = {
+            "schedule_id": 1,
+            "old_guide_id": 5,
+            "new_guide_id": None,
+            "status": "UNASSIGNABLE",
+            "reasons": ["NO_AVAILABILITY_MATCH"],
+        }
+        response = await client.delete("/schedules/1/guide")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["old_guide_id"] == 5
+    assert data["new_guide_id"] is None
+    assert data["status"] == "UNASSIGNABLE"
+
+
+@pytest.mark.asyncio
+async def test_cancel_guide_not_found(client):
+    """Test DELETE /schedules/{id}/guide for non-existent schedule."""
+    with patch("app.routes.schedule.rescheduling_service") as mock_svc:
+        mock_svc.handle_guide_cancellation_and_notify.side_effect = NotFoundError("Schedule not found")
+        response = await client.delete("/schedules/999/guide")
 
     assert response.status_code == 404

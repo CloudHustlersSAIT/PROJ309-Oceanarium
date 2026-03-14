@@ -503,9 +503,12 @@ export async function acceptGuideSwapRequest(swapRequestId, guideId) {
     throw new Error('Guide ID is required to accept a request.')
   }
 
-  return fetchAPI(`/guide/swap-accept?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`, {
-    method: 'POST',
-  })
+  return fetchAPI(
+    `/guide/swap-accept?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`,
+    {
+      method: 'POST',
+    },
+  )
 }
 
 export async function rejectGuideSwapRequest(swapRequestId, guideId) {
@@ -519,9 +522,12 @@ export async function rejectGuideSwapRequest(swapRequestId, guideId) {
     throw new Error('Guide ID is required to reject a request.')
   }
 
-  return fetchAPI(`/guide/swap-reject?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`, {
-    method: 'POST',
-  })
+  return fetchAPI(
+    `/guide/swap-reject?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`,
+    {
+      method: 'POST',
+    },
+  )
 }
 
 export async function getLanguages() {

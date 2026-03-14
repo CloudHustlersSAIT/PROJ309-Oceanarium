@@ -1,11 +1,12 @@
-﻿<script setup>
+<script setup>
 import { useRouter, useRoute } from 'vue-router'
 import { computed } from 'vue'
 
 const props = defineProps({
   label: { type: String, required: true },
-  to: { type: String, required: true }, // route name or path
-  icon: { type: String, required: true }, // icon path
+  to: { type: String, required: true },
+  icon: { type: String, required: true },
+  badge: { type: Number, default: 0 },
 })
 
 const router = useRouter()
@@ -38,12 +39,16 @@ function go() {
     :class="isActive ? 'bg-white/25 shadow-sm' : 'bg-white/5'"
     @click="go"
   >
-    <!-- Icon -->
-    <div class="flex items-center justify-center h-8 w-8 rounded-full bg-white/10">
+    <div class="relative flex items-center justify-center h-8 w-8 rounded-full bg-white/10">
       <img :src="icon" alt="" class="h-5 w-5 brightness-0 invert" />
+      <span
+        v-if="badge > 0"
+        class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+      >
+        {{ badge > 99 ? '99+' : badge }}
+      </span>
     </div>
 
-    <!-- Label -->
     <span class="truncate">
       {{ label }}
     </span>

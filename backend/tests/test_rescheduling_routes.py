@@ -8,7 +8,7 @@ from app.services.exceptions import NotFoundError
 @pytest.mark.asyncio
 async def test_cancel_guide_success(client):
     with patch("app.routes.schedule.rescheduling_service") as mock_svc:
-        mock_svc.handle_guide_cancellation.return_value = {
+        mock_svc.handle_guide_cancellation_and_notify.return_value = {
             "schedule_id": 1,
             "old_guide_id": 5,
             "new_guide_id": 7,
@@ -26,7 +26,7 @@ async def test_cancel_guide_success(client):
 @pytest.mark.asyncio
 async def test_cancel_guide_not_found(client):
     with patch("app.routes.schedule.rescheduling_service") as mock_svc:
-        mock_svc.handle_guide_cancellation.side_effect = NotFoundError("Schedule not found")
+        mock_svc.handle_guide_cancellation_and_notify.side_effect = NotFoundError("Schedule not found")
         response = await client.delete("/schedules/999/guide")
 
     assert response.status_code == 404
@@ -35,7 +35,7 @@ async def test_cancel_guide_not_found(client):
 @pytest.mark.asyncio
 async def test_cancel_guide_internal_error(client):
     with patch("app.routes.schedule.rescheduling_service") as mock_svc:
-        mock_svc.handle_guide_cancellation.side_effect = RuntimeError("unexpected")
+        mock_svc.handle_guide_cancellation_and_notify.side_effect = RuntimeError("unexpected")
         response = await client.delete("/schedules/1/guide")
 
     assert response.status_code == 500

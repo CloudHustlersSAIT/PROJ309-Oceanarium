@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
@@ -8,13 +7,10 @@ from pydantic import BaseModel
 
 from ..db import get_db
 from ..services import guide_assignment as guide_assignment_service
-from ..services import notification as notification_service
 from ..services import rescheduling as rescheduling_service
 from ..services import schedule as schedule_service
 from ..services.error_handlers import handle_domain_exception
-from ..services.exceptions import UnassignableError, ValidationError
-
-logger = logging.getLogger(__name__)
+from ..services.exceptions import ValidationError
 
 router = APIRouter(prefix="/schedules", tags=["Schedules"])
 
@@ -72,19 +68,19 @@ def create_schedule(payload: ScheduleCreate, conn=Depends(get_db)):
         return handle_domain_exception(e)
 
 
+@router.post("/auto-assign-all")
+def auto_assign_all(conn=Depends(get_db)):
+    """Run auto-assignment on every unassigned, non-cancelled schedule."""
+    try:
+        return guide_assignment_service.auto_assign_all_unassigned(conn)
+    except Exception as e:
+        return handle_domain_exception(e)
+
+
 @router.post("/{schedule_id}/assign")
 def auto_assign(schedule_id: int, conn=Depends(get_db)):
     try:
-        result = guide_assignment_service.auto_assign_guide(conn, schedule_id)
-
-        # Trigger notification directly
-        notification_service.notify_guide_assignment(conn, schedule_id, result["guide_id"], "AUTO")
-
-        return result
-    except UnassignableError as e:
-        # Trigger unassignable notification
-        notification_service.notify_schedule_unassignable(conn, schedule_id, e.reasons)
-        return handle_domain_exception(e)
+        return guide_assignment_service.auto_assign_and_notify(conn, schedule_id)
     except Exception as e:
         return handle_domain_exception(e)
 
@@ -92,17 +88,12 @@ def auto_assign(schedule_id: int, conn=Depends(get_db)):
 @router.put("/{schedule_id}/assign")
 def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(get_db)):
     try:
-        result = guide_assignment_service.manual_assign_guide(
+        return guide_assignment_service.manual_assign_and_notify(
             conn,
             schedule_id,
             payload.guide_id,
             assigned_by="admin",
         )
-
-        # Trigger notification directly
-        notification_service.notify_guide_assignment(conn, schedule_id, payload.guide_id, "MANUAL")
-
-        return result
     except Exception as e:
         return handle_domain_exception(e)
 
@@ -125,19 +116,6 @@ def get_eligible_guides(schedule_id: int, conn=Depends(get_db)):
 @router.delete("/{schedule_id}/guide")
 def cancel_guide(schedule_id: int, conn=Depends(get_db)):
     try:
-        result = rescheduling_service.handle_guide_cancellation(conn, schedule_id)
-
-        # Trigger notifications based on result
-        if result.get("old_guide_id"):
-            notification_service.notify_guide_unassignment(
-                conn, schedule_id, result["old_guide_id"], "Guide requested cancellation"
-            )
-
-        if result.get("new_guide_id"):
-            notification_service.notify_guide_assignment(conn, schedule_id, result["new_guide_id"], "AUTO")
-        elif result.get("status") == "UNASSIGNABLE":
-            notification_service.notify_schedule_unassignable(conn, schedule_id, result.get("reasons", []))
-
-        return result
+        return rescheduling_service.handle_guide_cancellation_and_notify(conn, schedule_id)
     except Exception as e:
         return handle_domain_exception(e)

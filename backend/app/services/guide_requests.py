@@ -14,6 +14,8 @@ def get_swap_requests(conn, guide_id: int):
             s.event_end_datetime,
             requester.first_name AS requesting_guide_first_name,
             requester.last_name AS requesting_guide_last_name
+            requester.first_name AS requesting_guide_first_name,
+            requester.last_name AS requesting_guide_last_name
         FROM tour_assignment_logs tal
         JOIN schedule s ON s.id = tal.schedule_id
         JOIN tours t ON t.id = s.tour_id

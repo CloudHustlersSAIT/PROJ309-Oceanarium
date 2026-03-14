@@ -8,6 +8,7 @@ from app.services.rescheduling import (
     find_matching_schedule,
     find_or_create_schedule,
     handle_guide_cancellation,
+    handle_guide_cancellation_and_notify,
     handle_reservation_cancellation,
     handle_reservation_change,
 )
@@ -228,3 +229,83 @@ class TestHandleGuideCancellation:
         assert result["status"] == "UNASSIGNABLE"
         assert "NO_AVAILABILITY_MATCH" in result["reasons"]
         mock_conn.commit.assert_called_once()
+
+
+# ===== handle_guide_cancellation_and_notify Tests =====
+
+
+class TestHandleGuideCancellationAndNotify:
+    def test_replacement_found_sends_both_notifications(self):
+        with (
+            patch("app.services.rescheduling.handle_guide_cancellation") as mock_cancel,
+            patch("app.services.rescheduling.notification_service") as mock_notif,
+        ):
+            mock_cancel.return_value = {
+                "schedule_id": 1,
+                "old_guide_id": 5,
+                "new_guide_id": 8,
+                "status": "ASSIGNED",
+            }
+            conn = MagicMock()
+
+            result = handle_guide_cancellation_and_notify(conn, 1)
+
+        assert result["new_guide_id"] == 8
+        mock_notif.notify_guide_unassignment.assert_called_once_with(conn, 1, 5, "Guide requested cancellation")
+        mock_notif.notify_guide_assignment.assert_called_once_with(conn, 1, 8, "AUTO")
+
+    def test_unassignable_sends_unassignment_and_unassignable_notifications(self):
+        with (
+            patch("app.services.rescheduling.handle_guide_cancellation") as mock_cancel,
+            patch("app.services.rescheduling.notification_service") as mock_notif,
+        ):
+            mock_cancel.return_value = {
+                "schedule_id": 1,
+                "old_guide_id": 5,
+                "new_guide_id": None,
+                "status": "UNASSIGNABLE",
+                "reasons": ["NO_AVAILABILITY_MATCH"],
+            }
+            conn = MagicMock()
+
+            result = handle_guide_cancellation_and_notify(conn, 1)
+
+        assert result["status"] == "UNASSIGNABLE"
+        mock_notif.notify_guide_unassignment.assert_called_once()
+        mock_notif.notify_schedule_unassignable.assert_called_once_with(conn, 1, ["NO_AVAILABILITY_MATCH"])
+
+    def test_no_old_guide_skips_unassignment_notification(self):
+        with (
+            patch("app.services.rescheduling.handle_guide_cancellation") as mock_cancel,
+            patch("app.services.rescheduling.notification_service") as mock_notif,
+        ):
+            mock_cancel.return_value = {
+                "schedule_id": 1,
+                "status": "UNASSIGNED",
+                "message": "No guide was assigned",
+            }
+            conn = MagicMock()
+
+            result = handle_guide_cancellation_and_notify(conn, 1)
+
+        assert result["message"] == "No guide was assigned"
+        mock_notif.notify_guide_unassignment.assert_not_called()
+        mock_notif.notify_guide_assignment.assert_not_called()
+
+    def test_notification_failure_does_not_break_flow(self):
+        with (
+            patch("app.services.rescheduling.handle_guide_cancellation") as mock_cancel,
+            patch("app.services.rescheduling.notification_service") as mock_notif,
+        ):
+            mock_cancel.return_value = {
+                "schedule_id": 1,
+                "old_guide_id": 5,
+                "new_guide_id": 8,
+                "status": "ASSIGNED",
+            }
+            mock_notif.notify_guide_unassignment.side_effect = RuntimeError("email down")
+            conn = MagicMock()
+
+            result = handle_guide_cancellation_and_notify(conn, 1)
+
+        assert result["new_guide_id"] == 8
