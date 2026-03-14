@@ -85,6 +85,33 @@ async def test_patch_guide_not_found(client):
 
 
 @pytest.mark.asyncio
+async def test_delete_guide_success(client):
+    with patch("app.routes.guide.guide_service") as mock_svc:
+        mock_svc.soft_delete_guide.return_value = {
+            "id": 1,
+            "first_name": "Maria",
+            "last_name": "Silva",
+            "email": "maria@test.com",
+            "is_active": False,
+        }
+
+        response = await client.delete("/guides/1")
+
+    assert response.status_code == 200
+    assert response.json()["is_active"] is False
+
+
+@pytest.mark.asyncio
+async def test_delete_guide_not_found(client):
+    with patch("app.routes.guide.guide_service") as mock_svc:
+        mock_svc.soft_delete_guide.return_value = None
+
+        response = await client.delete("/guides/999")
+
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_swap_accept_success(client):
     with (
         patch("app.routes.guide_requests.engine.connect") as mock_connect,
