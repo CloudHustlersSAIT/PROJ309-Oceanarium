@@ -4,54 +4,86 @@
       <div class="flex flex-wrap items-start justify-between gap-3 sm:items-center">
         <div>
           <h1 class="app-title">Notifications</h1>
-          <p class="app-subtitle">Recent updates</p>
+          <p class="app-subtitle">Recent updates for your guide account</p>
         </div>
 
         <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
           <button
             class="app-action-btn border border-black/15 text-[#1C1C1C] hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="activeNotifications.length === 0"
-            @click="archiveAllNotifications"
-          >
-            Archive all
-          </button>
-          <button
-            class="app-action-btn border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A] hover:bg-[#D8EEFB] disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="loading || activeUnreadCount === 0"
+            :disabled="loading || unreadCount === 0"
             @click="markAllRead"
           >
             Mark all as read
           </button>
+          <button
+            class="app-action-btn border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A] hover:bg-[#D8EEFB] disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="loading"
+            @click="loadNotifications"
+          >
+            Refresh
+          </button>
         </div>
       </div>
 
-      <div class="mt-4 overflow-x-auto pb-1">
-        <div class="inline-flex rounded-xl border border-black/10 bg-white p-1">
-          <button
-            type="button"
-            class="app-action-btn whitespace-nowrap"
-            :class="
-              viewMode === 'active'
-                ? 'bg-[#CAF0F8] text-[#1C1C1C] ring-1 ring-[#00B4D8]/35'
-                : 'text-black/75 hover:bg-black/5'
-            "
-            @click="viewMode = 'active'"
-          >
-            Active Notifications
-          </button>
-          <button
-            type="button"
-            class="app-action-btn whitespace-nowrap"
-            :class="
-              viewMode === 'archived'
-                ? 'bg-[#CAF0F8] text-[#1C1C1C] ring-1 ring-[#00B4D8]/35'
-                : 'text-black/75 hover:bg-black/5'
-            "
-            @click="viewMode = 'archived'"
-          >
-            Archived Notifications
-          </button>
+      <div class="mt-5 grid gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4">
+          <p class="text-sm text-black/60">Unread</p>
+          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C]">{{ unreadCount }}</p>
         </div>
+        <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4">
+          <p class="text-sm text-black/60">Urgent</p>
+          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C]">{{ urgentCount }}</p>
+        </div>
+        <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4">
+          <p class="text-sm text-black/60">Action Required</p>
+          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C]">{{ actionRequiredCount }}</p>
+        </div>
+      </div>
+
+      <div class="mt-5 grid gap-3 lg:grid-cols-4">
+        <label class="block">
+          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C]">Channel</span>
+          <select
+            v-model="filters.channel"
+            class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+          >
+            <option value="">All channels</option>
+            <option value="PORTAL">Portal</option>
+            <option value="EMAIL">Email</option>
+          </select>
+        </label>
+
+        <label class="block">
+          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C]">Priority</span>
+          <select
+            v-model="filters.priority"
+            class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+          >
+            <option value="">All priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="normal">Normal</option>
+            <option value="low">Low</option>
+          </select>
+        </label>
+
+        <label class="block">
+          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C]">Event Type</span>
+          <select
+            v-model="filters.eventType"
+            class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+          >
+            <option value="">All event types</option>
+            <option v-for="option in eventTypeOptions" :key="option" :value="option">
+              {{ formatEventType(option) }}
+            </option>
+          </select>
+        </label>
+
+        <label class="flex items-end gap-3 rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] px-4 py-3">
+          <input v-model="filters.unreadOnly" type="checkbox" class="h-4 w-4 rounded border-[#7DB8CC] text-[#0077B6]" />
+          <span class="text-sm font-semibold text-[#1C1C1C]">Unread only</span>
+        </label>
       </div>
 
       <div class="mt-5 space-y-3">
@@ -60,7 +92,7 @@
 
         <template v-else>
           <div
-            v-for="notification in visibleNotifications"
+            v-for="notification in notifications"
             :key="notification.id"
             class="p-3.5 sm:p-4"
             :class="notificationCardClass(notification)"
@@ -80,7 +112,15 @@
 
               <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
                 <button
-                  v-if="!notification.archived && !notification.read"
+                  type="button"
+                  class="app-action-btn border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A] hover:bg-[#D8EEFB]"
+                  :disabled="actionId === notification.id"
+                  @click="viewDetails(notification.id)"
+                >
+                  {{ actionId === notification.id ? 'Loading...' : 'View details' }}
+                </button>
+                <button
+                  v-if="!notification.read"
                   type="button"
                   class="app-action-btn border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A] hover:bg-[#D8EEFB]"
                   :disabled="actionId === notification.id"
@@ -88,39 +128,96 @@
                 >
                   Mark as read
                 </button>
-                <button
-                  v-if="!notification.archived"
-                  type="button"
-                  class="app-action-btn border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A] hover:bg-[#D8EEFB]"
-                  @click="archiveNotification(notification.id)"
-                >
-                  Archive
-                </button>
-                <button
-                  v-else
-                  type="button"
-                  class="app-action-btn border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A] hover:bg-[#D8EEFB]"
-                  @click="restoreNotification(notification.id)"
-                >
-                  Restore
-                </button>
-                <button
-                  type="button"
-                  class="app-action-btn border border-[#E63946]/45 bg-[#FFF1F2] text-[#B91C1C] hover:bg-[#FFE4E6]"
-                  @click="deleteNotification(notification.id)"
-                >
-                  Delete
-                </button>
               </div>
             </div>
           </div>
 
-          <div v-if="visibleNotifications.length === 0" class="text-sm text-black/60">
-            {{ viewMode === 'active' ? "You're all caught up!" : 'No archived notifications yet.' }}
+          <div v-if="notifications.length === 0" class="text-sm text-black/60">
+            You are all caught up.
           </div>
         </template>
       </div>
+
+      <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-4">
+        <p class="text-sm text-black/60">
+          Showing {{ pagination.offset + 1 }}-{{ Math.min(pagination.offset + notifications.length, pagination.offset + pagination.limit) }}
+          of {{ pagination.total }}
+        </p>
+
+        <div class="flex items-center gap-2">
+          <button
+            class="app-action-btn border border-black/15 text-[#1C1C1C] hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="loading || pagination.offset === 0"
+            @click="prevPage"
+          >
+            Prev
+          </button>
+          <button
+            class="app-action-btn border border-black/15 text-[#1C1C1C] hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="loading || !pagination.hasMore"
+            @click="nextPage"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </section>
+
+    <div
+      v-if="detailOpen"
+      class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
+      @click.self="closeDetail"
+    >
+      <div class="w-full max-w-2xl rounded-[28px] border border-[#A9CDD9] bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-semibold text-[#1C1C1C]">Notification Details</h2>
+            <p class="mt-1 text-sm text-black/55">{{ selectedNotification?.createdAtLabel || '' }}</p>
+          </div>
+
+          <button
+            type="button"
+            class="app-action-btn border border-black/15 text-[#1C1C1C] hover:bg-black/5"
+            @click="closeDetail"
+          >
+            Close
+          </button>
+        </div>
+
+        <div v-if="detailLoading" class="mt-5 text-sm text-black/60">Loading details...</div>
+        <div v-else-if="detailError" class="mt-5 text-sm font-medium text-[#B91C1C]">{{ detailError }}</div>
+        <div v-else-if="selectedNotification" class="mt-5 space-y-4">
+          <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4">
+            <p class="text-sm text-black/60">Message</p>
+            <p class="mt-2 text-base font-semibold text-[#1C1C1C]">{{ selectedNotification.message }}</p>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4">
+              <p class="text-sm text-black/60">Event Type</p>
+              <p class="mt-2 text-sm font-semibold text-[#1C1C1C]">{{ formatEventType(selectedNotification.eventType) }}</p>
+            </div>
+            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4">
+              <p class="text-sm text-black/60">Priority</p>
+              <p class="mt-2 text-sm font-semibold text-[#1C1C1C]">{{ selectedNotification.priorityLabel }}</p>
+            </div>
+            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4">
+              <p class="text-sm text-black/60">Channel</p>
+              <p class="mt-2 text-sm font-semibold text-[#1C1C1C]">{{ selectedNotification.channelLabel }}</p>
+            </div>
+            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4">
+              <p class="text-sm text-black/60">Schedule</p>
+              <p class="mt-2 text-sm font-semibold text-[#1C1C1C]">{{ selectedNotification.tourName || 'Not linked' }}</p>
+            </div>
+          </div>
+
+          <div v-if="selectedNotification.detailText" class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4">
+            <p class="text-sm text-black/60">Details</p>
+            <p class="mt-2 whitespace-pre-wrap text-sm text-[#1C1C1C]">{{ selectedNotification.detailText }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -128,34 +225,28 @@
 import { computed, onMounted, ref, watch } from 'vue'
 
 import {
+  getNotificationDetail,
   getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
 } from '@/services/api'
 
-const LOCAL_ARCHIVE_KEY = 'guideArchivedNotifications'
-const LOCAL_DELETE_KEY = 'guideDeletedNotifications'
-
-const notifications = ref([])
-const viewMode = ref('active')
 const loading = ref(false)
 const error = ref('')
 const actionId = ref(null)
-const archivedIds = ref(loadIdSet(LOCAL_ARCHIVE_KEY))
-const deletedIds = ref(loadIdSet(LOCAL_DELETE_KEY))
-
-function loadIdSet(key) {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) || '[]')
-    return Array.isArray(parsed) ? parsed.map(Number).filter((value) => Number.isInteger(value) && value > 0) : []
-  } catch {
-    return []
-  }
-}
-
-function persistIdSet(key, values) {
-  window.localStorage.setItem(key, JSON.stringify(values))
-}
+const notifications = ref([])
+const detailOpen = ref(false)
+const detailLoading = ref(false)
+const detailError = ref('')
+const selectedNotification = ref(null)
+const pagination = ref({ total: 0, limit: 10, offset: 0, hasMore: false })
+const summary = ref({ unread_count: 0, urgent_count: 0, action_required_count: 0 })
+const filters = ref({
+  channel: 'PORTAL',
+  priority: '',
+  eventType: '',
+  unreadOnly: false,
+})
 
 function formatRelativeTime(value) {
   const date = new Date(value)
@@ -176,6 +267,18 @@ function formatRelativeTime(value) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+function formatDateTime(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 function formatEventType(value) {
   return String(value || '')
     .trim()
@@ -184,42 +287,66 @@ function formatEventType(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+function formatLabel(value, fallback = '-') {
+  const normalized = String(value || '').trim()
+  if (!normalized) return fallback
+  return normalized.replace(/_/g, ' ')
+}
+
 function normalizeNotification(notification) {
-  const id = Number(notification?.id)
-  const createdAt = notification?.created_at || notification?.createdAt || null
   const eventType = String(notification?.event_type || '').trim()
   const channel = String(notification?.channel || '').trim()
-  const tourName = String(notification?.tour_name || '').trim()
   const priority = String(notification?.priority || '').trim()
-
-  const metaParts = [formatEventType(eventType)]
-  if (tourName) metaParts.push(tourName)
-  if (channel) metaParts.push(channel)
-  if (priority) metaParts.push(priority)
+  const tourName = String(notification?.tour_name || '').trim()
 
   return {
-    id,
+    id: Number(notification?.id),
     message: String(notification?.message || 'Notification').trim(),
-    time: formatRelativeTime(createdAt),
-    read: Boolean(notification?.read_at || notification?.readAt),
-    archived: archivedIds.value.includes(id),
-    meta: metaParts.filter(Boolean).join(' • '),
+    time: formatRelativeTime(notification?.created_at),
+    createdAtLabel: formatDateTime(notification?.created_at),
+    read: Boolean(notification?.read_at),
+    eventType,
+    channel,
+    priority,
+    channelLabel: formatLabel(channel, 'Unknown'),
+    priorityLabel: formatLabel(priority, 'Normal'),
+    tourName,
+    meta: [formatEventType(eventType), tourName, formatLabel(priority, '')].filter(Boolean).join(' - '),
   }
 }
 
-const visibleSourceNotifications = computed(() =>
-  notifications.value.filter((notification) => !deletedIds.value.includes(notification.id)),
-)
+function normalizeNotificationDetail(notification) {
+  const detail = notification?.detail
+  let detailText = ''
 
-const activeNotifications = computed(() => visibleSourceNotifications.value.filter((n) => !n.archived))
-const archivedNotifications = computed(() => visibleSourceNotifications.value.filter((n) => n.archived))
-const visibleNotifications = computed(() =>
-  viewMode.value === 'active' ? activeNotifications.value : archivedNotifications.value,
-)
-const activeUnreadCount = computed(() => activeNotifications.value.filter((n) => !n.read).length)
+  if (typeof detail === 'string') {
+    detailText = detail
+  } else if (detail && typeof detail === 'object') {
+    detailText = JSON.stringify(detail, null, 2)
+  }
+
+  return {
+    id: Number(notification?.id),
+    message: String(notification?.message || 'Notification').trim(),
+    createdAtLabel: formatDateTime(notification?.created_at),
+    eventType: String(notification?.event_type || '').trim(),
+    channelLabel: formatLabel(notification?.channel, 'Unknown'),
+    priorityLabel: formatLabel(notification?.priority, 'Normal'),
+    tourName: String(notification?.tour_name || '').trim(),
+    detailText,
+  }
+}
+
+const unreadCount = computed(() => Number(summary.value?.unread_count ?? 0))
+const urgentCount = computed(() => Number(summary.value?.urgent_count ?? 0))
+const actionRequiredCount = computed(() => Number(summary.value?.action_required_count ?? 0))
+const eventTypeOptions = computed(() => {
+  const values = new Set(notifications.value.map((notification) => notification.eventType).filter(Boolean))
+  return Array.from(values).sort((left, right) => left.localeCompare(right))
+})
 
 watch(
-  activeUnreadCount,
+  unreadCount,
   (count) => {
     localStorage.setItem('guideUnreadNotifications', String(count))
     window.dispatchEvent(new CustomEvent('guide-unread-updated', { detail: count }))
@@ -232,16 +359,29 @@ async function loadNotifications() {
   error.value = ''
 
   try {
-    const response = await getNotifications()
-    const rawNotifications = Array.isArray(response)
-      ? response
-      : Array.isArray(response?.notifications)
-        ? response.notifications
-        : []
+    const response = await getNotifications({
+      channel: filters.value.channel || undefined,
+      priority: filters.value.priority || undefined,
+      eventType: filters.value.eventType || undefined,
+      unreadOnly: filters.value.unreadOnly,
+      limit: pagination.value.limit,
+      offset: pagination.value.offset,
+    })
 
-    notifications.value = rawNotifications
-      .filter((notification) => String(notification?.channel || '').toUpperCase() === 'PORTAL')
-      .map(normalizeNotification)
+    const rawNotifications = Array.isArray(response?.notifications) ? response.notifications : []
+
+    notifications.value = rawNotifications.map(normalizeNotification)
+    pagination.value = {
+      total: Number(response?.pagination?.total ?? rawNotifications.length),
+      limit: Number(response?.pagination?.limit ?? pagination.value.limit),
+      offset: Number(response?.pagination?.offset ?? pagination.value.offset),
+      hasMore: Boolean(response?.pagination?.has_more),
+    }
+    summary.value = {
+      unread_count: Number(response?.summary?.unread_count ?? 0),
+      urgent_count: Number(response?.summary?.urgent_count ?? 0),
+      action_required_count: Number(response?.summary?.action_required_count ?? 0),
+    }
   } catch (loadError) {
     notifications.value = []
     error.value = loadError?.message || 'Failed to load notifications.'
@@ -253,7 +393,7 @@ async function loadNotifications() {
 async function markAllRead() {
   try {
     await markAllNotificationsRead()
-    notifications.value = notifications.value.map((notification) => ({ ...notification, read: true }))
+    await loadNotifications()
   } catch (loadError) {
     error.value = loadError?.message || 'Failed to mark notifications as read.'
   }
@@ -263,9 +403,7 @@ async function markSingleRead(id) {
   actionId.value = id
   try {
     await markNotificationRead(id)
-    notifications.value = notifications.value.map((notification) =>
-      notification.id === id ? { ...notification, read: true } : notification,
-    )
+    await loadNotifications()
   } catch (loadError) {
     error.value = loadError?.message || 'Failed to mark notification as read.'
   } finally {
@@ -273,41 +411,54 @@ async function markSingleRead(id) {
   }
 }
 
-function archiveNotification(id) {
-  if (!archivedIds.value.includes(id)) {
-    archivedIds.value = [...archivedIds.value, id]
-    persistIdSet(LOCAL_ARCHIVE_KEY, archivedIds.value)
-    notifications.value = notifications.value.map((notification) =>
-      notification.id === id ? { ...notification, archived: true } : notification,
-    )
+async function viewDetails(id) {
+  actionId.value = id
+  detailOpen.value = true
+  detailLoading.value = true
+  detailError.value = ''
+
+  try {
+    const response = await getNotificationDetail(id)
+    selectedNotification.value = normalizeNotificationDetail(response)
+    await loadNotifications()
+  } catch (loadError) {
+    selectedNotification.value = null
+    detailError.value = loadError?.message || 'Failed to load notification details.'
+  } finally {
+    detailLoading.value = false
+    actionId.value = null
   }
 }
 
-function restoreNotification(id) {
-  archivedIds.value = archivedIds.value.filter((value) => value !== id)
-  persistIdSet(LOCAL_ARCHIVE_KEY, archivedIds.value)
-  notifications.value = notifications.value.map((notification) =>
-    notification.id === id ? { ...notification, archived: false } : notification,
-  )
+function closeDetail() {
+  detailOpen.value = false
+  detailLoading.value = false
+  detailError.value = ''
+  selectedNotification.value = null
 }
 
-function deleteNotification(id) {
-  if (!deletedIds.value.includes(id)) {
-    deletedIds.value = [...deletedIds.value, id]
-    persistIdSet(LOCAL_DELETE_KEY, deletedIds.value)
-  }
+function prevPage() {
+  pagination.value.offset = Math.max(0, pagination.value.offset - pagination.value.limit)
+  loadNotifications()
 }
 
-function archiveAllNotifications() {
-  const nextArchived = Array.from(new Set([...archivedIds.value, ...activeNotifications.value.map((item) => item.id)]))
-  archivedIds.value = nextArchived
-  persistIdSet(LOCAL_ARCHIVE_KEY, archivedIds.value)
-  notifications.value = notifications.value.map((notification) => ({ ...notification, archived: true }))
+function nextPage() {
+  if (!pagination.value.hasMore) return
+  pagination.value.offset += pagination.value.limit
+  loadNotifications()
 }
 
 function notificationCardClass(notification) {
   return notification.read ? 'notification-card' : 'notification-card-unread'
 }
+
+watch(
+  () => [filters.value.channel, filters.value.priority, filters.value.eventType, filters.value.unreadOnly],
+  () => {
+    pagination.value.offset = 0
+    loadNotifications()
+  },
+)
 
 onMounted(async () => {
   await loadNotifications()

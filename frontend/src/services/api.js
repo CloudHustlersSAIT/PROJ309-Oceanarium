@@ -214,13 +214,35 @@ export async function getTours() {
   return fetchAPI('/tours')
 }
 
-// Get all notifications
-export async function getNotifications() {
-  return fetchAPI('/notifications', { requiresAuth: true })
+// Get notifications with optional backend filters and pagination
+export async function getNotifications(filters = {}) {
+  const params = new URLSearchParams()
+
+  if (filters.status) params.set('status', filters.status)
+  if (filters.channel) params.set('channel', filters.channel)
+  if (filters.eventType) params.set('event_type', filters.eventType)
+  if (filters.unreadOnly) params.set('unread_only', 'true')
+  if (filters.priority) params.set('priority', filters.priority)
+  if (filters.limit != null) params.set('limit', String(filters.limit))
+  if (filters.offset != null) params.set('offset', String(filters.offset))
+
+  const query = params.toString()
+  return fetchAPI(query ? `/notifications?${query}` : '/notifications', { requiresAuth: true })
 }
 
 export async function getNotificationSummary() {
   return fetchAPI('/notifications/summary', { requiresAuth: true })
+}
+
+export async function getNotificationDetail(notificationId) {
+  const normalizedNotificationId = Number(notificationId)
+  if (!Number.isInteger(normalizedNotificationId) || normalizedNotificationId <= 0) {
+    throw new Error('Notification ID is required to load notification details.')
+  }
+
+  return fetchAPI(`/notifications/${normalizedNotificationId}`, {
+    requiresAuth: true,
+  })
 }
 
 export async function markNotificationRead(notificationId) {
