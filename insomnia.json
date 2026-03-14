@@ -361,12 +361,166 @@
       "_id": "req_list_notifications",
       "_type": "request",
       "name": "List Notifications",
+      "description": "List notifications with optional filters. Supports: status, channel, event_type, priority, unread_only, limit, offset.",
       "method": "GET",
       "url": "{{ _.base_url }}/notifications",
       "parentId": "fld_notifications",
-      "headers": [],
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "event_type",
+          "value": "GUIDE_ASSIGNED",
+          "disabled": true
+        },
+        {
+          "name": "status",
+          "value": "SENT",
+          "disabled": true
+        },
+        {
+          "name": "unread_only",
+          "value": "true",
+          "disabled": true
+        },
+        {
+          "name": "priority",
+          "value": "urgent",
+          "disabled": true
+        },
+        {
+          "name": "limit",
+          "value": "50",
+          "disabled": true
+        },
+        {
+          "name": "offset",
+          "value": "0",
+          "disabled": true
+        }
+      ],
       "body": {},
       "metaSortKey": 1
+    },
+    {
+      "_id": "req_notification_summary",
+      "_type": "request",
+      "name": "Notification Summary",
+      "description": "Returns aggregated notification counts: total, unread, by_priority, by_event_type, action_required.",
+      "method": "GET",
+      "url": "{{ _.base_url }}/notifications/summary",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 2
+    },
+    {
+      "_id": "req_notification_detail",
+      "_type": "request",
+      "name": "Get Notification Detail",
+      "description": "Get full details for a single notification by ID.",
+      "method": "GET",
+      "url": "{{ _.base_url }}/notifications/1",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_mark_notification_read",
+      "_type": "request",
+      "name": "Mark Notification Read",
+      "description": "Mark a single notification as read by ID.",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/notifications/1/read",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 4
+    },
+    {
+      "_id": "req_mark_all_read",
+      "_type": "request",
+      "name": "Mark All Notifications Read",
+      "description": "Mark all notifications as read, optionally filtered by event_type.",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/notifications/read-all",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "event_type",
+          "value": "GUIDE_ASSIGNED",
+          "disabled": true
+        }
+      ],
+      "body": {},
+      "metaSortKey": 5
+    },
+    {
+      "_id": "req_get_preferences",
+      "_type": "request",
+      "name": "Get Notification Preferences",
+      "description": "Get the current user's notification preferences per event type.",
+      "method": "GET",
+      "url": "{{ _.base_url }}/notifications/preferences",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        }
+      ],
+      "body": {},
+      "metaSortKey": 6
+    },
+    {
+      "_id": "req_update_preferences",
+      "_type": "request",
+      "name": "Update Notification Preferences",
+      "description": "Update the current user's notification preferences.",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/notifications/preferences",
+      "parentId": "fld_notifications",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.auth_token }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "[\n  {\n    \"event_type\": \"GUIDE_ASSIGNED\",\n    \"email_enabled\": true,\n    \"portal_enabled\": true\n  },\n  {\n    \"event_type\": \"SCHEDULE_UNASSIGNABLE\",\n    \"email_enabled\": true,\n    \"portal_enabled\": true\n  }\n]"
+      },
+      "metaSortKey": 7
     },
     {
       "_id": "req_trigger_guide_assigned",
@@ -465,87 +619,6 @@
       "metaSortKey": 15
     },
     {
-      "_id": "req_test_trigger_guide_assigned",
-      "_type": "request",
-      "name": "🧪 Test Trigger Guide Assigned (DEV ONLY)",
-      "description": "⚠️ DEVELOPMENT ONLY: Send guide assignment notification to any email. Only works when ENV=development. No auth required.",
-      "method": "POST",
-      "url": "{{ _.base_url }}/notifications/test-trigger/guide-assigned",
-      "parentId": "fld_notifications",
-      "headers": [
-        {
-          "name": "Content-Type",
-          "value": "application/json"
-        }
-      ],
-      "body": {
-        "mimeType": "application/json",
-        "text": "{\n  \"schedule_id\": 1,\n  \"guide_id\": 5,\n  \"assignment_type\": \"AUTO\",\n  \"override_email\": \"evandro.maciel.silva@gmail.com\"\n}"
-      },
-      "metaSortKey": 16
-    },
-    {
-      "_id": "req_test_trigger_guide_unassigned",
-      "_type": "request",
-      "name": "🧪 Test Trigger Guide Unassigned (DEV ONLY)",
-      "description": "⚠️ DEVELOPMENT ONLY: Send guide unassignment notification to any email. Only works when ENV=development. No auth required.",
-      "method": "POST",
-      "url": "{{ _.base_url }}/notifications/test-trigger/guide-unassigned",
-      "parentId": "fld_notifications",
-      "headers": [
-        {
-          "name": "Content-Type",
-          "value": "application/json"
-        }
-      ],
-      "body": {
-        "mimeType": "application/json",
-        "text": "{\n  \"schedule_id\": 1,\n  \"guide_id\": 5,\n  \"reason\": \"Guide cancellation\",\n  \"override_email\": \"evandro.maciel.silva@gmail.com\"\n}"
-      },
-      "metaSortKey": 17
-    },
-    {
-      "_id": "req_test_trigger_schedule_unassignable",
-      "_type": "request",
-      "name": "🧪 Test Trigger Schedule Unassignable (DEV ONLY)",
-      "description": "⚠️ DEVELOPMENT ONLY: Send URGENT unassignable notification to any email. Only works when ENV=development. No auth required.",
-      "method": "POST",
-      "url": "{{ _.base_url }}/notifications/test-trigger/schedule-unassignable",
-      "parentId": "fld_notifications",
-      "headers": [
-        {
-          "name": "Content-Type",
-          "value": "application/json"
-        }
-      ],
-      "body": {
-        "mimeType": "application/json",
-        "text": "{\n  \"schedule_id\": 1,\n  \"reasons\": [\n    \"No guides available with Spanish language\",\n    \"All certified guides already assigned\"\n  ],\n  \"attempted_guides_count\": 12,\n  \"override_email\": \"evandro.maciel.silva@gmail.com\"\n}"
-      },
-      "metaSortKey": 18
-    },
-    {
-      "_id": "req_test_trigger_schedule_changed",
-      "_type": "request",
-      "name": "🧪 Test Trigger Schedule Changed (DEV ONLY)",
-      "description": "⚠️ DEVELOPMENT ONLY: Send schedule change notification to any email. Only works when ENV=development. No auth required.",
-      "method": "POST",
-      "url": "{{ _.base_url }}/notifications/test-trigger/schedule-changed",
-      "parentId": "fld_notifications",
-      "headers": [
-        {
-          "name": "Content-Type",
-          "value": "application/json"
-        }
-      ],
-      "body": {
-        "mimeType": "application/json",
-        "text": "{\n  \"schedule_id\": 1,\n  \"change_type\": \"RESERVATION_CANCELLED\",\n  \"change_details\": \"Reservation #456 cancelled - 2 tickets removed\",\n  \"affected_guide_id\": 5,\n  \"override_email\": \"evandro.maciel.silva@gmail.com\"\n}"
-      },
-      "metaSortKey": 19
-    },
-
-    {
       "_id": "fld_issues",
       "_type": "request_group",
       "name": "Issues",
@@ -603,9 +676,21 @@
       "metaSortKey": 10
     },
     {
+      "_id": "req_mock_seed",
+      "_type": "request",
+      "name": "1. Seed Test Data",
+      "description": "Idempotent endpoint that inserts tours, languages, admin user, guides, and availability data required for E2E testing. Run this FIRST before /mock/run.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/mock/seed",
+      "parentId": "fld_mock",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 1
+    },
+    {
       "_id": "req_mock_run",
       "_type": "request",
-      "name": "Run Mock Poller",
+      "name": "2. Run Mock Poller",
       "method": "POST",
       "url": "{{ _.base_url }}/mock/run",
       "parentId": "fld_mock",
@@ -617,21 +702,33 @@
       ],
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"seed\": 42,\n  \"batch_size\": 10,\n  \"update_ratio\": 0.30,\n  \"unchanged_ratio\": 0.20\n}"
+        "text": "{\n  \"seed\": 42,\n  \"batch_size\": 5,\n  \"update_ratio\": 0.0,\n  \"unchanged_ratio\": 0.0\n}"
       },
-      "metaSortKey": 1
+      "metaSortKey": 2
     },
     {
       "_id": "req_mock_process",
       "_type": "request",
-      "name": "Process Staging Rows",
-      "description": "Processes unprocessed poll_staging rows: ingests into domain tables, detects changes, and triggers auto re-scheduling (FDR-004).",
+      "name": "3. Process Staging Rows",
+      "description": "Processes unprocessed poll_staging rows: ingests into domain tables, detects changes, creates schedules and reservations.",
       "method": "POST",
       "url": "{{ _.base_url }}/mock/process",
       "parentId": "fld_mock",
       "headers": [],
       "body": {},
-      "metaSortKey": 2
+      "metaSortKey": 3
+    },
+    {
+      "_id": "req_auto_assign_all",
+      "_type": "request",
+      "name": "4. Auto-Assign All Schedules",
+      "description": "Runs auto_assign_guide on every unassigned schedule. Triggers GUIDE_ASSIGNED or SCHEDULE_UNASSIGNABLE notifications for each. Run after processing staging rows.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/schedules/auto-assign-all",
+      "parentId": "fld_mock",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 4
     }
   ]
 }

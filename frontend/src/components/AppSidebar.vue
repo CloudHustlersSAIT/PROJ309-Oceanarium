@@ -1,13 +1,15 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../contexts/authContext'
+import { useNotificationStore } from '../stores/notification'
 
 import SidebarButton from './SidebarButton.vue'
 
 const router = useRouter()
 const route = useRoute()
 const { user, logout } = useAuth()
+const notificationStore = useNotificationStore()
 
 // Mobile drawer: closed by default on small screens; sidebar becomes overlay
 const mobileOpen = ref(false)
@@ -35,16 +37,29 @@ import iconBookings from '../assets/icons/bookings.svg'
 import iconCalendar from '../assets/icons/calendar.svg'
 import iconSettings from '../assets/icons/settings.svg'
 
-// Navigation items — use the imported icon variables
 const navItems = [
   { label: 'Home', to: 'home', icon: iconHome },
   { label: 'Dashboard', to: 'dashboard', icon: iconDashboard },
-  { label: 'Notifications', to: 'notifications', icon: iconNotifications },
+  {
+    label: 'Notifications',
+    to: 'notifications',
+    icon: iconNotifications,
+    badgeKey: 'notifications',
+  },
   { label: 'Assets', to: 'assets', icon: iconAssets },
   { label: 'Reservation', to: 'bookings', icon: iconBookings },
   { label: 'Calendar', to: 'calendar', icon: iconCalendar },
   { label: 'Settings', to: 'settings', icon: iconSettings },
 ]
+
+function getNavBadge(item) {
+  if (item.badgeKey === 'notifications') return notificationStore.unreadCount
+  return 0
+}
+
+onMounted(() => {
+  notificationStore.loadSummary()
+})
 
 // Derive a friendly display name from Firebase user
 const displayName = computed(() => {
@@ -129,6 +144,7 @@ async function handleLogout() {
           :label="item.label"
           :to="item.to"
           :icon="item.icon"
+          :badge="getNavBadge(item)"
         />
       </nav>
 

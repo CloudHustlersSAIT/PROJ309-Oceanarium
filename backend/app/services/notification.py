@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from uuid import uuid4
 
 from sqlalchemy import text
 
@@ -77,16 +78,17 @@ def create_notification(
         List of created notification IDs
     """
     notification_ids = []
+    group_id = str(uuid4())
 
     for channel in channels:
         result = conn.execute(
             text("""
                 INSERT INTO notifications
                     (event_type, schedule_id, guide_id, user_id, channel, status, message,
-                     priority, action_required, detail_json, actions_json)
+                     priority, action_required, detail_json, actions_json, group_id)
                 VALUES
                     (:event_type, :schedule_id, :guide_id, :user_id, :channel, 'PENDING', :message,
-                     :priority, :action_required, :detail_json, :actions_json)
+                     :priority, :action_required, :detail_json, :actions_json, CAST(:group_id AS uuid))
                 RETURNING id
             """),
             {
@@ -100,6 +102,7 @@ def create_notification(
                 "action_required": action_required,
                 "detail_json": json.dumps(detail_json) if detail_json else None,
                 "actions_json": json.dumps(actions_json) if actions_json else None,
+                "group_id": group_id,
             },
         )
         notification_ids.append(result.fetchone()[0])
@@ -300,6 +303,8 @@ def notify_guide_assignment(
                 elif row and row[0] == "PORTAL":
                     send_pending_notification(conn, notif_id)
 
+    conn.commit()
+
 
 def notify_guide_unassignment(
     conn,
@@ -360,6 +365,8 @@ def notify_guide_unassignment(
             elif row and row[0] == "PORTAL":
                 send_pending_notification(conn, notif_id)
 
+    conn.commit()
+
 
 def notify_schedule_unassignable(
     conn,
@@ -406,6 +413,8 @@ def notify_schedule_unassignable(
                 send_pending_notification(conn, notif_id, admin["email"], subject, text_body, html_body)
             elif row and row[0] == "PORTAL":
                 send_pending_notification(conn, notif_id)
+
+    conn.commit()
 
 
 def notify_schedule_change(
@@ -480,6 +489,8 @@ def notify_schedule_change(
                 elif row and row[0] == "PORTAL":
                     send_pending_notification(conn, notif_id)
 
+    conn.commit()
+
 
 def retry_failed_email_notification(conn, notification_id: int) -> bool:
     """Retry sending a failed email notification (max 3 attempts)."""
@@ -497,7 +508,7 @@ def retry_failed_email_notification(conn, notification_id: int) -> bool:
 
 
 def list_notifications(conn, user_id: int | None = None, guide_id: int | None = None, filters: dict = None):
-    """List notifications for a user or guide with optional filters."""
+    """List portal notifications for a user or guide with embedded email status."""
     filters = filters or {}
 
     where_clauses = ["1=1"]
@@ -510,13 +521,15 @@ def list_notifications(conn, user_id: int | None = None, guide_id: int | None = 
         where_clauses.append("n.guide_id = :guide_id")
         params["guide_id"] = guide_id
 
-    if filters.get("status"):
-        where_clauses.append("n.status = :status")
-        params["status"] = filters["status"]
-
     if filters.get("channel"):
         where_clauses.append("n.channel = :channel")
         params["channel"] = filters["channel"]
+    else:
+        where_clauses.append("n.channel = 'PORTAL'")
+
+    if filters.get("status"):
+        where_clauses.append("n.status = :status")
+        params["status"] = filters["status"]
 
     if filters.get("unread_only"):
         where_clauses.append("n.read_at IS NULL")
@@ -524,6 +537,10 @@ def list_notifications(conn, user_id: int | None = None, guide_id: int | None = 
     if filters.get("priority"):
         where_clauses.append("n.priority = :priority")
         params["priority"] = filters["priority"]
+
+    if filters.get("event_type"):
+        where_clauses.append("n.event_type = :event_type")
+        params["event_type"] = filters["event_type"]
 
     limit = filters.get("limit", 50)
     offset = filters.get("offset", 0)
@@ -536,10 +553,15 @@ def list_notifications(conn, user_id: int | None = None, guide_id: int | None = 
         text(f"""
             SELECT n.*,
                    s.event_start_datetime as schedule_date,
-                   t.name as tour_name
+                   t.name as tour_name,
+                   email_n.status as email_status,
+                   email_n.sent_at as email_sent_at
             FROM notifications n
             LEFT JOIN schedule s ON s.id = n.schedule_id
             LEFT JOIN tours t ON t.id = s.tour_id
+            LEFT JOIN notifications email_n
+                ON email_n.group_id = n.group_id
+                AND email_n.channel = 'EMAIL'
             WHERE {where_sql}
             ORDER BY n.created_at DESC
             LIMIT :limit OFFSET :offset

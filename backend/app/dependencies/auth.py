@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import logging
 import os
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
 
+from ..db import get_db
 from ..firebase_auth import verify_firebase_token
+from ..services.auth import resolve_authenticated_user
+
+logger = logging.getLogger(__name__)
 
 
 def _is_development_bypass_enabled() -> bool:
@@ -69,3 +74,19 @@ def require_authenticated_user(
         if bypass_enabled:
             return _build_development_bypass_claims(x_dev_bypass_email)
         raise
+
+
+def require_resolved_user(
+    decoded_user: dict = Depends(require_authenticated_user),
+    conn=Depends(get_db),
+) -> dict:
+    """Resolve Firebase/bypass claims into a full application user with role, user_id, guide_id.
+
+    Chains require_authenticated_user -> resolve_authenticated_user (DB lookup).
+    Raises 403 if the authenticated email is not mapped to any application role.
+    """
+    try:
+        return resolve_authenticated_user(conn, decoded_user)
+    except Exception as e:
+        logger.warning("Failed to resolve user %s: %s", decoded_user.get("email"), e)
+        raise HTTPException(status_code=403, detail="User is not mapped to an application role") from e

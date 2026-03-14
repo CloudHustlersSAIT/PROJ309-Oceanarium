@@ -201,9 +201,30 @@ export async function getTours() {
   return fetchAPI('/tours')
 }
 
-// Get all notifications
-export async function getNotifications() {
-  return fetchAPI('/notifications', { requiresAuth: true })
+export async function getNotifications(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.status) params.set('status', filters.status)
+  if (filters.channel) params.set('channel', filters.channel)
+  if (filters.eventType) params.set('event_type', filters.eventType)
+  if (filters.priority) params.set('priority', filters.priority)
+  if (filters.unreadOnly) params.set('unread_only', 'true')
+  if (filters.limit) params.set('limit', String(filters.limit))
+  if (filters.offset) params.set('offset', String(filters.offset))
+  const query = params.toString()
+  return fetchAPI(query ? `/notifications?${query}` : '/notifications', { requiresAuth: true })
+}
+
+export async function getNotificationSummary() {
+  return fetchAPI('/notifications/summary', { requiresAuth: true })
+}
+
+export async function markNotificationRead(id) {
+  return fetchAPI(`/notifications/${id}/read`, { method: 'PATCH', requiresAuth: true })
+}
+
+export async function markAllNotificationsRead(eventType) {
+  const params = eventType ? `?event_type=${encodeURIComponent(eventType)}` : ''
+  return fetchAPI(`/notifications/read-all${params}`, { method: 'PATCH', requiresAuth: true })
 }
 
 // Get dashboard stats
@@ -435,9 +456,12 @@ export async function acceptGuideSwapRequest(swapRequestId, guideId) {
     throw new Error('Guide ID is required to accept a request.')
   }
 
-  return fetchAPI(`/guide/swap-accept?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`, {
-    method: 'POST',
-  })
+  return fetchAPI(
+    `/guide/swap-accept?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`,
+    {
+      method: 'POST',
+    },
+  )
 }
 
 export async function rejectGuideSwapRequest(swapRequestId, guideId) {
@@ -451,7 +475,10 @@ export async function rejectGuideSwapRequest(swapRequestId, guideId) {
     throw new Error('Guide ID is required to reject a request.')
   }
 
-  return fetchAPI(`/guide/swap-reject?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`, {
-    method: 'POST',
-  })
+  return fetchAPI(
+    `/guide/swap-reject?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`,
+    {
+      method: 'POST',
+    },
+  )
 }
