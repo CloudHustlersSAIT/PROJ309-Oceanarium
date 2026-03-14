@@ -5,6 +5,7 @@ import logging
 
 from sqlalchemy import text
 
+from . import notification as notification_service
 from .exceptions import NotFoundError, UnassignableError
 from .guide_assignment import auto_assign_guide
 
@@ -269,3 +270,34 @@ def handle_guide_cancellation(conn, schedule_id: int) -> dict:
             "status": "UNASSIGNABLE",
             "reasons": exc.reasons,
         }
+
+
+def handle_guide_cancellation_and_notify(conn, schedule_id: int) -> dict:
+    """Unassign a guide, attempt replacement, and send all notifications.
+
+    Wraps handle_guide_cancellation then dispatches the appropriate
+    notifications based on the outcome. Notification failures are logged
+    but never raised.
+    """
+    result = handle_guide_cancellation(conn, schedule_id)
+
+    if result.get("old_guide_id"):
+        try:
+            notification_service.notify_guide_unassignment(
+                conn, schedule_id, result["old_guide_id"], "Guide requested cancellation"
+            )
+        except Exception:
+            logger.exception("Failed to send unassignment notification for schedule %s", schedule_id)
+
+    if result.get("new_guide_id"):
+        try:
+            notification_service.notify_guide_assignment(conn, schedule_id, result["new_guide_id"], "AUTO")
+        except Exception:
+            logger.exception("Failed to send assignment notification for schedule %s", schedule_id)
+    elif result.get("status") == "UNASSIGNABLE":
+        try:
+            notification_service.notify_schedule_unassignable(conn, schedule_id, result.get("reasons", []))
+        except Exception:
+            logger.exception("Failed to send unassignable notification for schedule %s", schedule_id)
+
+    return result
