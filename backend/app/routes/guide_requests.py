@@ -24,7 +24,7 @@ def read_swap_requests(guide_id: int):
 
 
 @router.post("/swap-request")
-def create_swap_request(schedule_id: int, guide_id: int, requesting_guide_id: int):
+def create_swap_request(schedule_id: int, guide_id: int, requesting_guide_id: int | None = None):
 
     try:
         with engine.connect() as conn:
