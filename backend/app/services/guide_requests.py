@@ -1,6 +1,6 @@
 from sqlalchemy import text
 
-from .exceptions import NotFoundError, ValidationError
+from .exceptions import ValidationError
 
 
 def get_swap_requests(conn, guide_id: int):
@@ -206,3 +206,4 @@ def reject_swap_request(conn, swap_request_id: int, caller_guide_id: int):
         "schedule_id": schedule_id,
         "guide_id": guide_id,
     }
+
