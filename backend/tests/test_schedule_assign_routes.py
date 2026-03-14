@@ -145,3 +145,68 @@ async def test_manual_assign_missing_guide_id(client):
         json={},
     )
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_eligible_guides_success(client):
+    with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
+        mock_svc.find_eligible_guides.return_value = (
+            [
+                {
+                    "id": 3,
+                    "first_name": "Maria",
+                    "last_name": "Silva",
+                    "guide_rating": 4.8,
+                    "same_day_assignments": 1,
+                },
+                {
+                    "id": 7,
+                    "first_name": "John",
+                    "last_name": "Doe",
+                    "guide_rating": 4.5,
+                    "same_day_assignments": 2,
+                },
+            ],
+            [],
+        )
+        response = await client.get("/schedules/1/eligible-guides")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["schedule_id"] == 1
+    assert data["total"] == 2
+    assert data["reasons"] == []
+
+    first = data["eligible_guides"][0]
+    assert first["id"] == 3
+    assert first["first_name"] == "Maria"
+    assert first["last_name"] == "Silva"
+    assert first["guide_rating"] == 4.8
+    assert first["same_day_assignments"] == 1
+    assert first["ranking_position"] == 1
+
+    second = data["eligible_guides"][1]
+    assert second["id"] == 7
+    assert second["ranking_position"] == 2
+
+
+@pytest.mark.asyncio
+async def test_get_eligible_guides_empty(client):
+    with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
+        mock_svc.find_eligible_guides.return_value = ([], ["NO_LANGUAGE_MATCH"])
+        response = await client.get("/schedules/1/eligible-guides")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["eligible_guides"] == []
+    assert "NO_LANGUAGE_MATCH" in data["reasons"]
+    assert data["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_eligible_guides_schedule_not_found(client):
+    with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
+        mock_svc.find_eligible_guides.side_effect = NotFoundError("Schedule not found")
+        response = await client.get("/schedules/999/eligible-guides")
+
+    assert response.status_code == 404

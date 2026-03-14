@@ -1,5 +1,7 @@
 from sqlalchemy import text
 
+from .exceptions import NotFoundError, ValidationError
+
 
 def get_swap_requests(conn, guide_id: int):
     sql = text(
@@ -111,7 +113,8 @@ def get_swap_candidates(conn, schedule_id: int):
     return result.mappings().all()
 
 
-def accept_swap_request(conn, swap_request_id: int):
+def accept_swap_request(conn, swap_request_id: int, caller_guide_id: int):
+    """Accept a swap request. Only the candidate guide (stored in the log) may accept."""
     fetch_sql = text(
         """
         SELECT
@@ -127,6 +130,9 @@ def accept_swap_request(conn, swap_request_id: int):
     row = conn.execute(fetch_sql, {"swap_request_id": swap_request_id}).mappings().first()
     if row is None:
         return {"status": "not_found"}
+
+    if row["guide_id"] != caller_guide_id:
+        raise ValidationError("Only the selected guide can accept this swap request")
 
     schedule_id = row["schedule_id"]
     guide_id = row["guide_id"]
@@ -159,7 +165,8 @@ def accept_swap_request(conn, swap_request_id: int):
     }
 
 
-def reject_swap_request(conn, swap_request_id: int):
+def reject_swap_request(conn, swap_request_id: int, caller_guide_id: int):
+    """Reject a swap request. Only the candidate guide (stored in the log) may reject."""
     fetch_sql = text(
         """
         SELECT
@@ -175,6 +182,9 @@ def reject_swap_request(conn, swap_request_id: int):
     row = conn.execute(fetch_sql, {"swap_request_id": swap_request_id}).mappings().first()
     if row is None:
         return {"status": "not_found"}
+
+    if row["guide_id"] != caller_guide_id:
+        raise ValidationError("Only the selected guide can reject this swap request")
 
     schedule_id = row["schedule_id"]
     guide_id = row["guide_id"]
