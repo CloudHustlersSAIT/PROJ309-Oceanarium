@@ -294,6 +294,18 @@
       "metaSortKey": 2
     },
     {
+      "_id": "req_eligible_guides",
+      "_type": "request",
+      "name": "Preview Eligible Guides",
+      "description": "Returns a ranked list of eligible guides for a schedule. Read-only preview — does not modify any data. Returns empty list (not error) when no guides qualify.",
+      "method": "GET",
+      "url": "{{ _.base_url }}/schedules/1/eligible-guides",
+      "parentId": "fld_schedules",
+      "headers": [],
+      "body": {},
+      "metaSortKey": 3
+    },
+    {
       "_id": "req_auto_assign_guide",
       "_type": "request",
       "name": "Auto Assign Guide",
@@ -303,7 +315,7 @@
       "parentId": "fld_schedules",
       "headers": [],
       "body": {},
-      "metaSortKey": 3
+      "metaSortKey": 4
     },
     {
       "_id": "req_manual_assign_guide",
@@ -323,7 +335,7 @@
         "mimeType": "application/json",
         "text": "{\n  \"guide_id\": 1,\n  \"reason\": \"Customer requested specific guide\"\n}"
       },
-      "metaSortKey": 4
+      "metaSortKey": 5
     },
     {
       "_id": "req_cancel_guide",
@@ -335,7 +347,7 @@
       "parentId": "fld_schedules",
       "headers": [],
       "body": {},
-      "metaSortKey": 5
+      "metaSortKey": 6
     },
 
     {

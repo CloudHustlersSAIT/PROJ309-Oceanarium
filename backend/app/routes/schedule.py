@@ -107,6 +107,21 @@ def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(g
         return handle_domain_exception(e)
 
 
+@router.get("/{schedule_id}/eligible-guides")
+def get_eligible_guides(schedule_id: int, conn=Depends(get_db)):
+    try:
+        ranked, reasons = guide_assignment_service.find_eligible_guides(conn, schedule_id)
+        guides = [{**g, "ranking_position": idx + 1} for idx, g in enumerate(ranked)]
+        return {
+            "schedule_id": schedule_id,
+            "eligible_guides": guides,
+            "reasons": reasons,
+            "total": len(guides),
+        }
+    except Exception as e:
+        return handle_domain_exception(e)
+
+
 @router.delete("/{schedule_id}/guide")
 def cancel_guide(schedule_id: int, conn=Depends(get_db)):
     try:
