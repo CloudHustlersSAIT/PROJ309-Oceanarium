@@ -5,30 +5,50 @@
       <p class="app-subtitle">Send a swap request or accept and reject incoming swaps</p>
 
       <div class="mt-5 rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4">
+        <div class="mb-4 grid gap-3 md:grid-cols-2">
+          <div class="rounded-2xl border border-[#7DB8CC]/60 bg-white/55 px-4 py-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#0077B6]">Step 1</p>
+            <p class="mt-1 text-sm font-semibold text-[#1C1C1C]">Choose one of your assigned schedules</p>
+          </div>
+          <div class="rounded-2xl border border-[#7DB8CC]/60 bg-white/55 px-4 py-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#0077B6]">Step 2</p>
+            <p class="mt-1 text-sm font-semibold text-[#1C1C1C]">Pick an available guide for that schedule</p>
+          </div>
+        </div>
+
         <div class="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
           <div>
-            <label class="mb-2 block text-sm font-semibold text-[#1C1C1C]">Select Guide</label>
+            <label class="mb-2 block text-sm font-semibold text-[#1C1C1C]">My Schedule</label>
             <select
-              v-model="selectedGuideId"
+              v-model="selectedScheduleId"
               class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+              :disabled="submitting || !mySchedules.length"
             >
-              <option value="">Choose a guide</option>
-              <option v-for="guide in availableGuides" :key="guide.id" :value="String(guide.id)">
-                {{ guide.name }}
+              <option value="">{{ mySchedules.length ? 'Choose your schedule' : 'No assigned schedules' }}</option>
+              <option v-for="schedule in mySchedules" :key="schedule.id" :value="String(schedule.id)">
+                {{ schedule.label }}
               </option>
             </select>
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-semibold text-[#1C1C1C]">Guide Schedule</label>
+            <label class="mb-2 block text-sm font-semibold text-[#1C1C1C]">Available Guide</label>
             <select
-              v-model="selectedScheduleId"
+              v-model="selectedGuideId"
               class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
-              :disabled="!selectedGuideId || !targetGuideSchedules.length || submitting"
+              :disabled="!selectedScheduleId || !availableGuides.length || submitting || candidatesLoading"
             >
-              <option value="">Choose a schedule</option>
-              <option v-for="schedule in targetGuideSchedules" :key="schedule.id" :value="String(schedule.id)">
-                {{ schedule.label }}
+              <option value="">
+                {{
+                  candidatesLoading
+                    ? 'Loading guides...'
+                    : availableGuides.length
+                      ? 'Choose an available guide'
+                      : 'No available guides'
+                }}
+              </option>
+              <option v-for="guide in availableGuides" :key="guide.id" :value="String(guide.id)">
+                {{ guide.name }}
               </option>
             </select>
           </div>
@@ -42,6 +62,9 @@
           </button>
         </div>
 
+        <p v-if="candidatesError" class="mt-3 text-sm font-medium text-[#B91C1C]">
+          {{ candidatesError }}
+        </p>
         <p v-if="!swapApiAvailable" class="mt-3 text-sm text-black/65">
           Swap request API is not available in this branch yet. Guide and schedule data still load normally.
         </p>
@@ -104,7 +127,7 @@ import { useAuth } from '@/contexts/authContext'
 import {
   acceptGuideSwapRequest,
   createGuideSwapRequest,
-  getGuides,
+  getGuideSwapCandidates,
   getGuideSwapRequests,
   getSchedules,
   rejectGuideSwapRequest,
@@ -119,24 +142,21 @@ const selectedGuideId = ref('')
 const selectedScheduleId = ref('')
 const toast = ref('')
 const formError = ref('')
+const candidatesError = ref('')
 const requestsError = ref('')
 const requestsLoading = ref(false)
 const submitting = ref(false)
+const candidatesLoading = ref(false)
 const loadingActionId = ref(null)
 const swapApiAvailable = ref(true)
 
 const currentGuideId = computed(() => Number(profile.value?.guide_id ?? 0) || null)
 
-const availableGuides = computed(() =>
-  guides.value.filter((guide) => Number(guide.id) !== Number(currentGuideId.value || 0)),
+const mySchedules = computed(() =>
+  schedules.value.filter((schedule) => Number(schedule.guideId) === Number(currentGuideId.value || 0)),
 )
 
-const targetGuideSchedules = computed(() => {
-  const selectedId = Number(selectedGuideId.value)
-  if (!selectedId) return []
-
-  return schedules.value.filter((schedule) => Number(schedule.guideId) === selectedId)
-})
+const availableGuides = computed(() => guides.value)
 
 const canSubmitSwapRequest = computed(
   () =>
@@ -163,7 +183,9 @@ function buildGuideName(guide) {
   const firstName = String(guide?.first_name || guide?.firstName || '').trim()
   const lastName = String(guide?.last_name || guide?.lastName || '').trim()
   const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
-  return fullName || String(guide?.full_name || guide?.name || guide?.email || `Guide ${guide?.id ?? ''}`).trim()
+  const rating = Number(guide?.guide_rating ?? guide?.guideRating)
+  const ratingLabel = Number.isFinite(rating) ? ` • ${rating.toFixed(1)}★` : ''
+  return `${fullName || String(guide?.full_name || guide?.name || guide?.email || `Guide ${guide?.id ?? ''}`).trim()}${ratingLabel}`
 }
 
 function formatDateLabel(value) {
@@ -236,18 +258,37 @@ function formatSwapApiError(error, fallbackMessage) {
 }
 
 async function loadFormData() {
-  const [guidesResponse, schedulesResponse] = await Promise.all([getGuides(), getSchedules()])
-
-  guides.value = (Array.isArray(guidesResponse) ? guidesResponse : [])
-    .map((guide) => ({
-      id: Number(guide?.id ?? guide?.guide_id),
-      name: buildGuideName(guide),
-    }))
-    .filter((guide) => Number.isInteger(guide.id) && guide.id > 0)
+  const schedulesResponse = await getSchedules()
 
   schedules.value = (Array.isArray(schedulesResponse) ? schedulesResponse : [])
     .map(normalizeSchedule)
     .filter((schedule) => Number.isInteger(schedule.id) && schedule.id > 0 && schedule.guideId)
+}
+
+async function loadAvailableGuides() {
+  const normalizedScheduleId = Number(selectedScheduleId.value)
+  selectedGuideId.value = ''
+  guides.value = []
+  candidatesError.value = ''
+
+  if (!normalizedScheduleId) return
+
+  candidatesLoading.value = true
+
+  try {
+    const response = await getGuideSwapCandidates(normalizedScheduleId)
+    swapApiAvailable.value = true
+    guides.value = (Array.isArray(response) ? response : [])
+      .map((guide) => ({
+        id: Number(guide?.id ?? guide?.guide_id),
+        name: buildGuideName(guide),
+      }))
+      .filter((guide) => Number.isInteger(guide.id) && guide.id > 0)
+  } catch (error) {
+    candidatesError.value = formatSwapApiError(error, 'Failed to load available guides.')
+  } finally {
+    candidatesLoading.value = false
+  }
 }
 
 async function loadRequests() {
@@ -280,13 +321,12 @@ async function submitSwapRequest() {
 
   try {
     const selectedGuide = availableGuides.value.find((guide) => guide.id === Number(selectedGuideId.value))
-    const selectedSchedule = targetGuideSchedules.value.find(
-      (schedule) => schedule.id === Number(selectedScheduleId.value),
-    )
+    const selectedSchedule = mySchedules.value.find((schedule) => schedule.id === Number(selectedScheduleId.value))
 
-    await createGuideSwapRequest(selectedScheduleId.value, currentGuideId.value)
+    await createGuideSwapRequest(selectedScheduleId.value, selectedGuideId.value, currentGuideId.value)
     selectedGuideId.value = ''
     selectedScheduleId.value = ''
+    guides.value = []
     showToast(
       selectedGuide && selectedSchedule
         ? `Swap request sent to ${selectedGuide.name} for ${selectedSchedule.title}.`
@@ -303,7 +343,7 @@ async function submitSwapRequest() {
 async function accept(swapRequestId) {
   loadingActionId.value = swapRequestId
   try {
-    await acceptGuideSwapRequest(swapRequestId)
+    await acceptGuideSwapRequest(swapRequestId, currentGuideId.value)
     showToast('Swap request accepted.')
     await loadRequests()
   } catch (error) {
@@ -316,7 +356,7 @@ async function accept(swapRequestId) {
 async function reject(swapRequestId) {
   loadingActionId.value = swapRequestId
   try {
-    await rejectGuideSwapRequest(swapRequestId)
+    await rejectGuideSwapRequest(swapRequestId, currentGuideId.value)
     showToast('Swap request rejected.')
     await loadRequests()
   } catch (error) {
@@ -326,8 +366,8 @@ async function reject(swapRequestId) {
   }
 }
 
-watch(selectedGuideId, () => {
-  selectedScheduleId.value = ''
+watch(selectedScheduleId, () => {
+  loadAvailableGuides()
 })
 
 onMounted(async () => {
