@@ -163,10 +163,10 @@ async function loadSchedule() {
     const schedules = await getSchedules({
       startDate: formatIsoDate(start),
       endDate: formatIsoDate(end),
+      guideId: currentGuideId.value,
     })
 
     events.value = (Array.isArray(schedules) ? schedules : [])
-      .filter((schedule) => Number(schedule?.guide_id) === currentGuideId.value)
       .map(normalizeScheduleEvent)
       .sort((left, right) => left.startMs - right.startMs)
   } catch (loadError) {
@@ -186,6 +186,10 @@ function nextWeek() {
 }
 
 watch(weekOffset, () => {
+  loadSchedule()
+})
+
+watch(currentGuideId, () => {
   loadSchedule()
 })
 

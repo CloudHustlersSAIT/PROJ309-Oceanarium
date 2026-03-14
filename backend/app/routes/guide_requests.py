@@ -23,11 +23,11 @@ def read_swap_requests(guide_id: int):
 
 
 @router.post("/swap-request")
-def create_swap_request(schedule_id: int, guide_id: int):
+def create_swap_request(schedule_id: int, guide_id: int, requesting_guide_id: int | None = None):
 
     try:
         with engine.connect() as conn:
-            return request_service.create_swap_request(conn, schedule_id, guide_id)
+            return request_service.create_swap_request(conn, schedule_id, guide_id, requesting_guide_id)
 
     except Exception as err:
         logger.exception("Error creating swap request")
