@@ -7,16 +7,25 @@ import CancelButton from '../components/CancelButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import SaveButton from '../components/SaveButton.vue'
 import { useCalendarStore } from '../stores/calendar'
-import { createSchedule, getTours } from '../services/api'
+import {
+  autoAssignGuide,
+  cancelGuideFromSchedule,
+  createSchedule,
+  getEligibleGuides,
+  getGuideLanguages,
+  getTours,
+  manualAssignGuide,
+} from '../services/api'
 import { downloadCsv } from '../utils/calendar'
 import {
   formatLocalTimeLowerAmPm,
 } from '../utils/reservation'
 
 const calendar = useCalendarStore()
-const bulkMode = ref(false)
 const showCreatePopup = ref(false)
 const showConfirmCreatePopup = ref(false)
+const showConfirmCancelGuidePopup = ref(false)
+const manualAssignRequestToken = ref(0)
 const showTourDetailsPopup = ref(false)
 const showDayEventsPopup = ref(false)
 const formError = ref('')
@@ -25,6 +34,18 @@ const creatingSchedule = ref(false)
 const toursLoading = ref(false)
 const toursError = ref('')
 const availableTours = ref([])
+const assignmentNotice = ref({ type: '', lines: [] })
+const showManualAssignPopup = ref(false)
+const manualAssignLoadingCandidates = ref(false)
+const manualAssignSubmitting = ref(false)
+const cancellingGuideAssignment = ref(false)
+const eligibleGuides = ref([])
+const eligibleGuideReasons = ref([])
+const manualAssignGuideId = ref('')
+const manualAssignReason = ref('')
+const manualAssignError = ref('')
+const guideLanguageCache = ref({})
+const autoAssignWeekLoading = ref(false)
 
 const LANGUAGE_CODE_OPTIONS = [
   { code: 'en', label: 'English' },
@@ -92,27 +113,59 @@ const selectedTourDetails = computed(() => {
   const end = new Date(selected.end)
   const hasValidStart = !Number.isNaN(start.getTime())
   const hasValidEnd = !Number.isNaN(end.getTime())
-
-  const formatDate = (d) =>
-    `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`
-  const formatTime = (d) =>
-    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
+  const status = String(selected.status || '-').trim()
 
   return {
     source: selected.source,
-    guide_id: selected.guideId ?? '-',
-    reservation_count: selected.reservationCount ?? '-',
-    status: selected.status || '-',
-    customer_id: selected.customerId ?? '-',
+    schedule_id: selected.sourceId ?? '-',
+    status,
     tour_id: selected.tourId ?? '-',
-    date: hasValidStart ? formatDate(start) : '',
-    start_time: hasValidStart ? formatTime(start) : '',
-    end_time: hasValidEnd ? formatTime(end) : '',
-    adult_tickets: selected.adultTickets ?? '-',
-    child_tickets: selected.childTickets ?? '-',
+    tour_title: selected.title || '-',
     language: selected.language || 'English',
+    reservation_count: selected.reservationCount ?? '-',
+    guide_id: selected.guideId ?? '-',
+    guide_name: selected.resourceName || 'Unassigned Guide',
+    date: hasValidStart ? start.toLocaleDateString('en-CA') : '-',
+    time_range: hasValidStart && hasValidEnd
+      ? `${formatLocalTimeLowerAmPm(start)} - ${formatLocalTimeLowerAmPm(end)}`
+      : '-',
   }
 })
+
+const isSelectedStatusCancelled = computed(() => {
+  const status = String(selectedTourDetails.value?.status || '').trim().toLowerCase()
+  return status === 'cancelled' || status === 'canceled'
+})
+
+const selectedWeekScheduleEvents = computed(() =>
+  calendar.eventsInRange.filter((event) => {
+    if (String(event.source || '').toLowerCase() !== 'schedule') return false
+    const status = String(event.status || '').trim().toLowerCase()
+    return status === 'unassigned' || status === 'unassignable'
+  }),
+)
+
+const selectedScheduleId = computed(() => {
+  const selected = calendar.selectedEvent
+  if (!selected) return null
+  if (String(selected.source || '').toLowerCase() !== 'schedule') return null
+
+  const scheduleId = Number(selected.sourceId)
+  if (!Number.isInteger(scheduleId) || scheduleId <= 0) return null
+  return scheduleId
+})
+
+const canSubmitManualAssign = computed(() => {
+  const guideId = Number(manualAssignGuideId.value)
+  return Number.isInteger(guideId) && guideId > 0 && !manualAssignSubmitting.value
+})
+
+const selectedDeletableEventIds = computed(() =>
+  calendar.bulkSelection.filter((eventId) => {
+    const selectedEvent = calendar.events.find((event) => event.id === eventId)
+    return Boolean(selectedEvent) && selectedEvent.sourceId == null
+  }),
+)
 
 function getCreateDraftSnapshot() {
   return JSON.stringify({
@@ -189,6 +242,8 @@ function handlePrimaryCreateClick() {
 }
 
 function handleSelectEvent(event) {
+  assignmentNotice.value = { type: '', lines: [] }
+  manualAssignError.value = ''
   calendar.selectEvent(event)
   if (!isDetailsPopupAllowedSource(event?.source)) {
     showTourDetailsPopup.value = false
@@ -199,6 +254,314 @@ function handleSelectEvent(event) {
 
 function closeTourDetailsPopup() {
   showTourDetailsPopup.value = false
+}
+
+function setAssignmentNotice(type, lines) {
+  assignmentNotice.value = {
+    type,
+    lines: Array.isArray(lines) ? lines.filter(Boolean).map((line) => String(line)) : [],
+  }
+}
+
+function formatReasonCode(reasonCode) {
+  const normalized = String(reasonCode || '').trim()
+  if (!normalized) return 'No reason provided'
+  return normalized
+    .toLowerCase()
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function mapGuideLanguageResponse(response) {
+  const languages = Array.isArray(response?.languages) ? response.languages : []
+  const labels = languages
+    .map((item) => String(item?.name || item?.code || '').trim())
+    .filter(Boolean)
+
+  return labels.length > 0 ? labels.join(', ') : 'Not mapped'
+}
+
+function withCachedGuideLanguages(guideRows) {
+  const rows = Array.isArray(guideRows) ? guideRows : []
+  return rows.map((guide) => {
+    const guideId = Number(guide?.id)
+    const cachedLanguage = guideLanguageCache.value[String(guideId)]
+    return {
+      ...guide,
+      languageLabel: cachedLanguage || guide.languageLabel || 'Loading...',
+    }
+  })
+}
+
+async function enrichEligibleGuideLanguages(requestToken, scheduleId) {
+  if (!showManualAssignPopup.value || eligibleGuides.value.length === 0) return
+  if (manualAssignRequestToken.value !== requestToken) return
+  if (selectedScheduleId.value !== scheduleId) return
+
+  const uniqueGuideIds = Array.from(
+    new Set(
+      eligibleGuides.value
+        .map((guide) => Number(guide?.id))
+        .filter((guideId) => Number.isInteger(guideId) && guideId > 0),
+    ),
+  )
+
+  const missingGuideIds = uniqueGuideIds.filter((guideId) => !guideLanguageCache.value[String(guideId)])
+
+  if (missingGuideIds.length > 0) {
+    const results = await Promise.allSettled(
+      missingGuideIds.map((guideId) => getGuideLanguages(guideId)),
+    )
+
+    const nextCache = { ...guideLanguageCache.value }
+    for (let index = 0; index < missingGuideIds.length; index += 1) {
+      const guideId = missingGuideIds[index]
+      const result = results[index]
+      if (result.status === 'fulfilled') {
+        nextCache[String(guideId)] = mapGuideLanguageResponse(result.value)
+      } else {
+        nextCache[String(guideId)] = 'Not mapped'
+      }
+    }
+
+    guideLanguageCache.value = nextCache
+  }
+
+  if (!showManualAssignPopup.value) {
+    return
+  }
+
+  if (manualAssignRequestToken.value !== requestToken) {
+    return
+  }
+
+  if (selectedScheduleId.value !== scheduleId) {
+    return
+  }
+
+  eligibleGuides.value = withCachedGuideLanguages(eligibleGuides.value)
+}
+
+async function refreshCalendarSelection(scheduleId) {
+  await calendar.loadEvents()
+
+  const refreshed = calendar.events.find(
+    (event) => String(event.source || '').toLowerCase() === 'schedule' && Number(event.sourceId) === scheduleId,
+  )
+
+  if (refreshed) {
+    calendar.selectEvent(refreshed)
+    showTourDetailsPopup.value = true
+    return
+  }
+
+  calendar.selectEvent(null)
+  showTourDetailsPopup.value = false
+}
+
+function closeManualAssignPopup() {
+  showManualAssignPopup.value = false
+  manualAssignRequestToken.value += 1
+  manualAssignGuideId.value = ''
+  manualAssignReason.value = ''
+  manualAssignError.value = ''
+  eligibleGuides.value = []
+  eligibleGuideReasons.value = []
+}
+
+async function openManualAssignPopup() {
+  const scheduleId = selectedScheduleId.value
+  if (!scheduleId) {
+    setAssignmentNotice('error', ['Select a schedule event before manual assignment.'])
+    return
+  }
+
+  const requestToken = manualAssignRequestToken.value + 1
+  manualAssignRequestToken.value = requestToken
+
+  showManualAssignPopup.value = true
+  manualAssignGuideId.value = ''
+  manualAssignReason.value = ''
+  manualAssignError.value = ''
+  eligibleGuides.value = []
+  eligibleGuideReasons.value = []
+  manualAssignLoadingCandidates.value = true
+
+  try {
+    const eligibleResponse = await getEligibleGuides(scheduleId)
+
+    if (manualAssignRequestToken.value !== requestToken || !showManualAssignPopup.value) {
+      return
+    }
+
+    if (selectedScheduleId.value !== scheduleId) {
+      return
+    }
+
+    eligibleGuides.value = Array.isArray(eligibleResponse?.eligible_guides)
+      ? eligibleResponse.eligible_guides.map((guide) => ({ ...guide, languageLabel: 'Loading...' }))
+      : []
+
+    eligibleGuideReasons.value = Array.isArray(eligibleResponse?.reasons) ? eligibleResponse.reasons : []
+
+    if (eligibleGuides.value.length === 1) {
+      manualAssignGuideId.value = String(eligibleGuides.value[0].id)
+    }
+  } catch (error) {
+    if (manualAssignRequestToken.value === requestToken) {
+      manualAssignError.value = error?.message || 'Failed to load eligible guides.'
+    }
+  } finally {
+    if (manualAssignRequestToken.value === requestToken) {
+      manualAssignLoadingCandidates.value = false
+    }
+  }
+
+  // Language labels are enriched in background to avoid blocking modal rendering.
+  void enrichEligibleGuideLanguages(requestToken, scheduleId)
+}
+
+async function submitManualAssign() {
+  const scheduleId = selectedScheduleId.value
+  if (!scheduleId) {
+    manualAssignError.value = 'No schedule selected for manual assignment.'
+    return
+  }
+
+  const guideId = Number(manualAssignGuideId.value)
+  if (!Number.isInteger(guideId) || guideId <= 0) {
+    manualAssignError.value = 'Select a guide before confirming manual assignment.'
+    return
+  }
+
+  manualAssignSubmitting.value = true
+  manualAssignError.value = ''
+
+  try {
+    const response = await manualAssignGuide(
+      scheduleId,
+      guideId,
+      manualAssignReason.value,
+    )
+
+    const warningLines = Array.isArray(response?.warnings)
+      ? response.warnings.filter(Boolean).map((warning) => `Warning: ${warning}`)
+      : []
+
+    setAssignmentNotice('success', [
+      `Guide assigned manually: ${response.guide_name} (ID ${response.guide_id}).`,
+      ...warningLines,
+    ])
+
+    closeManualAssignPopup()
+    await refreshCalendarSelection(scheduleId)
+  } catch (error) {
+    manualAssignError.value = error?.message || 'Failed to assign selected guide manually.'
+  } finally {
+    manualAssignSubmitting.value = false
+  }
+}
+
+function requestCancelGuideAssignment() {
+  if (cancellingGuideAssignment.value) return
+
+  if (!selectedScheduleId.value) {
+    setAssignmentNotice('error', ['Select a schedule event before cancelling guide assignment.'])
+    return
+  }
+
+  showConfirmCancelGuidePopup.value = true
+}
+
+async function handleCancelGuideAssignment() {
+  showConfirmCancelGuidePopup.value = false
+
+  if (cancellingGuideAssignment.value) return
+  const scheduleId = selectedScheduleId.value
+  if (!scheduleId) {
+    setAssignmentNotice('error', ['Select a schedule event before cancelling guide assignment.'])
+    return
+  }
+
+  cancellingGuideAssignment.value = true
+
+  try {
+    const result = await cancelGuideFromSchedule(scheduleId)
+
+    if (String(result?.status || '').toUpperCase() === 'UNASSIGNABLE') {
+      const reasonLines = Array.isArray(result?.reasons)
+        ? result.reasons.map((reason) => `Reason: ${formatReasonCode(reason)}`)
+        : []
+
+      setAssignmentNotice('warning', [
+        `Guide removed from schedule ${result.schedule_id}. No replacement was found.`,
+        ...reasonLines,
+      ])
+    } else {
+      setAssignmentNotice('success', [
+        `Guide cancellation processed for schedule ${result.schedule_id}.`,
+        result.new_guide_id
+          ? `Replacement guide: ${result.new_guide_name} (ID ${result.new_guide_id}).`
+          : 'Guide was unassigned successfully.',
+      ])
+    }
+
+    await refreshCalendarSelection(scheduleId)
+  } catch (error) {
+    setAssignmentNotice('error', [error?.message || 'Failed to cancel guide assignment.'])
+  } finally {
+    cancellingGuideAssignment.value = false
+  }
+}
+
+async function handleAutoAssignWeek() {
+  if (autoAssignWeekLoading.value) return
+  if (calendar.currentView !== 'week') {
+    setAssignmentNotice('warning', ['Switch to week view to run Auto Assign for the current week.'])
+    return
+  }
+
+  const weekEvents = selectedWeekScheduleEvents.value
+  if (weekEvents.length === 0) {
+    setAssignmentNotice('warning', ['No unassigned schedule events found in the selected week.'])
+    return
+  }
+
+  autoAssignWeekLoading.value = true
+  assignmentNotice.value = { type: '', lines: [] }
+
+  try {
+    const results = await Promise.allSettled(
+      weekEvents.map((event) => autoAssignGuide(Number(event.sourceId))),
+    )
+
+    const successCount = results.filter((result) => result.status === 'fulfilled').length
+    const failed = results.filter((result) => result.status === 'rejected')
+
+    if (failed.length > 0) {
+      const firstError = failed[0].reason?.message || 'Unknown assignment error'
+      setAssignmentNotice('warning', [
+        `Auto Assign processed ${successCount} of ${weekEvents.length} schedule events.`,
+        `Some assignments failed: ${firstError}`,
+      ])
+    } else {
+      setAssignmentNotice('success', [
+        `Auto Assign completed for ${successCount} schedule events in the current week.`,
+      ])
+    }
+
+    try {
+      await calendar.loadEvents()
+    } catch (error) {
+      setAssignmentNotice('warning', [
+        ...assignmentNotice.value.lines,
+        error?.message || 'Calendar refresh failed after Auto Assign.',
+      ])
+    }
+  } finally {
+    autoAssignWeekLoading.value = false
+  }
 }
 
 function reservationDetailsStatusClass(status) {
@@ -240,6 +603,11 @@ function handleGlobalKeydown(event) {
   if (showDayEventsPopup.value) {
     event.preventDefault()
     closeDayEventsPopup()
+    return
+  }
+  if (showManualAssignPopup.value) {
+    event.preventDefault()
+    closeManualAssignPopup()
     return
   }
   if (showTourDetailsPopup.value) {
@@ -351,14 +719,26 @@ function handleNavigatePrev() {
 }
 
 function handleDeleteSelectedEvent() {
-  const selectedId = calendar.selectedEvent?.id
-  if (!selectedId) return
+  if (!calendar.bulkSelection.length) return
 
-  const confirmed = window.confirm('Delete selected tour?')
+  if (selectedDeletableEventIds.value.length === 0) {
+    setAssignmentNotice('warning', [
+      'Delete selected is available only for local events that have not been persisted yet.',
+    ])
+    return
+  }
+
+  const confirmed = window.confirm(`Delete ${selectedDeletableEventIds.value.length} selected event(s)?`)
   if (!confirmed) return
 
-  calendar.deleteEvent(selectedId)
-  showTourDetailsPopup.value = false
+  const selectedIds = [...selectedDeletableEventIds.value]
+  selectedIds.forEach((eventId) => calendar.deleteEvent(eventId))
+
+  if (selectedIds.length !== calendar.bulkSelection.length) {
+    setAssignmentNotice('warning', [
+      'Only local non-persisted events were removed. Persisted schedule events were kept unchanged.',
+    ])
+  }
 }
 
 watch(
@@ -370,7 +750,7 @@ watch(
 )
 
 onMounted(() => {
-  calendar.setView('month')
+  calendar.setView('week')
   calendar.loadEvents()
   document.addEventListener('keydown', handleGlobalKeydown)
 })
@@ -406,27 +786,19 @@ onBeforeUnmount(() => {
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <button
-              class="px-3 py-1.5 rounded border border-gray-300 text-sm"
-              :class="
-                bulkMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'
-              "
-              @click="bulkMode = !bulkMode"
-            >
-              Bulk selection
-            </button>
-            <button
-              v-if="calendar.selectedEvent"
+              :disabled="calendar.bulkSelection.length === 0"
               class="px-3 py-1.5 rounded bg-red-600 text-white text-sm"
               @click="handleDeleteSelectedEvent"
             >
               Delete selected
             </button>
-            <CancelButton
-              v-if="bulkMode"
-              label="Cancel selected"
-              @cancel="calendar.applyBulkStatus('cancelled')"
-            />
-            <button v-if="bulkMode" class="px-3 py-1.5 rounded border border-gray-300 text-sm" @click="calendar.clearBulkSelection()">Clear</button>
+            <button
+              class="px-3 py-1.5 rounded border border-gray-300 text-sm"
+              :disabled="calendar.bulkSelection.length === 0"
+              @click="calendar.clearBulkSelection()"
+            >
+              Clear
+            </button>
           </div>
         </div>
 
@@ -437,15 +809,30 @@ onBeforeUnmount(() => {
           :selected-event="calendar.selectedEvent"
           :conflicts="calendar.conflicts"
           :resources="calendar.resources"
-          :bulk-mode="bulkMode"
           :bulk-selection="calendar.bulkSelection"
+          :auto-assign-loading="autoAssignWeekLoading"
           @select-event="handleSelectEvent"
           @toggle-bulk="calendar.toggleBulkSelection"
           @select-date="handleSelectDate"
           @open-day-events="handleOpenDayEvents"
           @navigate-next="handleNavigateNext"
           @navigate-prev="handleNavigatePrev"
+          @auto-assign-week="handleAutoAssignWeek"
         />
+
+        <div
+          v-if="assignmentNotice.lines.length > 0"
+          class="rounded border px-3 py-2 text-sm"
+          :class="
+            assignmentNotice.type === 'error'
+              ? 'border-red-300 bg-red-50 text-red-700'
+              : assignmentNotice.type === 'warning'
+                ? 'border-amber-300 bg-amber-50 text-amber-800'
+                : 'border-emerald-300 bg-emerald-50 text-emerald-700'
+          "
+        >
+          <p v-for="line in assignmentNotice.lines" :key="line">{{ line }}</p>
+        </div>
       </div>
     </main>
 
@@ -523,45 +910,164 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <div class="space-y-2 text-sm text-gray-700">
-          <div><span class="font-semibold">guide_id:</span> {{ selectedTourDetails.guide_id }}</div>
+        <div class="space-y-4 text-sm text-gray-700">
           <div
+            v-if="String(selectedTourDetails.status || '').trim().toLowerCase() !== 'unassignable'"
             class="rounded border px-2 py-1"
             :class="reservationDetailsStatusClass(selectedTourDetails.status)"
           >
-            <span class="font-semibold">status:</span> {{ selectedTourDetails.status }}
+            <span class="font-semibold">Status:</span> {{ selectedTourDetails.status }}
           </div>
-          <div>
-            <span class="font-semibold">reservation_count:</span>
-            {{ selectedTourDetails.reservation_count }}
+
+          <div class="grid grid-cols-1 gap-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 sm:grid-cols-2">
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Schedule ID</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.schedule_id }}</p>
+            </div>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Tour ID</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.tour_id }}</p>
+            </div>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 sm:col-span-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Tour</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.tour_title }}</p>
+            </div>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Date</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.date }}</p>
+            </div>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Time</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.time_range }}</p>
+            </div>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Language</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.language }}</p>
+            </div>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Total People</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.reservation_count }}</p>
+            </div>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 sm:col-span-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Guide</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.guide_name }}</p>
+            </div>
           </div>
-          <div>
-            <span class="font-semibold">customer_id:</span> {{ selectedTourDetails.customer_id }}
-          </div>
-          <div><span class="font-semibold">tour_id:</span> {{ selectedTourDetails.tour_id }}</div>
-          <div><span class="font-semibold">date:</span> {{ selectedTourDetails.date }}</div>
-          <div>
-            <span class="font-semibold">start_time:</span> {{ selectedTourDetails.start_time }}
-          </div>
-          <div><span class="font-semibold">end_time:</span> {{ selectedTourDetails.end_time }}</div>
-          <div>
-            <span class="font-semibold">adult_tickets:</span>
-            {{ selectedTourDetails.adult_tickets }}
-          </div>
-          <div>
-            <span class="font-semibold">child_tickets:</span>
-            {{ selectedTourDetails.child_tickets }}
-          </div>
-          <div><span class="font-semibold">language:</span> {{ selectedTourDetails.language }}</div>
         </div>
 
-        <div class="mt-5 flex justify-end">
+        <div v-if="selectedScheduleId && !isSelectedStatusCancelled" class="mt-4 rounded border border-[#ACBAC4] bg-gray-50 p-3">
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Guide Assignment</p>
+
+          <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-1">
+            <button
+              type="button"
+              class="rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="manualAssignSubmitting || cancellingGuideAssignment"
+              @click="openManualAssignPopup"
+            >
+              Manual Assign
+            </button>
+
+            <button
+              type="button"
+              class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="manualAssignSubmitting || cancellingGuideAssignment"
+              @click="requestCancelGuideAssignment"
+            >
+              {{ cancellingGuideAssignment ? 'Cancelling...' : 'Cancel Guide' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showManualAssignPopup"
+      class="fixed inset-0 z-50 bg-black/40"
+      @click.self="closeManualAssignPopup"
+    >
+      <div
+        class="absolute left-1/2 top-1/2 w-[92%] max-w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-lg font-semibold text-gray-800">Manual Assign Guide</h3>
           <button
-            class="px-4 py-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-            @click="closeTourDetailsPopup"
+            type="button"
+            class="text-red-300 hover:text-red-500 text-xl leading-none"
+            aria-label="Close manual assign popup"
+            @click="closeManualAssignPopup"
           >
-            Close
+            ×
           </button>
+        </div>
+
+        <p class="mt-1 text-xs text-gray-500">Schedule ID: {{ selectedScheduleId }}</p>
+
+        <div
+          v-if="manualAssignError"
+          class="mt-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700"
+        >
+          {{ manualAssignError }}
+        </div>
+
+        <div v-if="manualAssignLoadingCandidates" class="mt-4 text-sm text-gray-600">
+          Loading eligible guides...
+        </div>
+
+        <div v-else class="mt-4 space-y-3">
+          <div
+            v-if="eligibleGuideReasons.length > 0"
+            class="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          >
+            <p class="font-semibold">No fully eligible guides found.</p>
+            <p v-for="reason in eligibleGuideReasons" :key="reason">Reason: {{ formatReasonCode(reason) }}</p>
+          </div>
+
+          <div class="max-h-56 space-y-2 overflow-y-auto pr-1">
+            <label
+              v-for="guide in eligibleGuides"
+              :key="guide.id"
+              class="flex cursor-pointer items-start gap-3 rounded border border-[#ACBAC4] px-3 py-2 hover:bg-gray-50"
+            >
+              <input
+                v-model="manualAssignGuideId"
+                type="radio"
+                name="manual-assign-guide"
+                :value="String(guide.id)"
+                class="mt-0.5"
+              />
+              <div class="text-sm text-gray-700">
+                <p class="font-semibold">{{ guide.first_name }} {{ guide.last_name }} (ID {{ guide.id }})</p>
+                <p class="text-xs text-gray-500">
+                  Rating: {{ guide.guide_rating ?? 'N/A' }} · Same-day assignments: {{ guide.same_day_assignments }} · Languages: {{ guide.languageLabel }}
+                </p>
+              </div>
+            </label>
+            <p v-if="eligibleGuides.length === 0" class="text-sm text-gray-600">
+              No eligible guide candidates returned by backend preview.
+            </p>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Reason (optional)</label>
+            <textarea
+              v-model="manualAssignReason"
+              rows="3"
+              class="w-full rounded border border-[#ACBAC4] px-3 py-2 text-sm text-gray-700"
+              placeholder="Example: Customer requested specific guide"
+            />
+          </div>
+        </div>
+
+        <div class="mt-5 flex items-center justify-end gap-2">
+          <CancelButton @cancel="closeManualAssignPopup" />
+          <SaveButton
+            label="Assign"
+            loading-label="Assigning..."
+            :loading="manualAssignSubmitting"
+            :disabled="!canSubmitManualAssign"
+            @save="submitManualAssign"
+          />
         </div>
       </div>
     </div>
@@ -726,5 +1232,16 @@ onBeforeUnmount(() => {
       @cancel="showConfirmCreatePopup = false"
       @confirm="saveCreatedEvent"
     />
+
+    <ConfirmDialog
+      :open="showConfirmCancelGuidePopup"
+      title="Confirm guide cancellation"
+      message="Do you want to cancel the current guide assignment for this schedule?"
+      :loading="cancellingGuideAssignment"
+      :disabled="cancellingGuideAssignment"
+      @cancel="showConfirmCancelGuidePopup = false"
+      @confirm="handleCancelGuideAssignment"
+    />
+
   </div>
 </template>

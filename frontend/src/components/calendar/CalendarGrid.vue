@@ -9,8 +9,8 @@ const props = defineProps({
   selectedEvent: { type: Object, default: null },
   conflicts: { type: Object, required: true },
   resources: { type: Array, required: true },
-  bulkMode: { type: Boolean, default: false },
   bulkSelection: { type: Array, required: true },
+  autoAssignLoading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -20,6 +20,7 @@ const emit = defineEmits([
   'navigate-prev',
   'select-date',
   'open-day-events',
+  'auto-assign-week',
 ])
 
 function keyDate(date) {
@@ -124,7 +125,7 @@ function isSelectedDate(dateLike) {
     class="bg-white rounded-xl shadow-md p-4 border border-blue-500 h-full min-h-[640px] xl:min-h-[865px]"
   >
     <div v-if="view === 'month'">
-      <div class="flex items-center justify-end mb-2">
+      <div class="flex items-center justify-end mb-2 gap-2">
         <div class="flex items-center gap-2">
           <button
             class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
@@ -176,7 +177,6 @@ function isSelectedDate(dateLike) {
               :event="event"
               :selected="selectedEvent?.id === event.id"
               :conflict="Boolean(conflicts[event.id])"
-              :bulk-mode="bulkMode"
               :checked="bulkSelection.includes(event.id)"
               @select="emit('select-event', event)"
               @toggle-bulk="emit('toggle-bulk', event.id)"
@@ -194,19 +194,31 @@ function isSelectedDate(dateLike) {
     </div>
 
     <div v-else-if="view === 'week'" class="h-full">
-      <div class="flex items-center justify-end gap-2 mb-2">
+      <div class="flex items-center justify-between gap-2 mb-2">
         <button
-          class="bg-white border border-[#ACBAC4] text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-50"
+          type="button"
+          class="rounded border border-blue-600 bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="autoAssignLoading"
+          @click="emit('auto-assign-week')"
+        >
+          {{ autoAssignLoading ? 'Assigning...' : 'Auto Assign' }}
+        </button>
+        <div class="flex items-center gap-2">
+          <button
+          class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
+          aria-label="Previous week"
           @click="emit('navigate-prev')"
         >
-          Previous week
+          &lt;
         </button>
         <button
-          class="bg-white border border-[#ACBAC4] text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-50"
+          class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
+          aria-label="Next week"
           @click="emit('navigate-next')"
         >
-          Next week
+          &gt;
         </button>
+        </div>
       </div>
       <div class="grid grid-cols-7 gap-1.5">
         <div
@@ -234,7 +246,6 @@ function isSelectedDate(dateLike) {
               :event="event"
               :selected="selectedEvent?.id === event.id"
               :conflict="Boolean(conflicts[event.id])"
-              :bulk-mode="bulkMode"
               :checked="bulkSelection.includes(event.id)"
               @select="emit('select-event', event)"
               @toggle-bulk="emit('toggle-bulk', event.id)"
@@ -268,7 +279,6 @@ function isSelectedDate(dateLike) {
                 :event="event"
                 :selected="selectedEvent?.id === event.id"
                 :conflict="Boolean(conflicts[event.id])"
-                :bulk-mode="bulkMode"
                 :checked="bulkSelection.includes(event.id)"
                 @select="emit('select-event', event)"
                 @toggle-bulk="emit('toggle-bulk', event.id)"
