@@ -452,7 +452,11 @@ def process_staging_rows(conn):
                         ),
                     )
 
-                    if isinstance(events, list):
+                    if events:
+                        if isinstance(events, dict):
+                            events = [events]
+                        elif not isinstance(events, list):
+                            events = [events]
                         dispatch_events(conn, events)
 
             # -------------------------
