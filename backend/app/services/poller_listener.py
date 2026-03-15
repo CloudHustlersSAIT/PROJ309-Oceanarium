@@ -476,6 +476,19 @@ def process_staging_rows(conn):
         except Exception as e:
             logger.exception("Failed processing staging row %s", row_id)
 
+            # Ensure the connection/transaction is usable after a DB error.
+            # Some databases (e.g. Postgres) put the transaction into an
+            # aborted state after an error, and a rollback is required
+            # before further statements can succeed.
+            if hasattr(conn, "rollback"):
+                try:
+                    conn.rollback()
+                except Exception:
+                    logger.exception(
+                        "Failed to rollback transaction for staging row %s",
+                        row_id,
+                    )
+
             conn.execute(
                 text(
                     """
