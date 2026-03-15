@@ -29,6 +29,7 @@ class GuideCreate(BaseModel):
     first_name: str
     last_name: str
     email: str
+    phone: str | None = None
     language_codes: list[str] = Field(default_factory=list)
     expertise_tour_ids: list[int] = Field(default_factory=list)
     availability_patterns: list[AvailabilityPatternPayload] = Field(default_factory=list)
@@ -38,6 +39,7 @@ class GuideUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
+    phone: str | None = None
     language_codes: list[str] | None = None
     expertise_tour_ids: list[int] | None = None
     availability_patterns: list[AvailabilityPatternPayload] | None = None
@@ -63,6 +65,7 @@ def create_guide(
             payload.first_name,
             payload.last_name,
             payload.email,
+            payload.phone,
             payload.language_codes,
             payload.expertise_tour_ids,
             [pattern.model_dump() for pattern in payload.availability_patterns],
@@ -87,6 +90,23 @@ def edit_guide(
         if updated is None:
             raise HTTPException(status_code=404, detail="Guide not found")
         return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        return handle_domain_exception(e)
+
+
+@router.delete("/{guide_id}")
+def delete_guide(
+    guide_id: int,
+    conn=Depends(get_db),
+    decoded_user: dict = Depends(require_authenticated_user),
+):
+    try:
+        deleted = guide_service.soft_delete_guide(conn, guide_id)
+        if deleted is None:
+            raise HTTPException(status_code=404, detail="Guide not found")
+        return deleted
     except HTTPException:
         raise
     except Exception as e:

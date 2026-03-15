@@ -3,11 +3,11 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-002                |
-| **Version**      | 2.1                    |
+| **Version**      | 2.2                    |
 | **Status**       | Implemented            |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
-| **Last Updated** | 2026-03-11             |
+| **Last Updated** | 2026-03-13             |
 
 ---
 
@@ -186,6 +186,39 @@ Manual override by admin.
 }
 ```
 
+### `GET /schedules/{schedule_id}/eligible-guides`
+
+Preview eligible guides for a schedule (read-only, no side effects).
+
+**Response (200) — Guides Found:**
+```json
+{
+  "schedule_id": 10,
+  "eligible_guides": [
+    {
+      "id": 3,
+      "first_name": "Maria",
+      "last_name": "Silva",
+      "guide_rating": 4.8,
+      "same_day_assignments": 1,
+      "ranking_position": 1
+    }
+  ],
+  "reasons": [],
+  "total": 1
+}
+```
+
+**Response (200) — No Eligible Guides:**
+```json
+{
+  "schedule_id": 10,
+  "eligible_guides": [],
+  "reasons": ["NO_LANGUAGE_MATCH"],
+  "total": 0
+}
+```
+
 ## 7. Error Handling
 
 | Scenario | Expected Behavior | HTTP Status |
@@ -224,3 +257,4 @@ Manual override by admin.
 | 1.1     | 2026-03-03 | Evandro Maciel | Language via `purchases.language_code`; linked to FDR-003/004 |
 | 2.0     | 2026-03-03 | Evandro Maciel | Renamed bookings→reservations; `language_code` now directly on `reservations` (no purchases table) |
 | 2.1     | 2026-03-11 | Evandro Maciel | Implemented: `guide_assignment.py` service (find_eligible_guides, auto_assign_guide, manual_assign_guide); `POST/PUT /schedules/{id}/assign` endpoints; `UnassignableError` (422); audit logging; all open questions resolved |
+| 2.2     | 2026-03-13 | Evandro Maciel | Exposed `find_eligible_guides` via `GET /schedules/{id}/eligible-guides` read-only endpoint for admin preview; added unit tests and documentation |

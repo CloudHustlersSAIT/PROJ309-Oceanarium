@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import logging
 import os
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
 
+from ..db import get_db
 from ..firebase_auth import verify_firebase_token
+from ..services.auth import resolve_authenticated_user
+
+logger = logging.getLogger(__name__)
 
 
 def _is_development_bypass_enabled() -> bool:
@@ -13,10 +18,11 @@ def _is_development_bypass_enabled() -> bool:
     return env == "development" and auth_bypass
 
 
-def _build_development_bypass_claims() -> dict:
+def _build_development_bypass_claims(email_override: str | None = None) -> dict:
+    email = str(email_override or os.getenv("AUTH_BYPASS_EMAIL", "local-dev@oceanarium.local")).strip().lower()
     return {
         "uid": os.getenv("AUTH_BYPASS_UID", "local-dev-user"),
-        "email": os.getenv("AUTH_BYPASS_EMAIL", "local-dev@oceanarium.local").strip().lower(),
+        "email": email,
         "auth_mode": "development-bypass",
     }
 
@@ -46,6 +52,7 @@ def _extract_bearer_token(authorization: str | None) -> str:
 
 def require_authenticated_user(
     authorization: str | None = Header(default=None),
+    x_dev_bypass_email: str | None = Header(default=None),
 ) -> dict:
     """
     Returns decoded Firebase claims for an authenticated user.
@@ -56,7 +63,7 @@ def require_authenticated_user(
     bypass_enabled = _is_development_bypass_enabled()
 
     if bypass_enabled and not authorization:
-        return _build_development_bypass_claims()
+        return _build_development_bypass_claims(x_dev_bypass_email)
 
     bearer_token = _extract_bearer_token(authorization)
 
@@ -65,5 +72,21 @@ def require_authenticated_user(
         return decoded
     except HTTPException:
         if bypass_enabled:
-            return _build_development_bypass_claims()
+            return _build_development_bypass_claims(x_dev_bypass_email)
         raise
+
+
+def require_resolved_user(
+    decoded_user: dict = Depends(require_authenticated_user),
+    conn=Depends(get_db),
+) -> dict:
+    """Resolve Firebase/bypass claims into a full application user with role, user_id, guide_id.
+
+    Chains require_authenticated_user -> resolve_authenticated_user (DB lookup).
+    Raises 403 if the authenticated email is not mapped to any application role.
+    """
+    try:
+        return resolve_authenticated_user(conn, decoded_user)
+    except Exception as e:
+        logger.warning("Failed to resolve user %s: %s", decoded_user.get("email"), e)
+        raise HTTPException(status_code=403, detail="User is not mapped to an application role") from e

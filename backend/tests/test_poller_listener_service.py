@@ -149,25 +149,32 @@ class TestProcessStagingRows:
         with pytest.raises(Exception, match="Tour not found"):
             process_staging_rows(mock_conn)
 
+    @patch("app.services.poller_listener.dispatch_events")
     @patch("app.services.poller_listener.handle_reservation_cancellation")
-    def test_cancellation_detected(self, mock_cancel):
+    def test_cancellation_detected(self, mock_cancel, mock_dispatch):
+        mock_cancel.return_value = {"schedule_id": 50, "affected_guide_id": None, "old_guide_id": None}
         old_row = (100, 10, "en", "2026-03-10T10:00:00Z", "CONFIRMED", 50)
         row = _make_staging_row(status="CANCELLED")
         conn = _build_mock_conn([row], old_reservation=old_row)
 
-        # The cancellation branch also calls execute for UPDATE reservations SET schedule_id = NULL
-        # We need to insert that call after the version check
         original_side_effect = list(conn.execute.side_effect)
-        # After version insert (index 8), before UPDATE poll_staging (index 9), insert the SET schedule_id = NULL
         original_side_effect.insert(9, MagicMock())
         conn.execute.side_effect = original_side_effect
 
         count = process_staging_rows(conn)
         assert count == 1
         mock_cancel.assert_called_once()
+        mock_dispatch.assert_not_called()
 
+    @patch("app.services.poller_listener.dispatch_events")
     @patch("app.services.poller_listener.handle_reservation_change")
-    def test_language_change_detected(self, mock_change):
+    def test_language_change_detected(self, mock_change, mock_dispatch):
+        mock_change.return_value = {
+            "new_schedule_id": 2,
+            "affected_guide_id": None,
+            "old_schedule_id": 50,
+            "old_guide_id": None,
+        }
         old_row = (100, 10, "en", "2026-03-10T10:00:00Z", "CONFIRMED", 50)
         row = _make_staging_row(language_code="pt")
         conn = _build_mock_conn([row], old_reservation=old_row)
@@ -178,6 +185,7 @@ class TestProcessStagingRows:
         kwargs = mock_change.call_args[1]
         assert kwargs["new_language_code"] == "pt"
         assert kwargs["old_schedule_id"] == 50
+        mock_dispatch.assert_not_called()
 
     @patch("app.services.poller_listener.handle_reservation_change")
     def test_no_change_when_values_same(self, mock_change):
