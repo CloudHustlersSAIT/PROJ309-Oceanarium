@@ -1,42 +1,196 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
+
 import AppSidebar from '../components/AppSidebar.vue'
 import SaveButton from '../components/SaveButton.vue'
+import { useAuth } from '../contexts/authContext'
 
-const profile = reactive({
-  name: 'David Guerrero',
-  email: 'admin@oceanarium.co',
-  phone: '+55 12345678',
+const { user, profile } = useAuth()
+
+const SETTINGS_STORAGE_KEY = 'oceanarium-admin-settings-v1'
+
+const DEFAULT_SETTINGS = {
+  displayName: 'Operations Administrator',
+  email: '',
   language: 'English (US)',
-})
+  timezone: 'America/Sao_Paulo',
+  reservationApproval: 'Manual review',
+  scheduleLeadTime: '24 hours',
+  scheduleConflictPolicy: 'Warn and require confirmation',
+  allowUnassignedSchedules: true,
+  autoEscalateUnassignable: true,
+  notifyNewBookings: true,
+  notifyOverbookingRisk: true,
+  notifyGuideAvailabilityRisk: true,
+  notifyDailyDigest: true,
+  requireTwoFactor: true,
+  sessionTimeout: '30 minutes',
+  passwordResetPolicy: 'Email only',
+  allowAdminDataExport: false,
+}
 
-const twoFactorEnabled = ref(true)
-const notificationChannels = reactive({
-  email: false,
-  sms: false,
-  whatsapp: false,
+const PERSISTED_SETTINGS_KEYS = [
+  'language',
+  'timezone',
+  'reservationApproval',
+  'scheduleLeadTime',
+  'scheduleConflictPolicy',
+  'allowUnassignedSchedules',
+  'autoEscalateUnassignable',
+  'notifyNewBookings',
+  'notifyOverbookingRisk',
+  'notifyGuideAvailabilityRisk',
+  'notifyDailyDigest',
+  'requireTwoFactor',
+  'sessionTimeout',
+  'passwordResetPolicy',
+  'allowAdminDataExport',
+]
+
+function cloneDefaultSettings() {
+  return { ...DEFAULT_SETTINGS }
+}
+
+function normalizeSettingValue(key, value) {
+  const defaultValue = DEFAULT_SETTINGS[key]
+
+  if (typeof defaultValue === 'boolean') {
+    return typeof value === 'boolean' ? value : defaultValue
+  }
+
+  if (typeof defaultValue === 'string') {
+    const normalized = String(value || '').trim()
+    return normalized || defaultValue
+  }
+
+  return defaultValue
+}
+
+function sanitizeStoredSettings(rawStoredSettings) {
+  if (!rawStoredSettings || typeof rawStoredSettings !== 'object') return {}
+
+  const sanitized = {}
+  PERSISTED_SETTINGS_KEYS.forEach((key) => {
+    sanitized[key] = normalizeSettingValue(key, rawStoredSettings[key])
+  })
+
+  return sanitized
+}
+
+function loadStoredSettings() {
+  if (typeof window === 'undefined') return {}
+
+  try {
+    const rawValue = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
+    if (!rawValue) return {}
+
+    const parsedValue = JSON.parse(rawValue)
+    return sanitizeStoredSettings(parsedValue)
+  } catch {
+    return {}
+  }
+}
+
+function persistSettings() {
+  if (typeof window === 'undefined') return
+
+  const payload = {}
+  PERSISTED_SETTINGS_KEYS.forEach((key) => {
+    payload[key] = normalizeSettingValue(key, settingsForm[key])
+  })
+
+  window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(payload))
+}
+
+const settingsForm = reactive({
+  ...cloneDefaultSettings(),
+  ...loadStoredSettings(),
 })
 
 const infoMessage = ref('')
+const savingSectionName = ref('')
+
+const adminEmail = computed(() =>
+  String(profile.value?.email || user.value?.email || settingsForm.email || 'admin@oceanarium.co'),
+)
+
+const adminRole = computed(() =>
+  String(profile.value?.role || 'admin')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .toUpperCase(),
+)
+
+const adminStatus = computed(() =>
+  profile.value?.is_active === false ? 'Restricted' : 'Active',
+)
+
+const policySummary = computed(() => [
+  {
+    label: 'Assignment Model',
+    value: 'Language + Availability + Expertise',
+    note: 'Hard constraints from guide assignment rules',
+  },
+  {
+    label: 'Reservation Approval',
+    value: settingsForm.reservationApproval,
+    note: 'Applied by admin operations',
+  },
+  {
+    label: 'Lead Time',
+    value: settingsForm.scheduleLeadTime,
+    note: 'Minimum notice before schedule start',
+  },
+  {
+    label: 'Conflict Policy',
+    value: settingsForm.scheduleConflictPolicy,
+    note: 'Behavior when overlaps or violations are detected',
+  },
+])
+
+if (!settingsForm.email) {
+  settingsForm.email = adminEmail.value
+}
+
+if (settingsForm.displayName === DEFAULT_SETTINGS.displayName) {
+  settingsForm.displayName = user.value?.displayName || settingsForm.displayName
+}
 
 function setInfoMessage(message) {
   infoMessage.value = message
+
   window.setTimeout(() => {
-    infoMessage.value = ''
-  }, 4000)
+    if (infoMessage.value === message) {
+      infoMessage.value = ''
+    }
+  }, 3500)
 }
 
-function saveProfile() {
-  setInfoMessage('Prototype mode: changes are visual only and not persisted yet.')
+function saveSection(sectionName) {
+  savingSectionName.value = sectionName
+
+  try {
+    persistSettings()
+    setInfoMessage(`${sectionName} settings saved locally.`)
+  } finally {
+    savingSectionName.value = ''
+  }
 }
 
-function sendResetLink(channel) {
-  setInfoMessage(`Prototype mode: reset link simulation sent via ${channel}.`)
+function resetSettingsToDefault() {
+  const defaults = cloneDefaultSettings()
+
+  Object.keys(defaults).forEach((key) => {
+    settingsForm[key] = defaults[key]
+  })
+
+  settingsForm.email = adminEmail.value
+  settingsForm.displayName = user.value?.displayName || defaults.displayName
+
+  persistSettings()
+  setInfoMessage('Settings were reset to default values.')
 }
 
-function openPrototypeLink(label) {
-  setInfoMessage(`Prototype mode: "${label}" is not connected yet.`)
-}
 </script>
 
 <template>
@@ -44,245 +198,323 @@ function openPrototypeLink(label) {
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
-      <div class="mb-5">
-        <h1 class="text-3xl md:text-4xl font-semibold text-gray-800">Settings</h1>
-        <p class="mt-1 text-sm text-gray-500">
-          Prototype screen for layout and interaction validation.
+      <section class="app-page-wrap">
+        <header class="app-surface-card app-section-padding">
+          <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <h1 class="typo-page-title">Settings</h1>
+              <p class="mt-2 typo-body max-w-3xl">
+                Configure administrator defaults for scheduling, guide assignment support, notifications,
+                and security controls. Settings are frontend-only and are stored locally in this browser.
+              </p>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 xl:max-w-sm">
+              <p class="font-semibold text-slate-900">Current Admin</p>
+              <p class="mt-1 break-all">{{ adminEmail }}</p>
+              <p class="mt-2 text-xs uppercase tracking-wide text-slate-500">
+                {{ adminRole }} - {{ adminStatus }}
+              </p>
+            </div>
+          </div>
+
+        </header>
+
+        <p
+          v-if="infoMessage"
+          class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700"
+        >
+          {{ infoMessage }}
         </p>
-      </div>
 
-      <p
-        v-if="infoMessage"
-        class="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700"
-      >
-        {{ infoMessage }}
-      </p>
-
-      <div
-        class="grid grid-cols-1 xl:grid-cols-[minmax(640px,1fr)_minmax(360px,420px)] gap-4 items-start"
-      >
-        <section class="space-y-4">
-          <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Profile Information</h2>
-            <div class="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-5">
-              <div class="flex flex-col items-center">
-                <img
-                  src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80"
-                  alt="Profile photo"
-                  class="h-36 w-36 rounded-full object-cover border border-gray-200"
+        <div class="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div class="space-y-5">
+            <section class="app-surface-card app-section-padding">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <h2 class="typo-section-title">Administrator Profile</h2>
+                  <p class="mt-1 typo-muted">
+                    Identity and localization used across notifications and operational views.
+                  </p>
+                </div>
+                <SaveButton
+                  label="Save Profile"
+                  :disabled="savingSectionName === 'Profile'"
+                  @save="saveSection('Profile')"
                 />
-                <p class="mt-3 text-sm text-gray-500">Change Profile Picture</p>
-                <SaveButton class="mt-3" label="Save Changes" @save="saveProfile" />
               </div>
 
-              <div class="space-y-3">
-                <div>
-                  <label
-                    class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
-                    >Name</label
-                  >
+              <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label class="block">
+                  <span class="mb-1 block typo-card-label">Display Name</span>
                   <input
-                    v-model="profile.name"
+                    v-model="settingsForm.displayName"
                     type="text"
-                    class="w-full rounded border border-gray-300 px-3 py-2 text-base"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
                   />
-                </div>
+                </label>
 
-                <div>
-                  <label
-                    class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
-                    >Email Address</label
-                  >
+                <label class="block">
+                  <span class="mb-1 block typo-card-label">Email Address</span>
                   <input
-                    v-model="profile.email"
+                    v-model="settingsForm.email"
                     type="email"
-                    class="w-full rounded border border-gray-300 px-3 py-2 text-base"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
                   />
-                </div>
+                </label>
 
-                <div>
-                  <label
-                    class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
-                    >Phone Number</label
-                  >
-                  <input
-                    v-model="profile.phone"
-                    type="text"
-                    class="w-full rounded border border-gray-300 px-3 py-2 text-base"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    class="block mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase"
-                    >Language</label
-                  >
+                <label class="block">
+                  <span class="mb-1 block typo-card-label">Language</span>
                   <select
-                    v-model="profile.language"
-                    class="w-full rounded border border-gray-300 px-3 py-2 text-base bg-white"
+                    v-model="settingsForm.language"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
                   >
                     <option>English (US)</option>
                     <option>English (UK)</option>
                     <option>Portuguese (BR)</option>
                     <option>Spanish (ES)</option>
                   </select>
-                </div>
+                </label>
 
-                <div class="pt-1">
-                  <SaveButton label="Save Profile" @save="saveProfile" />
-                </div>
+                <label class="block">
+                  <span class="mb-1 block typo-card-label">Timezone</span>
+                  <select
+                    v-model="settingsForm.timezone"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
+                  >
+                    <option>America/Sao_Paulo</option>
+                    <option>America/New_York</option>
+                    <option>Europe/London</option>
+                  </select>
+                </label>
               </div>
-            </div>
-          </div>
+            </section>
 
-          <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-3">User Management</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <button
-                type="button"
-                class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100"
-                @click="openPrototypeLink('Add New Guide')"
-              >
-                Add New Guide
-              </button>
-              <button
-                type="button"
-                class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100"
-                @click="openPrototypeLink('View Guides')"
-              >
-                View Guides
-              </button>
-              <button
-                type="button"
-                class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100"
-                @click="openPrototypeLink('Guide Password Reset')"
-              >
-                Guide Password Reset
-              </button>
-              <button
-                type="button"
-                class="rounded border border-gray-300 bg-gray-50 py-2 text-base hover:bg-gray-100"
-                @click="openPrototypeLink('Assign Guide')"
-              >
-                Assign Guide
-              </button>
-            </div>
-          </div>
-
-          <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-3">Notifications</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <label
-                class="flex items-center gap-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-base"
-              >
-                <input v-model="notificationChannels.email" type="checkbox" class="h-5 w-5" />
-                Email
-              </label>
-              <label
-                class="flex items-center gap-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-base"
-              >
-                <input v-model="notificationChannels.sms" type="checkbox" class="h-5 w-5" />
-                SMS
-              </label>
-              <label
-                class="flex items-center gap-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-base md:col-span-1"
-              >
-                <input v-model="notificationChannels.whatsapp" type="checkbox" class="h-5 w-5" />
-                WhatsApp
-              </label>
-            </div>
-            <SaveButton class="mt-3" label="Save Notification Preferences" @save="saveProfile" />
-          </div>
-
-          <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-3">Help &amp; Support</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-1 text-base text-gray-700">
-              <button
-                type="button"
-                class="text-left hover:underline"
-                @click="openPrototypeLink('API Status')"
-              >
-                API Status
-              </button>
-              <button
-                type="button"
-                class="text-left hover:underline"
-                @click="openPrototypeLink('Report a Problem')"
-              >
-                Report a Problem
-              </button>
-              <button
-                type="button"
-                class="text-left hover:underline"
-                @click="openPrototypeLink('Terms & Conditions')"
-              >
-                Terms &amp; Conditions
-              </button>
-              <button
-                type="button"
-                class="text-left hover:underline"
-                @click="openPrototypeLink('Version Information')"
-              >
-                Version Information
-              </button>
-              <button
-                type="button"
-                class="text-left hover:underline"
-                @click="openPrototypeLink('Privacy Policy')"
-              >
-                Privacy Policy
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section class="space-y-4">
-          <div class="bg-white border border-gray-200 shadow-sm rounded p-4">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Password &amp; Security</h2>
-            <label class="flex items-center gap-3 mb-4 text-base">
-              <button
-                type="button"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition"
-                :class="twoFactorEnabled ? 'bg-blue-600' : 'bg-gray-300'"
-                @click="twoFactorEnabled = !twoFactorEnabled"
-              >
-                <span
-                  class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-                  :class="twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'"
+            <section class="app-surface-card app-section-padding">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <h2 class="typo-section-title">Scheduling and Assignment Defaults</h2>
+                  <p class="mt-1 typo-muted">
+                    Operational controls aligned with guide assignment and schedule orchestration.
+                  </p>
+                </div>
+                <SaveButton
+                  label="Save Scheduling"
+                  :disabled="savingSectionName === 'Scheduling'"
+                  @save="saveSection('Scheduling')"
                 />
-              </button>
-              Two-factor authentication (2FA)
-            </label>
+              </div>
 
-            <p class="text-base font-medium mb-2">Password Reset Link</p>
-            <div class="flex flex-wrap gap-3 mb-5">
-              <button
-                type="button"
-                class="rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium"
-                @click="sendResetLink('Email')"
-              >
-                Send Via Email
-              </button>
-              <button
-                type="button"
-                class="rounded bg-sky-500 px-4 py-2 text-white text-sm font-medium"
-                @click="sendResetLink('SMS')"
-              >
-                Send Via SMS
-              </button>
-            </div>
+              <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label class="block">
+                  <span class="mb-1 block typo-card-label">Reservation Approval</span>
+                  <select
+                    v-model="settingsForm.reservationApproval"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
+                  >
+                    <option>Manual review</option>
+                    <option>Automatic when schedule exists</option>
+                  </select>
+                </label>
 
-            <p class="text-sm text-gray-700 mb-1">
-              Recovery Phone: <span class="text-[#8D97FF]">+55 12345678</span>
-            </p>
-            <p class="text-sm text-gray-700">
-              Recovery Email: <span class="text-[#8D97FF]">+55 12345678</span>
-            </p>
+                <label class="block">
+                  <span class="mb-1 block typo-card-label">Scheduling Lead Time</span>
+                  <select
+                    v-model="settingsForm.scheduleLeadTime"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
+                  >
+                    <option>12 hours</option>
+                    <option>24 hours</option>
+                    <option>48 hours</option>
+                  </select>
+                </label>
 
-            <SaveButton class="mt-4" label="Save Security Settings" @save="saveProfile" />
+                <label class="block md:col-span-2">
+                  <span class="mb-1 block typo-card-label">Conflict Policy</span>
+                  <select
+                    v-model="settingsForm.scheduleConflictPolicy"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
+                  >
+                    <option>Warn and require confirmation</option>
+                    <option>Block operation</option>
+                    <option>Allow and log warning</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <input
+                    v-model="settingsForm.allowUnassignedSchedules"
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-slate-300"
+                  />
+                  <span>
+                    <span class="block text-sm font-semibold text-slate-900">Allow unassigned schedules</span>
+                    <span class="mt-1 block typo-caption">Allow schedule creation before a guide is assigned.</span>
+                  </span>
+                </label>
+
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <input
+                    v-model="settingsForm.autoEscalateUnassignable"
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-slate-300"
+                  />
+                  <span>
+                    <span class="block text-sm font-semibold text-slate-900">Auto-escalate unassignable schedules</span>
+                    <span class="mt-1 block typo-caption">Generate priority alerts when no guide satisfies constraints.</span>
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <section class="app-surface-card app-section-padding">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <h2 class="typo-section-title">Notification Preferences</h2>
+                  <p class="mt-1 typo-muted">
+                    Choose which operational events generate admin notifications.
+                  </p>
+                </div>
+                <SaveButton
+                  label="Save Notifications"
+                  :disabled="savingSectionName === 'Notifications'"
+                  @save="saveSection('Notifications')"
+                />
+              </div>
+
+              <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <input v-model="settingsForm.notifyDailyDigest" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300" />
+                  <span>
+                    <span class="block text-sm font-semibold text-slate-900">Daily digest</span>
+                    <span class="mt-1 block typo-caption">Summary of reservations, assignments, and incidents.</span>
+                  </span>
+                </label>
+
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <input v-model="settingsForm.notifyNewBookings" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300" />
+                  <span>
+                    <span class="block text-sm font-semibold text-slate-900">New booking alerts</span>
+                    <span class="mt-1 block typo-caption">Alert when reservations require operational follow-up.</span>
+                  </span>
+                </label>
+
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <input v-model="settingsForm.notifyOverbookingRisk" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300" />
+                  <span>
+                    <span class="block text-sm font-semibold text-slate-900">Overbooking risk alerts</span>
+                    <span class="mt-1 block typo-caption">Warn when reservations indicate capacity pressure.</span>
+                  </span>
+                </label>
+
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <input v-model="settingsForm.notifyGuideAvailabilityRisk" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300" />
+                  <span>
+                    <span class="block text-sm font-semibold text-slate-900">Guide availability risk alerts</span>
+                    <span class="mt-1 block typo-caption">Alert when schedules are likely to become unassignable.</span>
+                  </span>
+                </label>
+              </div>
+            </section>
           </div>
-        </section>
-      </div>
+
+          <aside class="space-y-5">
+            <section class="app-surface-card app-section-padding">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <h2 class="typo-section-title">Security and Access</h2>
+                  <p class="mt-1 typo-muted">
+                    Baseline controls for administrator access and session safety.
+                  </p>
+                </div>
+                <SaveButton
+                  label="Save Security"
+                  :disabled="savingSectionName === 'Security'"
+                  @save="saveSection('Security')"
+                />
+              </div>
+
+              <div class="mt-5 space-y-4">
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <input v-model="settingsForm.requireTwoFactor" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300" />
+                  <span>
+                    <span class="block text-sm font-semibold text-slate-900">Require two-factor authentication</span>
+                    <span class="mt-1 block typo-caption">Recommended for all administrative sessions.</span>
+                  </span>
+                </label>
+
+                <label class="block">
+                  <span class="mb-1 block typo-card-label">Session Timeout</span>
+                  <select
+                    v-model="settingsForm.sessionTimeout"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
+                  >
+                    <option>15 minutes</option>
+                    <option>30 minutes</option>
+                    <option>60 minutes</option>
+                  </select>
+                </label>
+
+                <label class="block">
+                  <span class="mb-1 block typo-card-label">Password Reset Policy</span>
+                  <select
+                    v-model="settingsForm.passwordResetPolicy"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
+                  >
+                    <option>Email only</option>
+                    <option>Email plus admin approval</option>
+                  </select>
+                </label>
+
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <input
+                    v-model="settingsForm.allowAdminDataExport"
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-slate-300"
+                  />
+                  <span>
+                    <span class="block text-sm font-semibold text-slate-900">Allow admin data exports</span>
+                    <span class="mt-1 block typo-caption">Enable only when governance controls are met.</span>
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <section class="app-surface-card app-section-padding">
+              <h2 class="typo-section-title">Assignment Policy Snapshot</h2>
+              <p class="mt-1 typo-muted">
+                Quick view of current frontend defaults for scheduling and assignment behavior.
+              </p>
+
+              <dl class="mt-5 space-y-3">
+                <div
+                  v-for="item in policySummary"
+                  :key="item.label"
+                  class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                >
+                  <dt class="typo-card-label">{{ item.label }}</dt>
+                  <dd class="mt-1 text-sm font-medium text-slate-900">{{ item.value }}</dd>
+                  <p class="mt-1 typo-caption">{{ item.note }}</p>
+                </div>
+              </dl>
+            </section>
+
+            <section class="app-surface-card app-section-padding">
+              <h2 class="typo-section-title">Reset</h2>
+              <p class="mt-1 typo-muted">Revert all local frontend settings to their default values.</p>
+              <button
+                type="button"
+                class="mt-4 w-full rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+                @click="resetSettingsToDefault"
+              >
+                Reset to defaults
+              </button>
+            </section>
+          </aside>
+        </div>
+      </section>
     </main>
   </div>
 </template>
