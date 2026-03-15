@@ -494,12 +494,16 @@ def process_staging_rows(conn):
                     """
                     UPDATE public.poll_staging
                     SET processed_at = NOW(),
-                        processed_status = 'FAILED',
-                        processed_error = :error
+                        processed_status = :processed_status,
+                        processed_error = :processed_error
                     WHERE id = :id
                     """
                 ),
-                {"id": row_id, "error": str(e)[:1000]},
+                {
+                    "id": row_id,
+                    "processed_status": "FAILED",
+                    "processed_error": str(e)[:1000],
+                },
             )
             continue
 
