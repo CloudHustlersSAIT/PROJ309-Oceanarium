@@ -83,7 +83,7 @@ LANGUAGES = ["en", "pt", "es", "fr", "zh"]
 # - zh: least common
 # - pt/es/fr: equal likelihood
 LANGUAGE_WEIGHTS = {
-    "en": 3,
+    "en": 5,
     "pt": 2,
     "es": 2,
     "fr": 2,
@@ -222,7 +222,7 @@ def _build_create_schedule_pool(
         event_start, event_end = _generate_event_window(rng)
 
         if guide_caps:
-            pair = rng.choice(guide_caps)
+            pair = _pick_assignable_pair(rng, guide_caps)
             selected_tour = next(
                 (tour for tour in tours if tour["clorian_product_id"] == pair["clorian_product_id"]),
                 None,
@@ -262,6 +262,26 @@ def _pick_language(rng: random.Random) -> str:
     """Pick a language using weighted probabilities."""
     weights = [LANGUAGE_WEIGHTS.get(language_code, 1) for language_code in LANGUAGES]
     return rng.choices(LANGUAGES, weights=weights, k=1)[0]
+
+
+def _pick_assignable_pair(rng: random.Random, guide_caps: list[dict[str, Any]]) -> dict[str, Any]:
+    """Pick an assignable (tour, language) pair using language-first weighting.
+
+    This prevents languages with many capability rows from overpowering the
+    desired language distribution.
+    """
+    available_languages = sorted({pair.get("language_code") for pair in guide_caps if pair.get("language_code")})
+    if not available_languages:
+        return rng.choice(guide_caps)
+
+    language_weights = [LANGUAGE_WEIGHTS.get(language_code, 1) for language_code in available_languages]
+    selected_language = rng.choices(available_languages, weights=language_weights, k=1)[0]
+
+    matching_pairs = [pair for pair in guide_caps if pair.get("language_code") == selected_language]
+    if matching_pairs:
+        return rng.choice(matching_pairs)
+
+    return rng.choice(guide_caps)
 
 
 def load_tours(conn) -> list[dict[str, Any]]:
@@ -618,7 +638,7 @@ def generate_records(
         if create_schedule_pool and rng.random() < create_slot_reuse_probability:
             shared_schedule = rng.choice(create_schedule_pool)
 
-        pair = None if shared_schedule else (rng.choice(guide_caps) if guide_caps else None)
+        pair = None if shared_schedule else (_pick_assignable_pair(rng, guide_caps) if guide_caps else None)
         res_payload = _build_reservation_payload(
             clorian_reservation_id=res_id,
             rng=rng,
