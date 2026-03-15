@@ -4,11 +4,11 @@ import logging
 
 from sqlalchemy import text
 
+from .guide_assignment import UnassignableError, auto_assign_guide
 from .notification import notify_guide_assignment, notify_schedule_unassignable
 from .notification_dispatcher import dispatch_events
 from .rescheduling import handle_reservation_cancellation, handle_reservation_change
 from .schedule_service import get_or_create_schedule
-from .guide_assignment import auto_assign_guide, UnassignableError
 
 logger = logging.getLogger(__name__)
 
@@ -79,11 +79,9 @@ def process_staging_rows(conn):
     processed_count = 0
 
     for row in rows:
-
         row_id = row["id"]
 
         try:
-
             payload = _safe_parse_payload(row["payload_json"])
 
             if not payload:
@@ -150,7 +148,7 @@ def process_staging_rows(conn):
             ).fetchone()
 
             if not tour:
-                raise Exception("Tour not found for program_id")
+                raise Exception("Tour not found")
 
             tour_id = tour[0]
 
@@ -231,7 +229,6 @@ def process_staging_rows(conn):
             # -------------------------
 
             if old is None:
-
                 event_start = reservation["event_start_datetime"]
                 event_end = reservation.get("event_end_datetime") or event_start
 
@@ -273,9 +270,7 @@ def process_staging_rows(conn):
                 ).fetchone()
 
                 if schedule_row and schedule_row[0] is None:
-
                     try:
-
                         assign_result = auto_assign_guide(
                             conn,
                             schedule_id,
@@ -290,7 +285,6 @@ def process_staging_rows(conn):
                         )
 
                     except UnassignableError as e:
-
                         notify_schedule_unassignable(
                             conn,
                             schedule_id,
@@ -298,7 +292,6 @@ def process_staging_rows(conn):
                         )
 
                     except Exception:
-
                         logger.exception(
                             "Guide auto assignment failed for schedule %s",
                             schedule_id,
@@ -309,7 +302,6 @@ def process_staging_rows(conn):
             # -------------------------
 
             for ticket in tickets:
-
                 conn.execute(
                     text(
                         """
@@ -381,7 +373,6 @@ def process_staging_rows(conn):
             ).fetchone()
 
             if not latest_hash or latest_hash[0] != hash_value:
-
                 conn.execute(
                     text(
                         """
@@ -421,7 +412,6 @@ def process_staging_rows(conn):
             # -------------------------
 
             if old is not None and old[5] is not None:
-
                 old_tour_id = old[1]
                 old_language = old[2]
                 old_event_start = str(old[3]) if old[3] else None
@@ -431,11 +421,8 @@ def process_staging_rows(conn):
                 new_status = (reservation["status"] or "").strip().upper()
 
                 if new_status == "CANCELLED" and old_status != "CANCELLED":
-
                     conn.execute(
-                        text(
-                            "UPDATE reservations SET schedule_id = NULL WHERE id = :id"
-                        ),
+                        text("UPDATE reservations SET schedule_id = NULL WHERE id = :id"),
                         {"id": reservation_id},
                     )
 
@@ -447,12 +434,9 @@ def process_staging_rows(conn):
 
                 elif (
                     old_tour_id != tour_id
-                    or (old_language or "").lower()
-                    != (reservation["language_code"] or "").lower()
-                    or old_event_start
-                    != reservation["event_start_datetime"]
+                    or (old_language or "").lower() != (reservation["language_code"] or "").lower()
+                    or old_event_start != reservation["event_start_datetime"]
                 ):
-
                     events = handle_reservation_change(
                         conn,
                         reservation_id=reservation_id,
@@ -488,7 +472,6 @@ def process_staging_rows(conn):
             processed_count += 1
 
         except Exception as e:
-
             logger.exception("Failed processing staging row %s", row_id)
 
             conn.execute(
@@ -503,5 +486,7 @@ def process_staging_rows(conn):
                 ),
                 {"id": row_id, "error": str(e)[:1000]},
             )
+
+            raise
 
     return processed_count
