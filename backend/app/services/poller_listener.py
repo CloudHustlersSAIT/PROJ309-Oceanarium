@@ -148,7 +148,7 @@ def process_staging_rows(conn):
             ).fetchone()
 
             if not tour:
-                raise Exception("Tour not found")
+                raise Exception("Tour not found for program_id")
 
             tour_id = tour[0]
 

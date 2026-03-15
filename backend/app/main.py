@@ -102,7 +102,7 @@ def run_listener():
         with engine.begin() as conn:
             processed = process_staging_rows(conn)
             if processed > 0:
-                logger.info("Processed %d staging rows", processed)
+                logger.info(f"Processed {processed} staging rows")
             else:
                 logger.debug("No new staging rows to process")
         _last_poller_warning_at = None  # reset on success
