@@ -80,6 +80,7 @@ def process_staging_rows(conn):
 
     for row in rows:
         row_id = row["id"]
+        row_txn = conn.begin_nested()
 
         try:
             payload = _safe_parse_payload(row["payload_json"])
@@ -482,6 +483,8 @@ def process_staging_rows(conn):
 
         except Exception as e:
             logger.exception("Failed processing staging row %s", row_id)
+
+            row_txn.rollback()
 
             conn.execute(
                 text(
