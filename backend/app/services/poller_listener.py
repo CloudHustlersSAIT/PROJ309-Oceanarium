@@ -428,11 +428,14 @@ def process_staging_rows(conn):
                         {"id": reservation_id},
                     )
 
-                    handle_reservation_cancellation(
+                    events = handle_reservation_cancellation(
                         conn,
                         reservation_id,
                         old_schedule_id,
                     )
+
+                    if isinstance(events, list):
+                        dispatch_events(conn, events)
 
                 elif (
                     old_tour_id != tour_id
