@@ -222,7 +222,7 @@ def _build_create_schedule_pool(
         event_start, event_end = _generate_event_window(rng)
 
         if guide_caps:
-            pair = rng.choice(guide_caps)
+            pair = _pick_assignable_pair(rng, guide_caps)
             selected_tour = next(
                 (tour for tour in tours if tour["clorian_product_id"] == pair["clorian_product_id"]),
                 rng.choice(tours),
@@ -260,6 +260,12 @@ def _pick_language(rng: random.Random) -> str:
     """Pick a language using weighted probabilities."""
     weights = [LANGUAGE_WEIGHTS.get(language_code, 1) for language_code in LANGUAGES]
     return rng.choices(LANGUAGES, weights=weights, k=1)[0]
+
+
+def _pick_assignable_pair(rng: random.Random, guide_caps: list[dict[str, Any]]) -> dict[str, Any]:
+    """Pick an assignable (tour, language) pair with language-weighted bias."""
+    weights = [LANGUAGE_WEIGHTS.get(pair.get("language_code", ""), 1) for pair in guide_caps]
+    return rng.choices(guide_caps, weights=weights, k=1)[0]
 
 
 def load_tours(conn) -> list[dict[str, Any]]:
@@ -616,7 +622,7 @@ def generate_records(
         if create_schedule_pool and rng.random() < create_slot_reuse_probability:
             shared_schedule = rng.choice(create_schedule_pool)
 
-        pair = None if shared_schedule else (rng.choice(guide_caps) if guide_caps else None)
+        pair = None if shared_schedule else (_pick_assignable_pair(rng, guide_caps) if guide_caps else None)
         res_payload = _build_reservation_payload(
             clorian_reservation_id=res_id,
             rng=rng,
