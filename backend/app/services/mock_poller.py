@@ -83,7 +83,7 @@ LANGUAGES = ["en", "pt", "es", "fr", "zh"]
 # - zh: least common
 # - pt/es/fr: equal likelihood
 LANGUAGE_WEIGHTS = {
-    "en": 3,
+    "en": 5,
     "pt": 2,
     "es": 2,
     "fr": 2,
