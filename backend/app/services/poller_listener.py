@@ -488,7 +488,6 @@ def process_staging_rows(conn):
                 ),
                 {"id": row_id, "error": str(e)[:1000]},
             )
-
-            raise e
+            continue
 
     return processed_count
