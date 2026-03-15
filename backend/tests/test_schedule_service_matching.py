@@ -43,4 +43,4 @@ def test_does_not_reuse_cancelled_schedule_and_creates_new(mock_conn):
     assert mock_conn.execute.call_count == 2
 
     select_stmt = str(mock_conn.execute.call_args_list[0].args[0])
-    assert "status IN ('UNASSIGNED', 'ASSIGNED', 'CONFIRMED')" in select_stmt
+    assert "status IN ('UNASSIGNED', 'ASSIGNED', 'CONFIRMED', 'UNASSIGNABLE')" in select_stmt
