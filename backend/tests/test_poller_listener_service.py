@@ -144,6 +144,7 @@ class TestProcessStagingRows:
             MagicMock(),  # INSERT customer
             _scalar_one(1),  # SELECT customer id
             _fetchone(None),  # SELECT tour id -- NOT FOUND
+            MagicMock(),  # UPDATE poll_staging (failure record)
         ]
 
         with pytest.raises(Exception, match="Tour not found"):
