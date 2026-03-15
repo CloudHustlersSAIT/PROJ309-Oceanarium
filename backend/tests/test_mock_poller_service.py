@@ -24,6 +24,8 @@ def test_generate_records_reuses_schedule_fingerprints_for_create_rows(monkeypat
         batch_size=12,
         update_ratio=0.0,
         unchanged_ratio=0.0,
+        create_slot_reuse_probability=1.0,
+        create_slot_pool_max_size=4,
     )
 
     assert counts["created"] == 12
