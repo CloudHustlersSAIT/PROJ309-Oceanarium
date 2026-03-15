@@ -476,19 +476,35 @@ def process_staging_rows(conn):
         except Exception as e:
             logger.exception("Failed processing staging row %s", row_id)
 
+            # Ensure the connection/transaction is usable after a DB error.
+            # Some databases (e.g. Postgres) put the transaction into an
+            # aborted state after an error, and a rollback is required
+            # before further statements can succeed.
+            if hasattr(conn, "rollback"):
+                try:
+                    conn.rollback()
+                except Exception:
+                    logger.exception(
+                        "Failed to rollback transaction for staging row %s",
+                        row_id,
+                    )
+
             conn.execute(
                 text(
                     """
                     UPDATE public.poll_staging
                     SET processed_at = NOW(),
-                        processed_status = 'FAILED',
-                        processed_error = :error
+                        processed_status = :processed_status,
+                        processed_error = :processed_error
                     WHERE id = :id
                     """
                 ),
-                {"id": row_id, "error": str(e)[:1000]},
+                {
+                    "id": row_id,
+                    "processed_status": "FAILED",
+                    "processed_error": str(e)[:1000],
+                },
             )
-
-            raise e
+            continue
 
     return processed_count
