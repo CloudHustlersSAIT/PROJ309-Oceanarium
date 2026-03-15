@@ -94,6 +94,11 @@ TICKET_STATUSES_FUTURE = ["ACTIVE", "PENDING"]
 RESERVATION_STATUSES_CREATE = ["CONFIRMED", "PENDING"]
 RESERVATION_STATUSES_UPDATE = ["CONFIRMED", "PENDING", "CANCELLED"]
 
+# Bias create scenarios toward a smaller reusable slot pool so batches naturally
+# produce multiple reservations for the same schedule.
+CREATE_SLOT_REUSE_PROBABILITY = 0.80
+CREATE_SLOT_POOL_MAX_SIZE = 4
+
 
 # =========================================================
 # Request / Response Models
@@ -108,6 +113,18 @@ class MockRunRequest(BaseModel):
     )
     unchanged_ratio: float = Field(
         default=0.20, ge=0.0, le=1.0, description="Fraction of reservations that should be UNCHANGED."
+    )
+    create_slot_reuse_probability: float = Field(
+        default=CREATE_SLOT_REUSE_PROBABILITY,
+        ge=0.0,
+        le=1.0,
+        description="Probability that each CREATE reservation reuses a shared schedule fingerprint.",
+    )
+    create_slot_pool_max_size: int = Field(
+        default=CREATE_SLOT_POOL_MAX_SIZE,
+        ge=1,
+        le=50,
+        description="Maximum number of distinct shared schedule fingerprints available to CREATE reservations.",
     )
 
 
@@ -173,6 +190,48 @@ def _generate_event_window(rng: random.Random) -> tuple[str, str]:
         start_dt.isoformat().replace("+00:00", "Z"),
         end_dt.isoformat().replace("+00:00", "Z"),
     )
+
+
+def _build_create_schedule_pool(
+    rng: random.Random,
+    tours: list[dict[str, Any]],
+    guide_caps: list[dict[str, Any]],
+    create_count: int,
+    pool_max_size: int,
+) -> list[dict[str, Any]]:
+    """Build a small pool of reusable schedule fingerprints for CREATE rows."""
+    if create_count <= 1:
+        return []
+
+    pool_size = max(1, min(pool_max_size, create_count // 3 or 1))
+    pool: list[dict[str, Any]] = []
+
+    for _ in range(pool_size):
+        event_start, event_end = _generate_event_window(rng)
+
+        if guide_caps:
+            pair = rng.choice(guide_caps)
+            selected_tour = next(
+                (tour for tour in tours if tour["clorian_product_id"] == pair["clorian_product_id"]),
+                None,
+            )
+            if selected_tour is None:
+                selected_tour = rng.choice(tours)
+            language_code = pair["language_code"]
+        else:
+            selected_tour = rng.choice(tours)
+            language_code = rng.choice(LANGUAGES)
+
+        pool.append(
+            {
+                "event_start_datetime": event_start,
+                "event_end_datetime": event_end,
+                "selected_tour": selected_tour,
+                "language_code": language_code,
+            }
+        )
+
+    return pool
 
 
 def _pick_reservation_status(rng: random.Random, scenario: Scenario) -> str:
@@ -265,6 +324,7 @@ def _build_reservation_payload(
     tours: list[dict[str, Any]],
     scenario: Scenario = "CREATE",
     assignable_pair: dict[str, Any] | None = None,
+    shared_schedule: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Builds a realistic reservation payload aligned with the reservations table
@@ -274,16 +334,23 @@ def _build_reservation_payload(
     the resulting schedule can be assigned to a guide with matching capabilities.
     """
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    event_start, event_end = _generate_event_window(rng)
 
     first = rng.choice(FIRST_NAMES)
     last = rng.choice(LAST_NAMES)
 
-    if assignable_pair:
+    if shared_schedule:
+        event_start = shared_schedule["event_start_datetime"]
+        event_end = shared_schedule["event_end_datetime"]
+        selected_tour = shared_schedule["selected_tour"]
+        language_code = shared_schedule["language_code"]
+    else:
+        event_start, event_end = _generate_event_window(rng)
+
+    if not shared_schedule and assignable_pair:
         cpid = assignable_pair["clorian_product_id"]
         selected_tour = next((t for t in tours if t["clorian_product_id"] == cpid), rng.choice(tours))
         language_code = assignable_pair["language_code"]
-    else:
+    elif not shared_schedule:
         selected_tour = rng.choice(tours)
         language_code = rng.choice(LANGUAGES)
 
@@ -480,6 +547,8 @@ def generate_records(
     batch_size: int,
     update_ratio: float,
     unchanged_ratio: float,
+    create_slot_reuse_probability: float = CREATE_SLOT_REUSE_PROBABILITY,
+    create_slot_pool_max_size: int = CREATE_SLOT_POOL_MAX_SIZE,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """
     Generates deterministic staged reservation records.
@@ -509,6 +578,13 @@ def generate_records(
     n_create = batch_size - n_update - n_unchanged
 
     staged: list[dict[str, Any]] = []
+    create_schedule_pool = _build_create_schedule_pool(
+        rng,
+        tours,
+        guide_caps,
+        n_create,
+        create_slot_pool_max_size,
+    )
 
     # CREATE: always brand-new IDs
     used_ids = set(existing_ids)
@@ -520,13 +596,18 @@ def generate_records(
                 used_ids.add(res_id)
                 break
 
-        pair = rng.choice(guide_caps) if guide_caps else None
+        shared_schedule = None
+        if create_schedule_pool and rng.random() < create_slot_reuse_probability:
+            shared_schedule = rng.choice(create_schedule_pool)
+
+        pair = None if shared_schedule else (rng.choice(guide_caps) if guide_caps else None)
         res_payload = _build_reservation_payload(
             clorian_reservation_id=res_id,
             rng=rng,
             tours=tours,
             scenario="CREATE",
             assignable_pair=pair,
+            shared_schedule=shared_schedule,
         )
 
         staged.append(
@@ -715,6 +796,8 @@ def run_mock_poller_service(conn, req: MockRunRequest) -> MockRunResponse:
             batch_size=req.batch_size,
             update_ratio=req.update_ratio,
             unchanged_ratio=req.unchanged_ratio,
+            create_slot_reuse_probability=req.create_slot_reuse_probability,
+            create_slot_pool_max_size=req.create_slot_pool_max_size,
         )
 
         insert_staging_rows(conn, run_id=run_id, staged=staged)
