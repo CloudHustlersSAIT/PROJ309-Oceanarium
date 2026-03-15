@@ -78,6 +78,18 @@ LAST_NAMES = [
 
 LANGUAGES = ["en", "pt", "es", "fr", "zh"]
 
+# Weighted language distribution for generated payloads.
+# - en: most common
+# - zh: least common
+# - pt/es/fr: equal likelihood
+LANGUAGE_WEIGHTS = {
+    "en": 3,
+    "pt": 2,
+    "es": 2,
+    "fr": 2,
+    "zh": 1,
+}
+
 VENUES = [
     {"venue_id": 10, "venue_name": "Main Oceanarium"},
     {"venue_id": 11, "venue_name": "Deep Sea Pavilion"},
@@ -218,7 +230,7 @@ def _build_create_schedule_pool(
             language_code = pair["language_code"]
         else:
             selected_tour = rng.choice(tours)
-            language_code = rng.choice(LANGUAGES)
+            language_code = _pick_language(rng)
 
         pool.append(
             {
@@ -242,6 +254,12 @@ def _pick_reservation_status(rng: random.Random, scenario: Scenario) -> str:
         return rng.choice(RESERVATION_STATUSES_UPDATE)
     # UNCHANGED should preserve previous status in practice
     return rng.choice(RESERVATION_STATUSES_CREATE)
+
+
+def _pick_language(rng: random.Random) -> str:
+    """Pick a language using weighted probabilities."""
+    weights = [LANGUAGE_WEIGHTS.get(language_code, 1) for language_code in LANGUAGES]
+    return rng.choices(LANGUAGES, weights=weights, k=1)[0]
 
 
 def load_tours(conn) -> list[dict[str, Any]]:
@@ -350,7 +368,7 @@ def _build_reservation_payload(
         language_code = assignable_pair["language_code"]
     elif not shared_schedule:
         selected_tour = rng.choice(tours)
-        language_code = rng.choice(LANGUAGES)
+        language_code = _pick_language(rng)
 
     venue = rng.choice(VENUES)
 
@@ -442,7 +460,7 @@ def _apply_update(payload: dict[str, Any], rng: random.Random) -> dict[str, Any]
     updated["notes"] = rng.choice(["Changed note", "Late arrival", "Dietary restriction", payload.get("notes", "")])
 
     updated["status"] = _pick_reservation_status(rng, "UPDATE")
-    updated["language_code"] = rng.choice(LANGUAGES)
+    updated["language_code"] = _pick_language(rng)
 
     # Rebuild tickets_summary with a realistic small variation
     original_summary = updated.get("tickets_summary", {})
