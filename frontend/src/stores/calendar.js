@@ -77,6 +77,13 @@ function mapLanguage(languageCode) {
   return String(languageCode)
 }
 
+function isCancelledStatus(status) {
+  const normalized = String(status || '')
+    .trim()
+    .toLowerCase()
+  return normalized === 'cancelled' || normalized === 'canceled'
+}
+
 function normalizeSchedule(schedule) {
   const start =
     parseDateTimeKeepingWallClock(schedule.event_start_datetime) ||
@@ -161,6 +168,7 @@ export const useCalendarStore = defineStore('calendar', {
       const text = state.filters.search.trim().toLowerCase()
 
       return state.events.filter((event) => {
+        if (isCancelledStatus(event.status)) return false
         if (state.filters.statuses.length && !state.filters.statuses.includes(event.status))
           return false
         if (state.filters.eventTypes.length && !state.filters.eventTypes.includes(event.type))
@@ -357,7 +365,7 @@ export const useCalendarStore = defineStore('calendar', {
         const normalizedSchedules = (Array.isArray(schedules) ? schedules : []).map(
           normalizeSchedule,
         )
-        this.events = [...normalizedSchedules]
+        this.events = normalizedSchedules.filter((event) => !isCancelledStatus(event.status))
 
         const resourceMap = {}
         this.events.forEach((event) => {
