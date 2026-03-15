@@ -96,12 +96,15 @@ _POLLER_WARNING_INTERVAL = 60.0
 
 
 def run_listener():
+    logger.debug("Listener tick...")
     global _last_poller_warning_at
     try:
         with engine.begin() as conn:
             processed = process_staging_rows(conn)
             if processed > 0:
-                print(f"Processed {processed} staging rows")
+                logger.info(f"Processed {processed} staging rows")
+            else:
+                logger.debug("No new staging rows to process")
         _last_poller_warning_at = None  # reset on success
     except Exception as e:
         now = time.monotonic()

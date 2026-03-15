@@ -74,6 +74,7 @@ def _build_mock_conn(staging_rows, old_reservation=None, latest_hash=None):
         execute_returns.append(_fetchone((100,)))  # INSERT/UPSERT reservation RETURNING id
         if old_reservation is None:
             execute_returns.append(MagicMock())  # UPDATE reservations SET schedule_id
+            execute_returns.append(_fetchone((None,)))  # SELECT guide_id FROM schedule
         execute_returns.append(MagicMock())  # INSERT ticket
 
         hash_row = (latest_hash,) if latest_hash else None
@@ -81,7 +82,9 @@ def _build_mock_conn(staging_rows, old_reservation=None, latest_hash=None):
         if not latest_hash or latest_hash != "anything":
             execute_returns.append(MagicMock())  # INSERT reservation_versions
 
-        execute_returns.append(MagicMock())  # UPDATE poll_staging
+        # execute_returns.append(MagicMock())  # UPDATE poll_staging
+        execute_returns.append(MagicMock())  # UPDATE poll_staging SUCCESS
+        execute_returns.append(MagicMock())  # UPDATE poll_staging FAILED (for exception cases)
 
     conn.execute.side_effect = execute_returns
     return conn
@@ -106,6 +109,11 @@ class TestProcessStagingRows:
         monkeypatch.setattr(
             "app.services.poller_listener.get_or_create_schedule",
             lambda *args, **kwargs: 1,
+        )
+        # Prevent real guide assignment logic from running
+        monkeypatch.setattr(
+            "app.services.poller_listener.auto_assign_guide",
+            lambda *args, **kwargs: {"guide_id": 1},
         )
 
     def test_no_rows_returns_zero(self, mock_conn):
@@ -136,6 +144,7 @@ class TestProcessStagingRows:
             MagicMock(),  # INSERT customer
             _scalar_one(1),  # SELECT customer id
             _fetchone(None),  # SELECT tour id -- NOT FOUND
+            MagicMock(),  # UPDATE poll_staging (failure record)
         ]
 
         with pytest.raises(Exception, match="Tour not found"):
