@@ -323,6 +323,65 @@ export async function createSchedule(scheduleData) {
   })
 }
 
+export async function getEligibleGuides(scheduleId) {
+  const normalizedScheduleId = Number(scheduleId)
+  if (!Number.isInteger(normalizedScheduleId) || normalizedScheduleId <= 0) {
+    throw new Error('Schedule ID is required to preview eligible guides.')
+  }
+
+  return fetchAPI(`/schedules/${normalizedScheduleId}/eligible-guides`, {
+    requiresAuth: true,
+  })
+}
+
+export async function autoAssignGuide(scheduleId) {
+  const normalizedScheduleId = Number(scheduleId)
+  if (!Number.isInteger(normalizedScheduleId) || normalizedScheduleId <= 0) {
+    throw new Error('Schedule ID is required to auto assign a guide.')
+  }
+
+  return fetchAPI(`/schedules/${normalizedScheduleId}/assign`, {
+    method: 'POST',
+    requiresAuth: true,
+  })
+}
+
+export async function manualAssignGuide(scheduleId, guideId, reason = null) {
+  const normalizedScheduleId = Number(scheduleId)
+  const normalizedGuideId = Number(guideId)
+
+  if (!Number.isInteger(normalizedScheduleId) || normalizedScheduleId <= 0) {
+    throw new Error('Schedule ID is required to manually assign a guide.')
+  }
+
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to manually assign a guide.')
+  }
+
+  const normalizedReason = String(reason || '').trim()
+
+  return fetchAPI(`/schedules/${normalizedScheduleId}/assign`, {
+    method: 'PUT',
+    requiresAuth: true,
+    body: JSON.stringify({
+      guide_id: normalizedGuideId,
+      reason: normalizedReason || null,
+    }),
+  })
+}
+
+export async function cancelGuideFromSchedule(scheduleId) {
+  const normalizedScheduleId = Number(scheduleId)
+  if (!Number.isInteger(normalizedScheduleId) || normalizedScheduleId <= 0) {
+    throw new Error('Schedule ID is required to cancel guide assignment.')
+  }
+
+  return fetchAPI(`/schedules/${normalizedScheduleId}/guide`, {
+    method: 'DELETE',
+    requiresAuth: true,
+  })
+}
+
 // Get all bookings
 export async function getBookings() {
   const data = await fetchAPI('/reservations')
