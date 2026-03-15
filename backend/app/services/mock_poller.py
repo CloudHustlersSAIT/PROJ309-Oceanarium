@@ -263,9 +263,23 @@ def _pick_language(rng: random.Random) -> str:
 
 
 def _pick_assignable_pair(rng: random.Random, guide_caps: list[dict[str, Any]]) -> dict[str, Any]:
-    """Pick an assignable (tour, language) pair with language-weighted bias."""
-    weights = [LANGUAGE_WEIGHTS.get(pair.get("language_code", ""), 1) for pair in guide_caps]
-    return rng.choices(guide_caps, weights=weights, k=1)[0]
+    """Pick an assignable (tour, language) pair using language-first weighting.
+
+    This prevents languages with many capability rows from overpowering the
+    desired language distribution.
+    """
+    available_languages = sorted({pair.get("language_code") for pair in guide_caps if pair.get("language_code")})
+    if not available_languages:
+        return rng.choice(guide_caps)
+
+    language_weights = [LANGUAGE_WEIGHTS.get(language_code, 1) for language_code in available_languages]
+    selected_language = rng.choices(available_languages, weights=language_weights, k=1)[0]
+
+    matching_pairs = [pair for pair in guide_caps if pair.get("language_code") == selected_language]
+    if matching_pairs:
+        return rng.choice(matching_pairs)
+
+    return rng.choice(guide_caps)
 
 
 def load_tours(conn) -> list[dict[str, Any]]:
