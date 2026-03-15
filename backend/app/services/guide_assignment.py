@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import text
 
+from . import notification as notification_service
 from .exceptions import NotFoundError, UnassignableError, ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 def _fetch_schedule(conn, schedule_id: int) -> dict:
@@ -378,3 +383,114 @@ def manual_assign_guide(
         "assignment_type": "MANUAL",
         "warnings": warnings,
     }
+
+
+# ---------------------------------------------------------------------------
+# Orchestration helpers: assignment + notification in a single call
+# ---------------------------------------------------------------------------
+
+
+def auto_assign_and_notify(conn, schedule_id: int) -> dict:
+    """Auto-assign a guide and fire the appropriate notification.
+
+    On UnassignableError the unassignable notification is sent before
+    the exception is re-raised so the caller can map it to an HTTP status.
+    """
+    try:
+        result = auto_assign_guide(conn, schedule_id)
+    except UnassignableError as exc:
+        try:
+            notification_service.notify_schedule_unassignable(conn, schedule_id, exc.reasons)
+        except Exception:
+            logger.exception("Failed to send unassignable notification for schedule %s", schedule_id)
+        raise
+
+    try:
+        notification_service.notify_guide_assignment(conn, schedule_id, result["guide_id"], "AUTO")
+    except Exception:
+        logger.exception("Failed to send assignment notification for schedule %s", schedule_id)
+
+    return result
+
+
+def manual_assign_and_notify(
+    conn,
+    schedule_id: int,
+    guide_id: int,
+    assigned_by: str,
+) -> dict:
+    """Manually assign a guide and fire the assignment notification."""
+    result = manual_assign_guide(conn, schedule_id, guide_id, assigned_by=assigned_by)
+
+    try:
+        notification_service.notify_guide_assignment(conn, schedule_id, guide_id, "MANUAL")
+    except Exception:
+        logger.exception("Failed to send assignment notification for schedule %s", schedule_id)
+
+    return result
+
+
+def auto_assign_all_unassigned(conn) -> dict:
+    """Run auto-assignment on every unassigned, non-cancelled schedule.
+
+    Returns a summary dict with totals and per-schedule details.
+    """
+    rows = conn.execute(
+        text("""
+            SELECT id FROM schedule
+            WHERE guide_id IS NULL
+              AND status NOT IN ('CANCELLED')
+            ORDER BY event_start_datetime
+        """)
+    ).fetchall()
+
+    results: dict = {
+        "total": len(rows),
+        "assigned": 0,
+        "unassignable": 0,
+        "errors": 0,
+        "details": [],
+    }
+
+    for row in rows:
+        sid = row[0]
+        try:
+            result = auto_assign_guide(conn, sid)
+            try:
+                notification_service.notify_guide_assignment(conn, sid, result["guide_id"], "AUTO")
+            except Exception:
+                logger.exception("Failed to send assignment notification for schedule %s", sid)
+            results["assigned"] += 1
+            results["details"].append(
+                {
+                    "schedule_id": sid,
+                    "status": "assigned",
+                    "guide_id": result["guide_id"],
+                    "guide_name": result.get("guide_name"),
+                }
+            )
+        except UnassignableError as e:
+            try:
+                notification_service.notify_schedule_unassignable(conn, sid, e.reasons)
+            except Exception:
+                logger.exception("Failed to send unassignable notification for schedule %s", sid)
+            results["unassignable"] += 1
+            results["details"].append(
+                {
+                    "schedule_id": sid,
+                    "status": "unassignable",
+                    "reasons": e.reasons,
+                }
+            )
+        except Exception as e:
+            logger.error("auto-assign-all error for schedule %s: %s", sid, e)
+            results["errors"] += 1
+            results["details"].append(
+                {
+                    "schedule_id": sid,
+                    "status": "error",
+                    "error": str(e),
+                }
+            )
+
+    return results

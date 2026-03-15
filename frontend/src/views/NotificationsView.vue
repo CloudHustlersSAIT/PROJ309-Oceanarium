@@ -1,316 +1,134 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import AppSidebar from '../components/AppSidebar.vue'
-import { getNotifications } from '../services/api'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import { useNotificationStore } from '../stores/notification'
 
-const NOTIFICATION_UI_CACHE_KEY = 'admin-notification-ui-v1'
+const store = useNotificationStore()
 
-const lifecycleTabs = [
-  { key: 'active', label: 'Active' },
-  { key: 'archived', label: 'Archived' },
-  { key: 'trash', label: 'Trash' },
+const EVENT_TYPE_CHIPS = [
+  { key: null, label: 'All Types' },
+  { key: 'GUIDE_ASSIGNED', label: 'Guide Assigned' },
+  { key: 'GUIDE_REASSIGNED', label: 'Guide Reassigned' },
+  { key: 'SCHEDULE_CHANGED', label: 'Schedule Changed' },
+  { key: 'SCHEDULE_UNASSIGNABLE', label: 'Unassignable' },
+  { key: 'RESERVATION_CANCELLED', label: 'Cancelled' },
+  { key: 'RESERVATION_MOVED', label: 'Moved' },
 ]
 
-const readFilterOptions = [
+const READ_FILTER_OPTIONS = [
   { value: 'all', label: 'All read states' },
   { value: 'unread', label: 'Unread only' },
   { value: 'read', label: 'Read only' },
 ]
 
-const activeTab = ref('active')
-const readFilter = ref('all')
-const searchQuery = ref('')
-const feedbackMessage = ref('')
-const notifications = ref([])
-const loading = ref(false)
-const error = ref('')
-
-const totalCount = computed(() => notifications.value.length)
-const unreadCount = computed(() =>
-  notifications.value.filter((notification) => notification.lifecycle === 'active' && !notification.read)
-    .length,
-)
-
-const notificationCounts = computed(() => ({
-  active: notifications.value.filter((notification) => notification.lifecycle === 'active').length,
-  archived: notifications.value.filter((notification) => notification.lifecycle === 'archived').length,
-  trash: notifications.value.filter((notification) => notification.lifecycle === 'trash').length,
-}))
+const deleteConfirmId = ref(null)
+let searchDebounceTimer = null
 
 const summaryCards = computed(() => [
   {
-    label: 'Total Feed',
-    value: totalCount.value,
-    note: 'All loaded notifications',
+    label: 'Total',
+    value: store.summary.total,
+    note: 'All notifications',
+    filterAction: () => store.clearFilters(),
+    accent: false,
   },
   {
     label: 'Unread',
-    value: unreadCount.value,
-    note: 'Still need attention',
+    value: store.summary.unread,
+    note: 'Need attention',
+    filterAction: () => {
+      store.clearFilters()
+      store.setFilter('readFilter', 'unread')
+      store.loadNotifications()
+    },
+    accent: store.summary.unread > 0,
+    accentClass: 'border-[#00B4D8] bg-[#CAF0F8]/40',
   },
   {
-    label: 'Active',
-    value: notificationCounts.value.active,
-    note: 'Current working set',
+    label: 'Urgent',
+    value: store.summary.by_priority?.urgent ?? 0,
+    note: 'Immediate action',
+    filterAction: () => {
+      store.clearFilters()
+      store.setFilter('priority', 'urgent')
+      store.loadNotifications()
+    },
+    accent: (store.summary.by_priority?.urgent ?? 0) > 0,
+    accentClass: 'border-red-300 bg-red-50',
   },
   {
-    label: 'Archived',
-    value: notificationCounts.value.archived,
-    note: 'Hidden from active flow',
+    label: 'Action Required',
+    value: store.summary.action_required,
+    note: 'Pending decisions',
+    filterAction: null,
+    accent: store.summary.action_required > 0,
+    accentClass: 'border-amber-300 bg-amber-50',
   },
 ])
 
-const visibleRows = computed(() => {
-  const normalizedQuery = searchQuery.value.trim().toLowerCase()
-
-  return notifications.value.filter((notification) => {
-    const matchesLifecycle = notification.lifecycle === activeTab.value
-    const matchesReadState =
-      readFilter.value === 'all' ||
-      (readFilter.value === 'read' && notification.read) ||
-      (readFilter.value === 'unread' && !notification.read)
-    const searchableContent = [
-      notification.message,
-      notification.eventType,
-      notification.eventTypeLabel,
-      notification.scheduleId,
-      notification.channel,
-      notification.channelLabel,
-      notification.status,
-      notification.statusLabel,
-    ]
-      .join(' ')
-      .toLowerCase()
-    const matchesSearch = !normalizedQuery || searchableContent.includes(normalizedQuery)
-
-    return matchesLifecycle && matchesReadState && matchesSearch
-  })
-})
-
-function loadNotificationUiCache() {
-  if (typeof window === 'undefined') return {}
-
-  try {
-    const raw = window.localStorage.getItem(NOTIFICATION_UI_CACHE_KEY)
-    const parsed = raw ? JSON.parse(raw) : {}
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch {
-    return {}
-  }
+function chipCount(key) {
+  if (!key) return store.summary.total
+  return store.summary.by_event_type?.[key] ?? 0
 }
 
-function persistNotificationUiCache() {
-  if (typeof window === 'undefined') return
-
-  try {
-    const cache = Object.fromEntries(
-      notifications.value.map((notification) => [
-        String(notification.id),
-        {
-          read: Boolean(notification.read),
-          lifecycle: notification.lifecycle,
-        },
-      ]),
-    )
-    window.localStorage.setItem(NOTIFICATION_UI_CACHE_KEY, JSON.stringify(cache))
-  } catch {
-    // Keep notifications usable even when storage is unavailable.
-  }
+function selectEventType(key) {
+  store.setFilter('eventType', key)
+  store.loadNotifications()
 }
 
-function normalizeLifecycle(value) {
-  if (value === 'archived' || value === 'trash') return value
-  return 'active'
+function setReadFilter(value) {
+  store.setFilter('readFilter', value)
+  store.loadNotifications()
 }
 
-function inferIcon(eventType, message) {
-  const normalizedEventType = String(eventType || '').trim().toLowerCase()
-  const normalizedMessage = String(message || '').trim().toLowerCase()
-
-  if (normalizedEventType.includes('swap') || normalizedMessage.includes('swap')) return 'swap'
-  if (normalizedEventType.includes('assign') || normalizedMessage.includes('assign')) return 'assign'
-  if (normalizedEventType.includes('cancel') || normalizedMessage.includes('cancel')) return 'cancel'
-  if (normalizedEventType.includes('move') || normalizedMessage.includes('moved')) return 'move'
-  return 'warning'
+function onSearchInput(event) {
+  const value = event.target.value
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    store.setFilter('searchQuery', value)
+  }, 300)
 }
 
-function formatTimeAgo(value) {
-  if (!value) return 'Recently'
-
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return 'Recently'
-
-  const diffMs = Date.now() - parsed.getTime()
-  const diffMinutes = Math.max(1, Math.floor(diffMs / 60000))
-
-  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`
-
-  const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
-
-  const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+function clearFiltersAndReload() {
+  store.clearFilters()
+  store.loadNotifications()
 }
 
-function formatDateTime(value) {
-  if (!value) return 'Not sent yet'
-
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return 'Invalid date'
-
-  return parsed.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function formatEnumLabel(value) {
-  const normalizedValue = String(value || '').trim()
-  if (!normalizedValue) return 'Unknown'
-
-  return normalizedValue
-    .toLowerCase()
-    .split('_')
-    .filter(Boolean)
-    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
-    .join(' ')
+async function handleMarkAllRead() {
+  await store.markAllRead()
 }
 
 function eventTypeBadgeClass(eventType) {
-  const normalizedEventType = String(eventType || '').trim().toLowerCase()
-
-  if (normalizedEventType.includes('cancel')) {
-    return 'border-red-200 bg-red-50 text-red-700'
-  }
-  if (normalizedEventType.includes('warning')) {
-    return 'border-amber-200 bg-amber-50 text-amber-700'
-  }
-  if (normalizedEventType.includes('assign') || normalizedEventType.includes('move')) {
-    return 'border-sky-200 bg-sky-50 text-sky-700'
-  }
+  const t = String(eventType || '')
+    .trim()
+    .toLowerCase()
+  if (t.includes('unassignable')) return 'border-red-200 bg-red-50 text-red-700'
+  if (t.includes('cancel')) return 'border-red-200 bg-red-50 text-red-700'
+  if (t.includes('reassign')) return 'border-amber-200 bg-amber-50 text-amber-700'
+  if (t.includes('assign')) return 'border-sky-200 bg-sky-50 text-sky-700'
+  if (t.includes('change') || t.includes('move')) return 'border-teal-200 bg-teal-50 text-teal-700'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
 function statusBadgeClass(status) {
-  const normalizedStatus = String(status || '').trim().toLowerCase()
-
-  if (normalizedStatus === 'sent') {
-    return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  }
-  if (normalizedStatus === 'failed' || normalizedStatus === 'error') {
-    return 'border-red-200 bg-red-50 text-red-700'
-  }
+  const s = String(status || '')
+    .trim()
+    .toLowerCase()
+  if (s === 'sent') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (s === 'failed' || s === 'error') return 'border-red-200 bg-red-50 text-red-700'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
-function normalizeNotification(item, uiCache) {
-  const id = Number(item?.id)
-  const cacheEntry = uiCache[String(id)] || {}
-  const message = String(item?.message || 'Notification received').trim()
-  const eventType = String(item?.event_type || item?.eventType || 'system').trim() || 'system'
-  const scheduleId = item?.schedule_id ?? item?.scheduleId ?? null
-  const createdAt = item?.created_at || item?.createdAt || null
-  const sentAt = item?.sent_at || item?.sentAt || null
-  const channel = String(item?.channel || 'PORTAL').trim() || 'PORTAL'
-  const status = String(item?.status || 'SENT').trim() || 'SENT'
-
-  return {
-    id,
-    eventType,
-    eventTypeLabel: formatEnumLabel(eventType),
-    scheduleId,
-    channel,
-    channelLabel: formatEnumLabel(channel),
-    status,
-    statusLabel: formatEnumLabel(status),
-    message,
-    read: typeof cacheEntry.read === 'boolean' ? cacheEntry.read : false,
-    lifecycle: normalizeLifecycle(cacheEntry.lifecycle),
-    icon: inferIcon(eventType, message),
-    createdAt,
-    sentAt,
-    timeAgo: formatTimeAgo(createdAt || sentAt),
-    createdAtLabel: formatDateTime(createdAt),
-  }
-}
-
-async function loadNotifications() {
-  loading.value = true
-  error.value = ''
-
-  try {
-    const data = await getNotifications()
-    const uiCache = loadNotificationUiCache()
-    notifications.value = Array.isArray(data)
-      ? data.map((notification) => normalizeNotification(notification, uiCache))
-      : []
-    persistNotificationUiCache()
-  } catch (err) {
-    error.value = err?.message || 'Unable to load notifications.'
-    notifications.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-function setTab(tab) {
-    activeTab.value = tab
-    feedbackMessage.value = ''
-}
-
-function setReadFilter(value) {
-  readFilter.value = value
-  feedbackMessage.value = ''
-}
-
-function updateNotification(id, updates, message) {
-  notifications.value = notifications.value.map((notification) =>
-    notification.id === id ? { ...notification, ...updates } : notification,
-  )
-  persistNotificationUiCache()
-  feedbackMessage.value = message
-}
-
-function markAsRead(id) {
-  updateNotification(id, { read: true }, 'Notification marked as read (local prototype state).')
-}
-
-function markAsUnread(id) {
-  updateNotification(id, { read: false }, 'Notification marked as unread (local prototype state).')
-}
-
-function archiveItem(id) {
-  updateNotification(
-    id,
-    { lifecycle: 'archived', read: true },
-    'Notification moved to Archived (local prototype state).',
-  )
-}
-
-function moveToTrash(id) {
-  updateNotification(
-    id,
-    { lifecycle: 'trash', read: true },
-    'Notification moved to Trash (local prototype state).',
-  )
-}
-
-function restoreFromTrash(id) {
-  updateNotification(
-    id,
-    { lifecycle: 'active', read: false },
-    'Notification restored to Active (local prototype state).',
-  )
-}
-
-function deleteForever(id) {
-  notifications.value = notifications.value.filter((notification) => notification.id !== id)
-  persistNotificationUiCache()
-  feedbackMessage.value = 'Notification deleted from local prototype state.'
+function priorityBorderClass(priority) {
+  const p = String(priority || '')
+    .trim()
+    .toLowerCase()
+  if (p === 'urgent') return 'border-l-red-500'
+  if (p === 'high') return 'border-l-amber-400'
+  if (p === 'low') return 'border-l-slate-300'
+  return 'border-l-[#0077B6]'
 }
 
 function iconGlyph(type) {
@@ -321,7 +139,57 @@ function iconGlyph(type) {
   return '!'
 }
 
-onMounted(loadNotifications)
+function iconBgClass(type) {
+  if (type === 'assign') return 'bg-sky-100 text-sky-700'
+  if (type === 'cancel') return 'bg-red-100 text-red-700'
+  if (type === 'warning') return 'bg-amber-100 text-amber-700'
+  if (type === 'move') return 'bg-teal-100 text-teal-700'
+  return 'bg-slate-100 text-slate-700'
+}
+
+function emptyMessage() {
+  if (store.filters.eventType) {
+    const chip = EVENT_TYPE_CHIPS.find((c) => c.key === store.filters.eventType)
+    return `No "${chip?.label || store.filters.eventType}" notifications found.`
+  }
+  if (store.filters.readFilter === 'unread') return 'All notifications have been read.'
+  if (store.filters.priority === 'urgent') return 'No urgent notifications — all clear.'
+  if (store.filters.searchQuery.trim()) return 'No notifications match your search.'
+  return 'No notifications yet.'
+}
+
+function confirmDelete(id) {
+  deleteConfirmId.value = id
+}
+
+function cancelDelete() {
+  deleteConfirmId.value = null
+}
+
+function handleDeleteForever() {
+  if (deleteConfirmId.value !== null) {
+    store.notifications = store.notifications.filter((n) => n.id !== deleteConfirmId.value)
+    store.showFeedback('Notification removed.')
+    deleteConfirmId.value = null
+  }
+}
+
+const searchInputRef = ref('')
+
+watch(
+  () => store.filters.searchQuery,
+  (val) => {
+    searchInputRef.value = val
+  },
+)
+
+onMounted(() => {
+  store.init()
+})
+
+onUnmounted(() => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+})
 </script>
 
 <template>
@@ -330,235 +198,343 @@ onMounted(loadNotifications)
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
       <section class="app-page-wrap">
+        <!-- Page Header -->
         <header class="app-surface-card app-section-padding">
           <div>
-            <div>
-              <h1 class="typo-page-title">Notifications Overview</h1>
-              <p class="mt-2 typo-body max-w-3xl">
-                Authenticated administrator feed for operational events. Each entry preserves the
-                API structure while improving readability and decision speed.
-              </p>
-            </div>
+            <h1 class="typo-page-title">Notifications</h1>
+            <p class="mt-2 typo-body max-w-3xl">
+              Operational events for scheduling, guide assignments, and alerts.
+            </p>
           </div>
 
-          <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <article
+          <!-- Summary Cards -->
+          <div class="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <button
               v-for="card in summaryCards"
               :key="card.label"
-              class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              type="button"
+              class="rounded-xl border px-4 py-3 text-left transition hover:shadow-sm"
+              :class="card.accent ? card.accentClass : 'border-slate-200 bg-slate-50'"
+              :title="`Click to filter by ${card.label.toLowerCase()}`"
+              @click="card.filterAction?.()"
             >
               <p class="typo-card-label">{{ card.label }}</p>
               <p class="typo-card-value">{{ card.value }}</p>
               <p class="typo-caption mt-1">{{ card.note }}</p>
-            </article>
+            </button>
           </div>
         </header>
 
+        <!-- Filter Bar -->
         <section class="app-surface-card app-section-padding">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <!-- Search -->
             <div class="flex-1">
-              <label class="mb-1 block typo-card-label">Search Feed</label>
+              <label class="mb-1 block typo-card-label">Search</label>
               <div class="relative max-w-2xl">
                 <input
-                  v-model="searchQuery"
+                  :value="searchInputRef"
                   type="search"
-                  placeholder="Search by message, event type, schedule, channel, or status"
+                  placeholder="Search by message, event type, schedule, or status"
                   class="typo-body w-full rounded-xl border border-slate-300 bg-white px-10 py-2.5 outline-none focus:ring-2 focus:ring-sky-200"
+                  @input="onSearchInput"
                 />
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </span>
               </div>
             </div>
 
-            <div class="flex flex-col gap-1 lg:w-56">
-              <label class="typo-card-label">Read State</label>
-              <select
-                :value="readFilter"
-                class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-sky-200"
-                @change="setReadFilter($event.target.value)"
-              >
-                <option
-                  v-for="option in readFilterOptions"
-                  :key="option.value"
-                  :value="option.value"
+            <!-- Read State + Clear -->
+            <div class="flex items-end gap-3">
+              <div class="flex flex-col gap-1">
+                <label class="typo-card-label">Read State</label>
+                <select
+                  :value="store.filters.readFilter"
+                  class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-sky-200"
+                  @change="setReadFilter($event.target.value)"
                 >
-                  {{ option.label }}
-                </option>
-              </select>
+                  <option
+                    v-for="option in READ_FILTER_OPTIONS"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+
+              <button
+                v-if="store.hasActiveFilters"
+                type="button"
+                class="mb-0.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-[#0077B6] transition hover:bg-sky-50"
+                @click="clearFiltersAndReload"
+              >
+                Clear filters
+              </button>
             </div>
           </div>
 
-          <div class="mt-5 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+          <!-- Event Type Chips -->
+          <div class="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
             <button
-              v-for="tab in lifecycleTabs"
-              :key="tab.key"
+              v-for="chip in EVENT_TYPE_CHIPS"
+              :key="chip.key ?? 'all'"
               type="button"
-              class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition"
+              class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition"
               :class="
-                activeTab === tab.key
+                store.filters.eventType === chip.key
                   ? 'border-[#0077B6] bg-[#0077B6] text-white'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                  : chip.key === 'SCHEDULE_UNASSIGNABLE' && chipCount(chip.key) > 0
+                    ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
               "
-              @click="setTab(tab.key)"
+              @click="selectEventType(chip.key)"
             >
-              <span class="inline-flex min-w-5 items-center justify-center rounded-full border border-current px-1 text-xs">
-                {{ notificationCounts[tab.key] }}
+              {{ chip.label }}
+              <span
+                class="inline-flex min-w-5 items-center justify-center rounded-full px-1 text-xs"
+                :class="
+                  store.filters.eventType === chip.key
+                    ? 'bg-white/25 text-white'
+                    : 'bg-slate-200/70 text-slate-600'
+                "
+              >
+                {{ chipCount(chip.key) }}
               </span>
-              {{ tab.label }}
             </button>
           </div>
         </section>
 
-        <section class="app-surface-card overflow-hidden">
-          <div class="border-b border-slate-200 px-4 py-4 md:px-5">
-            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 class="typo-section-title">
-                  {{ lifecycleTabs.find((tab) => tab.key === activeTab)?.label || 'Notifications' }}
-                </h2>
-                <p class="typo-muted">
-                  {{ visibleRows.length }} visible item{{ visibleRows.length === 1 ? '' : 's' }}
-                  after current filters.
-                </p>
-              </div>
+        <!-- Bulk Actions Toolbar -->
+        <div class="flex items-center justify-between gap-3 px-1">
+          <p class="typo-muted">
+            {{ store.filteredNotifications.length }}
+            notification{{ store.filteredNotifications.length === 1 ? '' : 's' }}
+          </p>
+          <button
+            type="button"
+            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="store.unreadCount === 0"
+            @click="handleMarkAllRead"
+          >
+            Mark all as read
+          </button>
+        </div>
 
-              <p
-                v-if="activeTab === 'trash'"
-                class="typo-caption rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700"
-              >
-                Trash retention is still local-only. Permanent removal policy should move to backend.
-              </p>
+        <!-- Notification List -->
+        <section class="app-surface-card overflow-hidden">
+          <!-- Error State -->
+          <div
+            v-if="store.error"
+            class="flex items-center justify-between gap-3 border-b border-red-200 bg-red-50 px-4 py-3 md:px-5"
+          >
+            <p class="typo-body text-red-700">{{ store.error }}</p>
+            <button
+              type="button"
+              class="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+              @click="store.loadNotifications()"
+            >
+              Retry
+            </button>
+          </div>
+
+          <!-- Loading Skeleton -->
+          <div v-if="store.loading" class="divide-y divide-slate-200">
+            <div v-for="i in 3" :key="i" class="px-4 py-4 md:px-5">
+              <div class="flex gap-4 animate-pulse">
+                <div class="h-8 w-8 shrink-0 rounded-full bg-slate-200" />
+                <div class="flex-1 space-y-3">
+                  <div class="h-4 w-3/4 rounded bg-slate-200" />
+                  <div class="flex gap-2">
+                    <div class="h-5 w-24 rounded-full bg-slate-200" />
+                    <div class="h-5 w-20 rounded-full bg-slate-200" />
+                    <div class="h-5 w-16 rounded-full bg-slate-200" />
+                  </div>
+                </div>
+                <div class="h-4 w-20 rounded bg-slate-200" />
+              </div>
             </div>
           </div>
 
-          <div v-if="error" class="typo-body border-b border-red-200 bg-red-50 px-4 py-3 text-red-700 md:px-5">
-            {{ error }}
-          </div>
-
-          <div v-if="loading" class="typo-muted px-4 py-10 text-center md:px-5">
-            Loading notifications...
-          </div>
-
+          <!-- Empty State -->
           <div
-            v-else-if="visibleRows.length === 0"
-            class="typo-muted px-4 py-10 text-center md:px-5"
+            v-else-if="store.filteredNotifications.length === 0"
+            class="px-4 py-14 text-center md:px-5"
           >
-            No notifications found for the current filters.
+            <div
+              class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"
+            >
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+            </div>
+            <p class="typo-muted">{{ emptyMessage() }}</p>
+            <button
+              v-if="store.hasActiveFilters"
+              type="button"
+              class="mt-3 text-sm font-medium text-[#0077B6] hover:underline"
+              @click="clearFiltersAndReload"
+            >
+              Clear all filters
+            </button>
           </div>
 
-          <ul v-else class="divide-y divide-slate-200">
+          <!-- Notification Cards -->
+          <ul v-else class="divide-y divide-slate-100">
             <li
-              v-for="notification in visibleRows"
+              v-for="notification in store.filteredNotifications"
               :key="notification.id"
-              class="px-4 py-4 transition-colors md:px-5"
-              :class="notification.read ? 'hover:bg-slate-50' : 'bg-sky-50/60 hover:bg-sky-50'"
+              class="border-l-4 px-4 py-4 md:px-5"
+              :class="[
+                priorityBorderClass(notification.priority),
+                notification.read ? 'notification-card' : 'notification-card-unread',
+              ]"
             >
-              <div class="grid gap-4 xl:grid-cols-[28px_minmax(0,1fr)_auto] xl:items-start">
-                <span class="flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm text-slate-700 shadow-sm">
+              <div class="flex gap-3">
+                <!-- Icon -->
+                <span
+                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                  :class="iconBgClass(notification.icon)"
+                >
                   {{ iconGlyph(notification.icon) }}
                 </span>
 
-                <div class="min-w-0">
+                <!-- Content -->
+                <div class="min-w-0 flex-1">
                   <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                     <div class="min-w-0">
-                      <p class="typo-body font-semibold leading-snug text-slate-900">
+                      <p
+                        class="typo-body leading-snug text-slate-900"
+                        :class="{ 'font-semibold': !notification.read }"
+                      >
                         {{ notification.message }}
                       </p>
-                      <div class="mt-2 flex flex-wrap gap-2">
+
+                      <!-- Badge Row -->
+                      <div class="mt-2 flex flex-wrap gap-1.5">
                         <span
-                          class="rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
+                          class="rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide"
                           :class="eventTypeBadgeClass(notification.eventType)"
                         >
                           {{ notification.eventTypeLabel }}
                         </span>
-                        <span class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold tracking-wide text-slate-700">
-                          Schedule #{{ notification.scheduleId ?? 'N/A' }}
-                        </span>
-                        <span class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold tracking-wide text-slate-700">
-                          {{ notification.channelLabel }}
+                        <span
+                          v-if="notification.scheduleId"
+                          class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold tracking-wide text-slate-600"
+                        >
+                          Schedule #{{ notification.scheduleId }}
                         </span>
                         <span
-                          class="rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
+                          class="rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide"
                           :class="statusBadgeClass(notification.status)"
                         >
                           {{ notification.statusLabel }}
                         </span>
                         <span
-                          class="rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
-                          :class="notification.read ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-sky-200 bg-sky-50 text-sky-700'"
+                          v-if="notification.emailStatusLabel"
+                          class="rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide"
+                          :class="statusBadgeClass(notification.emailStatus)"
+                          :title="
+                            notification.emailSentAtLabel
+                              ? `Email ${notification.emailStatusLabel} at ${notification.emailSentAtLabel}`
+                              : `Email ${notification.emailStatusLabel}`
+                          "
                         >
-                          {{ notification.read ? 'Read' : 'Unread' }}
+                          Email {{ notification.emailStatusLabel }}
+                        </span>
+                        <span
+                          v-if="notification.priority === 'urgent'"
+                          class="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-red-700"
+                        >
+                          Urgent
+                        </span>
+                        <span
+                          v-if="notification.actionRequired"
+                          class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-amber-700"
+                        >
+                          Action Required
                         </span>
                       </div>
                     </div>
 
-                    <div class="typo-caption lg:text-right">
-                      <p><span class="font-semibold text-slate-700">Created:</span> {{ notification.createdAtLabel }}</p>
-                      <p class="mt-1"><span class="font-semibold text-slate-700">Relative:</span> {{ notification.timeAgo }}</p>
+                    <!-- Timestamp -->
+                    <div class="shrink-0 typo-caption lg:text-right">
+                      <p class="font-medium text-slate-600">{{ notification.timeAgo }}</p>
+                      <p class="mt-0.5">{{ notification.createdAtLabel }}</p>
                     </div>
                   </div>
-                </div>
 
-                <div class="flex flex-wrap items-center gap-2 xl:w-56 xl:justify-end">
-                  <button
-                    v-if="!notification.read"
-                    type="button"
-                    class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                    @click="markAsRead(notification.id)"
-                  >
-                    Mark read
-                  </button>
-                  <button
-                    v-else
-                    type="button"
-                    class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                    @click="markAsUnread(notification.id)"
-                  >
-                    Mark unread
-                  </button>
-                  <button
-                    v-if="notification.lifecycle === 'active'"
-                    type="button"
-                    class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                    @click="archiveItem(notification.id)"
-                  >
-                    Archive
-                  </button>
-                  <button
-                    v-if="notification.lifecycle !== 'trash'"
-                    type="button"
-                    class="rounded-lg border border-red-600 bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-700"
-                    @click="moveToTrash(notification.id)"
-                  >
-                    Move to trash
-                  </button>
-                  <button
-                    v-if="notification.lifecycle === 'trash'"
-                    type="button"
-                    class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                    @click="restoreFromTrash(notification.id)"
-                  >
-                    Restore
-                  </button>
-                  <button
-                    v-if="notification.lifecycle === 'trash'"
-                    type="button"
-                    class="rounded-lg border border-red-600 bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-700"
-                    @click="deleteForever(notification.id)"
-                  >
-                    Delete
-                  </button>
+                  <!-- Actions -->
+                  <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      v-if="!notification.read"
+                      type="button"
+                      class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                      @click="store.markRead(notification.id)"
+                    >
+                      Mark read
+                    </button>
+                    <button
+                      v-if="notification.primaryAction"
+                      type="button"
+                      class="rounded-lg border border-[#0077B6] bg-[#0077B6] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#006399]"
+                      @click="$router.push(notification.primaryAction.url)"
+                    >
+                      {{ notification.primaryAction.label }}
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                      @click="confirmDelete(notification.id)"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </li>
           </ul>
         </section>
 
-        <p class="typo-caption px-1">
-          Read access is authenticated from the backend. Read, archive, trash, and delete states
-          remain local prototype overlays until backend endpoints are added.
-        </p>
+        <!-- Feedback Toast -->
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="translate-y-2 opacity-0"
+          enter-to-class="translate-y-0 opacity-100"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="translate-y-0 opacity-100"
+          leave-to-class="translate-y-2 opacity-0"
+        >
+          <p
+            v-if="store.feedbackMessage"
+            class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-medium text-emerald-700 shadow-lg"
+          >
+            {{ store.feedbackMessage }}
+          </p>
+        </Transition>
 
-        <p v-if="feedbackMessage" class="typo-body px-1 text-emerald-700">{{ feedbackMessage }}</p>
+        <!-- Confirm Delete Dialog -->
+        <ConfirmDialog
+          :open="deleteConfirmId !== null"
+          title="Delete notification"
+          message="This notification will be permanently removed. This action cannot be undone."
+          confirm-label="Delete forever"
+          @confirm="handleDeleteForever"
+          @cancel="cancelDelete"
+        />
       </section>
     </main>
   </div>

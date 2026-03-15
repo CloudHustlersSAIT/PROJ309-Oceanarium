@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import logging
 import os
 from urllib.parse import urlsplit
 
@@ -15,7 +16,10 @@ from ..services.mock_poller import (
     finalize_run_failure,
     run_mock_poller_service,
 )
+from ..services.mock_seed import run_seed
 from ..services.poller_listener import process_staging_rows
+
+logger = logging.getLogger(__name__)
 
 ENV = os.getenv("ENV", "production").lower()
 _LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
@@ -134,4 +138,23 @@ def process_staging(
             processed = process_staging_rows(conn)
         return {"processed": processed}
     except Exception as e:
+        return handle_domain_exception(e)
+
+
+@router.post("/seed")
+def seed_test_data(
+    _guard: None = Depends(_require_dev_or_localhost),
+):
+    """Idempotent endpoint that inserts the minimum data required for E2E testing.
+
+    Creates tours, languages, an admin user, guides, guide-language/tour links,
+    and availability patterns + slots so the mock poller -> auto-assignment ->
+    notification chain works end-to-end.
+    """
+    try:
+        with engine.begin() as conn:
+            result = run_seed(conn)
+        return result.model_dump()
+    except Exception as e:
+        logger.error(f"Seed endpoint error: {e}")
         return handle_domain_exception(e)

@@ -1,14 +1,15 @@
-﻿<template>
+<template>
   <div class="app-page-wrap pt-1">
-    <!-- Hero Card -->
     <section class="app-surface-card app-section-padding">
       <div class="flex flex-col gap-1">
         <h1 class="app-title">Welcome, Guide</h1>
         <p class="app-subtitle">Here's your next scheduled tour.</p>
       </div>
 
-      <div class="notification-card-unread mt-4 min-h-[112px] p-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="mt-4 min-h-[112px] rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4">
+        <div v-if="loading" class="text-sm text-black/60">Loading dashboard...</div>
+        <div v-else-if="error" class="text-sm font-medium text-[#B91C1C]">{{ error }}</div>
+        <div v-else class="flex flex-wrap items-center justify-between gap-2">
           <div class="space-y-0.5">
             <p class="app-body-title leading-tight">
               {{ nextEvent.title }}
@@ -20,42 +21,40 @@
           </div>
 
           <span
-            class="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-[#0077B6] ring-1 ring-[#00B4D8]/30"
+            class="inline-flex items-center self-center rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-[#0077B6] ring-1 ring-[#00B4D8]/30"
           >
             Next Up
           </span>
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="mt-5 flex flex-wrap gap-2 rounded-xl border border-black/10 bg-white p-1">
+      <div class="mt-5 grid gap-3 md:grid-cols-3">
         <RouterLink
           to="/guide/schedule"
-          class="app-action-btn rounded-lg"
+          class="inline-flex min-h-12 items-center justify-center rounded-lg px-5 py-3 text-lg font-medium transition hover:-translate-y-0.5"
           :class="tabClass('/guide/schedule')"
         >
-          My Schedule
+          <span>My Schedule</span>
         </RouterLink>
 
         <RouterLink
           to="/guide/requests"
-          class="app-action-btn rounded-lg"
+          class="inline-flex min-h-12 items-center justify-center rounded-lg px-5 py-3 text-lg font-medium transition hover:-translate-y-0.5"
           :class="tabClass('/guide/requests')"
         >
-          Swap Requests
+          <span>Swap Requests</span>
         </RouterLink>
 
         <RouterLink
           to="/guide/notifications"
-          class="app-action-btn rounded-lg"
+          class="inline-flex min-h-12 items-center justify-center rounded-lg px-5 py-3 text-lg font-medium transition hover:-translate-y-0.5"
           :class="tabClass('/guide/notifications')"
         >
-          Notifications
+          <span>Notifications</span>
         </RouterLink>
       </div>
     </section>
 
-    <!-- Stats -->
     <section class="grid gap-4 md:grid-cols-3">
       <div class="app-surface-card p-5">
         <p class="app-subtitle">This Week</p>
@@ -92,7 +91,6 @@
       </div>
     </section>
 
-    <!-- Quick List -->
     <section class="app-surface-card app-section-padding">
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold text-[#1C1C1C]">Today</h2>
@@ -105,20 +103,27 @@
       </div>
 
       <div class="mt-4 space-y-3">
+        <div v-if="loading" class="text-sm text-black/60">Loading today's schedule...</div>
+        <div v-else-if="!todayEvents.length" class="text-sm text-black/60">No tours scheduled for today.</div>
+
         <div
           v-for="e in todayEvents"
           :key="e.id"
-          class="notification-card flex items-start justify-between gap-4 p-4"
+          class="flex items-center justify-between gap-4 rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4"
         >
-          <div class="flex gap-3">
-            <div class="mt-1 h-3 w-3 rounded-full bg-[#00B4D8]"></div>
+          <div class="flex items-center gap-3">
+            <div class="h-3 w-3 shrink-0 rounded-full bg-[#00B4D8]"></div>
             <div>
               <p class="app-body-title">{{ e.title }}</p>
               <p class="app-subtitle">{{ e.time }} • {{ e.language }}</p>
             </div>
           </div>
 
-          <span class="text-xs font-semibold text-black/60">{{ e.status }}</span>
+          <span
+            class="inline-flex items-center rounded-full border border-[#7DB8CC] bg-white/70 px-3 py-1 text-sm font-semibold text-black"
+          >
+            {{ e.status }}
+          </span>
         </div>
       </div>
     </section>
@@ -126,39 +131,130 @@
 </template>
 
 <script setup>
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { useAuth } from '@/contexts/authContext'
+import { getGuideDashboard } from '@/services/api'
+
 const route = useRoute()
+const { profile, ensureAuthReady } = useAuth()
+
+const loading = ref(false)
+const error = ref('')
+const dashboard = ref(null)
+
+const currentGuideId = computed(() => Number(profile.value?.guide_id ?? 0) || null)
 
 function tabClass(path) {
   const active = route.path === path
   return active
-    ? 'bg-[#CAF0F8] text-[#1C1C1C] ring-1 ring-[#00B4D8]/30 shadow-sm'
-    : 'border border-black/15 text-[#1C1C1C] hover:text-[#005A8A] hover:bg-[#CAF0F8]/40'
+    ? 'border border-[#0077B6] bg-[#0077B6] text-white shadow-[0_8px_18px_rgba(0,119,182,0.24)]'
+    : 'border border-[#0077B6] bg-[#0077B6] text-white shadow-[0_6px_14px_rgba(0,119,182,0.2)] hover:bg-[#0097E7] hover:border-[#0097E7] hover:shadow-[0_10px_20px_rgba(0,119,182,0.28)]'
 }
 
-const nextEvent = {
-  title: 'Dolphin Feeding Experience',
-  date: 'Feb 18, 2026',
-  time: '2:00 PM - 3:00 PM',
-  language: 'English',
-  guests: 18,
+function formatDateLabel(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'No upcoming tour'
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-const stats = {
-  weekTours: 6,
-  pendingRequests: 2,
-  avgRating: 4.7,
+function formatTimeLabel(startValue, endValue) {
+  const startDate = new Date(startValue)
+  const endDate = new Date(endValue)
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return '-'
+
+  const startLabel = startDate.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+  const endLabel = endDate.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+
+  return `${startLabel} - ${endLabel}`
 }
 
-const todayEvents = [
-  {
-    id: 1,
-    title: 'Dolphin Feeding Experience',
-    time: '2:00-3:00 PM',
-    language: 'EN',
-    status: 'Scheduled',
-  },
-  { id: 2, title: 'Reef Discovery', time: '4:00-5:00 PM', language: 'FR', status: 'Scheduled' },
-]
+function formatLanguage(code) {
+  const normalized = String(code || '').trim().toLowerCase()
+  const labels = { en: 'English', fr: 'French', es: 'Spanish', pt: 'Portuguese', zh: 'Chinese' }
+  return labels[normalized] || String(code || '-').toUpperCase()
+}
+
+function formatStatus(status) {
+  return String(status || 'Scheduled')
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+const nextEvent = computed(() => {
+  const nextTour = dashboard.value?.next_tour
+  if (!nextTour) {
+    return {
+      title: 'No upcoming tour',
+      date: 'Check back later',
+      time: '-',
+      language: '-',
+      guests: 0,
+    }
+  }
+
+  return {
+    title: String(nextTour?.tour_name || 'Upcoming tour').trim(),
+    date: formatDateLabel(nextTour?.event_start_datetime),
+    time: formatTimeLabel(nextTour?.event_start_datetime, nextTour?.event_end_datetime),
+    language: formatLanguage(nextTour?.language_code),
+    guests: Number(nextTour?.reservation_count ?? 0),
+  }
+})
+
+const stats = computed(() => ({
+  weekTours: Number(dashboard.value?.tours_this_week ?? 0),
+  pendingRequests: Number(dashboard.value?.pending_requests ?? 0),
+  avgRating: Number(dashboard.value?.rating ?? 0).toFixed(1),
+}))
+
+const todayEvents = computed(() => {
+  const items = Array.isArray(dashboard.value?.today_schedule) ? dashboard.value.today_schedule : []
+
+  return items.map((event) => ({
+    id: Number(event?.id),
+    title: String(event?.name || event?.tour_name || 'Scheduled Tour').trim(),
+    time: formatTimeLabel(event?.event_start_datetime, event?.event_end_datetime),
+    language: formatLanguage(event?.language_code),
+    status: formatStatus(event?.status),
+  }))
+})
+
+async function loadDashboard() {
+  if (!currentGuideId.value) {
+    dashboard.value = null
+    error.value = 'Guide profile is not available.'
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    dashboard.value = await getGuideDashboard(currentGuideId.value)
+  } catch (loadError) {
+    dashboard.value = null
+    error.value = loadError?.message || 'Failed to load guide dashboard.'
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(currentGuideId, () => {
+  loadDashboard()
+})
+
+onMounted(async () => {
+  await ensureAuthReady()
+  await loadDashboard()
+})
 </script>

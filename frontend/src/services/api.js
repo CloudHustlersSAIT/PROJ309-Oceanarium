@@ -13,7 +13,10 @@ const RESERVATION_LANGUAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 //Author Joao Santiago
 async function getAuthorizationHeader() {
   try {
-    const { getIdToken } = useAuth()
+    const { getIdToken, isDevelopmentBypassSession } = useAuth()
+
+    if (isDevelopmentBypassSession()) return {}
+
     const token = await getIdToken()
 
     if (!token) return {} // No token available, return empty headers
@@ -148,7 +151,8 @@ async function fetchAPI(endpoint, options = {}) {
 
   // Fail early for authenticated requests when no token is available,
   // so callers can prompt login instead of sending an unauthenticated request.
-  if (requiresAuth && !authHeaders.Authorization) {
+  const { isDevelopmentBypassSession } = useAuth()
+  if (requiresAuth && !authHeaders.Authorization && !isDevelopmentBypassSession()) {
     throw new Error('Authentication required. Please sign in to continue.')
   }
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -187,6 +191,19 @@ export async function getGuides() {
   return fetchAPI('/guides')
 }
 
+export async function updateGuide(guideId, payload) {
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to update guide details.')
+  }
+
+  return fetchAPI(`/guides/${normalizedGuideId}`, {
+    method: 'PATCH',
+    requiresAuth: true,
+    body: JSON.stringify(payload || {}),
+  })
+}
+
 // Get all customers
 export async function getCustomers() {
   return fetchAPI('/customers')
@@ -197,9 +214,54 @@ export async function getTours() {
   return fetchAPI('/tours')
 }
 
-// Get all notifications
-export async function getNotifications() {
-  return fetchAPI('/notifications', { requiresAuth: true })
+// Get notifications with optional backend filters and pagination
+export async function getNotifications(filters = {}) {
+  const params = new URLSearchParams()
+
+  if (filters.status) params.set('status', filters.status)
+  if (filters.channel) params.set('channel', filters.channel)
+  if (filters.eventType) params.set('event_type', filters.eventType)
+  if (filters.unreadOnly) params.set('unread_only', 'true')
+  if (filters.priority) params.set('priority', filters.priority)
+  if (filters.limit != null) params.set('limit', String(filters.limit))
+  if (filters.offset != null) params.set('offset', String(filters.offset))
+
+  const query = params.toString()
+  return fetchAPI(query ? `/notifications?${query}` : '/notifications', { requiresAuth: true })
+}
+
+export async function getNotificationSummary() {
+  return fetchAPI('/notifications/summary', { requiresAuth: true })
+}
+
+export async function getNotificationDetail(notificationId) {
+  const normalizedNotificationId = Number(notificationId)
+  if (!Number.isInteger(normalizedNotificationId) || normalizedNotificationId <= 0) {
+    throw new Error('Notification ID is required to load notification details.')
+  }
+
+  return fetchAPI(`/notifications/${normalizedNotificationId}`, {
+    requiresAuth: true,
+  })
+}
+
+export async function markNotificationRead(notificationId) {
+  const normalizedNotificationId = Number(notificationId)
+  if (!Number.isInteger(normalizedNotificationId) || normalizedNotificationId <= 0) {
+    throw new Error('Notification ID is required to mark a notification as read.')
+  }
+
+  return fetchAPI(`/notifications/${normalizedNotificationId}/read`, {
+    method: 'PATCH',
+    requiresAuth: true,
+  })
+}
+
+export async function markAllNotificationsRead() {
+  return fetchAPI('/notifications/read-all', {
+    method: 'PATCH',
+    requiresAuth: true,
+  })
 }
 
 // Get dashboard stats
@@ -213,6 +275,7 @@ export async function getSchedules(filters = {}) {
   if (filters.startDate) params.set('start_date', filters.startDate)
   if (filters.endDate) params.set('end_date', filters.endDate)
   if (filters.status) params.set('status', filters.status)
+  if (filters.guideId != null) params.set('guide_id', String(filters.guideId))
 
   const query = params.toString()
   return fetchAPI(query ? `/schedules?${query}` : '/schedules')
@@ -374,5 +437,146 @@ export async function reportIssue(description) {
     method: 'POST',
     requiresAuth: true,
     body: JSON.stringify({ description }),
+  })
+}
+
+export async function getGuideSwapRequests(guideId) {
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to load swap requests.')
+  }
+
+  return fetchAPI(`/guide/swap-requests?guide_id=${normalizedGuideId}`)
+}
+
+export async function getGuideDashboard(guideId) {
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to load the dashboard.')
+  }
+
+  return fetchAPI(`/guide/dashboard?guide_id=${normalizedGuideId}`)
+}
+
+export async function getGuideSwapCandidates(scheduleId) {
+  const normalizedScheduleId = Number(scheduleId)
+  if (!Number.isInteger(normalizedScheduleId) || normalizedScheduleId <= 0) {
+    throw new Error('Schedule ID is required to load swap candidates.')
+  }
+
+  return fetchAPI(`/guide/swap-candidates?schedule_id=${normalizedScheduleId}`)
+}
+
+export async function createGuideSwapRequest(scheduleId, guideId, requestingGuideId) {
+  const normalizedScheduleId = Number(scheduleId)
+  const normalizedGuideId = Number(guideId)
+  const normalizedRequestingGuideId = Number(requestingGuideId)
+
+  if (!Number.isInteger(normalizedScheduleId) || normalizedScheduleId <= 0) {
+    throw new Error('Schedule ID is required to create a swap request.')
+  }
+
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to create a swap request.')
+  }
+
+  if (!Number.isInteger(normalizedRequestingGuideId) || normalizedRequestingGuideId <= 0) {
+    throw new Error('Requesting guide ID is required to create a swap request.')
+  }
+
+  return fetchAPI(
+    `/guide/swap-request?schedule_id=${normalizedScheduleId}&guide_id=${normalizedGuideId}&requesting_guide_id=${normalizedRequestingGuideId}`,
+    {
+      method: 'POST',
+    },
+  )
+}
+
+export async function acceptGuideSwapRequest(swapRequestId, guideId) {
+  const normalizedSwapRequestId = Number(swapRequestId)
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedSwapRequestId) || normalizedSwapRequestId <= 0) {
+    throw new Error('Swap request ID is required to accept a request.')
+  }
+
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to accept a request.')
+  }
+
+  return fetchAPI(
+    `/guide/swap-accept?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`,
+    {
+      method: 'POST',
+    },
+  )
+}
+
+export async function rejectGuideSwapRequest(swapRequestId, guideId) {
+  const normalizedSwapRequestId = Number(swapRequestId)
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedSwapRequestId) || normalizedSwapRequestId <= 0) {
+    throw new Error('Swap request ID is required to reject a request.')
+  }
+
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to reject a request.')
+  }
+
+  return fetchAPI(
+    `/guide/swap-reject?swap_request_id=${normalizedSwapRequestId}&guide_id=${normalizedGuideId}`,
+    {
+      method: 'POST',
+    },
+  )
+}
+
+export async function getLanguages() {
+  return fetchAPI('/languages')
+}
+
+export async function getGuideAvailability(guideId) {
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to load availability.')
+  }
+
+  return fetchAPI(`/guide/profile/availability?guide_id=${normalizedGuideId}`)
+}
+
+export async function updateGuideAvailability(guideId, payload) {
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to update availability.')
+  }
+
+  return fetchAPI(`/guide/profile/availability?guide_id=${normalizedGuideId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      slots: Array.isArray(payload?.slots) ? payload.slots : [],
+      timezone: payload?.timezone || undefined,
+    }),
+  })
+}
+
+export async function getGuideLanguages(guideId) {
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to load languages.')
+  }
+
+  return fetchAPI(`/guide/profile/languages?guide_id=${normalizedGuideId}`)
+}
+
+export async function updateGuideLanguages(guideId, payload) {
+  const normalizedGuideId = Number(guideId)
+  if (!Number.isInteger(normalizedGuideId) || normalizedGuideId <= 0) {
+    throw new Error('Guide ID is required to update languages.')
+  }
+
+  const languageIds = Array.isArray(payload?.language_ids) ? payload.language_ids.map(Number) : []
+
+  return fetchAPI(`/guide/profile/languages?guide_id=${normalizedGuideId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ language_ids: languageIds }),
   })
 }

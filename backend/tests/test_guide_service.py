@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.services.exceptions import ValidationError
-from app.services.guide import create_guide, update_guide
+from app.services.guide import create_guide, soft_delete_guide, update_guide
 
 
 def _guide_row(guide_id: int, first_name: str = "Maria", last_name: str = "Silva", email: str = "maria@test.com"):
@@ -140,3 +140,26 @@ class TestUpdateGuide:
         result = update_guide(mock_conn, 999, {"first_name": "Ana"})
 
         assert result is None
+
+
+class TestSoftDeleteGuide:
+    def test_soft_delete_guide_success(self, mock_conn):
+        mock_conn.execute.return_value = MagicMock(fetchone=MagicMock(return_value=MagicMock(id=3)))
+
+        with patch(
+            "app.services.guide._fetch_guide_profile",
+            return_value={"id": 3, "is_active": False},
+        ):
+            result = soft_delete_guide(mock_conn, 3)
+
+        assert result["id"] == 3
+        assert result["is_active"] is False
+        mock_conn.commit.assert_called_once()
+
+    def test_soft_delete_guide_not_found(self, mock_conn):
+        mock_conn.execute.return_value = MagicMock(fetchone=MagicMock(return_value=None))
+
+        result = soft_delete_guide(mock_conn, 999)
+
+        assert result is None
+        mock_conn.commit.assert_not_called()

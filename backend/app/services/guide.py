@@ -292,6 +292,7 @@ def create_guide(
     first_name: str,
     last_name: str,
     email: str,
+    phone: str | None = None,
     language_codes: list[str] | None = None,
     expertise_tour_ids: list[int] | None = None,
     availability_patterns: list[dict] | None = None,
@@ -299,6 +300,7 @@ def create_guide(
     normalized_first_name = first_name.strip()
     normalized_last_name = last_name.strip()
     normalized_email = email.strip()
+    normalized_phone = phone.strip() if isinstance(phone, str) else None
 
     if not normalized_first_name:
         raise ValidationError("first_name is required")
@@ -306,12 +308,14 @@ def create_guide(
         raise ValidationError("last_name is required")
     if not normalized_email:
         raise ValidationError("email is required")
+    if normalized_phone is not None and normalized_phone and not normalized_phone.isdigit():
+        raise ValidationError("phone must contain digits only")
 
     result = conn.execute(
         text(
             """
-            INSERT INTO guides (first_name, last_name, email)
-            VALUES (:first_name, :last_name, :email)
+            INSERT INTO guides (first_name, last_name, email, phone)
+            VALUES (:first_name, :last_name, :email, :phone)
             RETURNING id
             """
         ),
@@ -319,6 +323,7 @@ def create_guide(
             "first_name": normalized_first_name,
             "last_name": normalized_last_name,
             "email": normalized_email,
+            "phone": normalized_phone,
         },
     )
 
@@ -364,6 +369,15 @@ def update_guide(conn, guide_id: int, fields: dict):
         if not normalized_fields["last_name"]:
             raise ValidationError("last_name cannot be empty")
 
+    if "phone" in normalized_fields:
+        phone_value = normalized_fields["phone"]
+        if phone_value is None:
+            normalized_fields["phone"] = None
+        else:
+            normalized_fields["phone"] = str(phone_value).strip()
+            if normalized_fields["phone"] and not normalized_fields["phone"].isdigit():
+                raise ValidationError("phone must contain digits only")
+
     if normalized_fields:
         set_clause = ", ".join(f"{key} = :{key}" for key in normalized_fields)
         params = {"guide_id": guide_id, **normalized_fields}
@@ -390,4 +404,24 @@ def update_guide(conn, guide_id: int, fields: dict):
 
     conn.commit()
 
+    return _fetch_guide_profile(conn, guide_id)
+
+
+def soft_delete_guide(conn, guide_id: int):
+    result = conn.execute(
+        text(
+            """
+            UPDATE guides
+            SET is_active = false
+            WHERE id = :guide_id
+            RETURNING id
+            """
+        ),
+        {"guide_id": guide_id},
+    ).fetchone()
+
+    if not result:
+        return None
+
+    conn.commit()
     return _fetch_guide_profile(conn, guide_id)

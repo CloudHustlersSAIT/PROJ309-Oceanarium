@@ -217,6 +217,77 @@ Content-Type: application/json
 
 `warnings` is an empty array when all constraints are satisfied.
 
+### Preview Eligible Guides
+
+- Method: `GET`
+- Path: `/schedules/{schedule_id}/eligible-guides`
+
+Read-only endpoint that returns a ranked list of guides eligible for a schedule. It does **not** modify any data — use it to preview candidates before assigning.
+
+The endpoint evaluates the same three hard constraints used by auto-assign (language, expertise, availability) and ranks results by fewest same-day assignments, then highest rating, then lowest ID.
+
+#### Example Request
+
+```http
+GET /schedules/10/eligible-guides
+```
+
+#### Success Response (200) — Guides Found
+
+```json
+{
+  "schedule_id": 10,
+  "eligible_guides": [
+    {
+      "id": 3,
+      "first_name": "Maria",
+      "last_name": "Silva",
+      "guide_rating": 4.8,
+      "same_day_assignments": 1,
+      "ranking_position": 1
+    },
+    {
+      "id": 7,
+      "first_name": "John",
+      "last_name": "Doe",
+      "guide_rating": 4.5,
+      "same_day_assignments": 2,
+      "ranking_position": 2
+    }
+  ],
+  "reasons": [],
+  "total": 2
+}
+```
+
+#### Success Response (200) — No Eligible Guides
+
+Returns an empty list (not an error) with reason codes explaining why no guides qualified.
+
+```json
+{
+  "schedule_id": 10,
+  "eligible_guides": [],
+  "reasons": ["NO_LANGUAGE_MATCH"],
+  "total": 0
+}
+```
+
+Possible reason codes: `NO_LANGUAGE_MATCH`, `NO_EXPERTISE_MATCH`, `NO_AVAILABILITY_MATCH`.
+
+#### Error Cases
+
+- `404 Not Found`: schedule does not exist.
+
+#### Frontend Usage
+
+```js
+// Preview eligible guides before assigning
+export async function getEligibleGuides(scheduleId) {
+  return fetchAPI(`/schedules/${scheduleId}/eligible-guides`)
+}
+```
+
 ### Assignment Error Cases
 
 - `404 Not Found`: schedule or guide does not exist.
