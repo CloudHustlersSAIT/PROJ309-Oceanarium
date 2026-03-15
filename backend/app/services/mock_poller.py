@@ -213,8 +213,10 @@ def _build_create_schedule_pool(
             pair = rng.choice(guide_caps)
             selected_tour = next(
                 (tour for tour in tours if tour["clorian_product_id"] == pair["clorian_product_id"]),
-                rng.choice(tours),
+                None,
             )
+            if selected_tour is None:
+                selected_tour = rng.choice(tours)
             language_code = pair["language_code"]
         else:
             selected_tour = rng.choice(tours)
