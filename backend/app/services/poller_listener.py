@@ -282,6 +282,7 @@ def process_staging_rows(conn):
                             schedule_id,
                             assign_result["guide_id"],
                             "AUTO",
+                            commit=False,
                         )
 
                     except UnassignableError as e:
@@ -289,6 +290,7 @@ def process_staging_rows(conn):
                             conn,
                             schedule_id,
                             e.reasons,
+                            commit=False,
                         )
 
                     except Exception:
