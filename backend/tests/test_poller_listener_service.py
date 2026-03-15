@@ -150,6 +150,21 @@ class TestProcessStagingRows:
         count = process_staging_rows(mock_conn)
         assert count == 0
 
+        # Verify that the staging row was marked as FAILED with an error message.
+        update_calls = [
+            call_args
+            for call_args in mock_conn.execute.call_args_list
+            if "UPDATE public.poll_staging" in str(call_args.args[0])
+        ]
+        assert update_calls, "Expected an UPDATE to public.poll_staging to record failure"
+        update_call = update_calls[0]
+        # Typically execute is called as execute(sql, params)
+        assert len(update_call.args) >= 2, "Expected parameters for failure UPDATE"
+        update_params = update_call.args[1]
+        assert update_params.get("processed_status") == "FAILED"
+        processed_error = update_params.get("processed_error")
+        assert processed_error is not None and processed_error != ""
+
     @patch("app.services.poller_listener.dispatch_events")
     @patch("app.services.poller_listener.handle_reservation_cancellation")
     def test_cancellation_detected(self, mock_cancel, mock_dispatch):
