@@ -4,7 +4,15 @@ import AppSidebar from '../components/AppSidebar.vue'
 import CancelButton from '../components/CancelButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import SaveButton from '../components/SaveButton.vue'
-import { getCustomers, getGuides } from '../services/api'
+import {
+  createGuide,
+  getCustomers,
+  getGuides,
+  getLanguages,
+  getTours,
+  updateCustomer,
+  updateGuide,
+} from '../services/api'
 
 const tabs = [
   { key: 'customers', label: 'Customers' },
@@ -18,20 +26,43 @@ const apiError = ref('')
 
 const customers = ref([])
 const guides = ref([])
+const tourOptions = ref([])
+const languageOptions = ref([])
+const hasLoadedGuideEditorOptions = ref(false)
+const isLoadingGuideEditorOptions = ref(false)
 const currentPage = ref(1)
 const pageSize = 15
 const customerSort = ref('a-z')
 const guideSort = ref('a-z')
 const showEditPopup = ref(false)
 const showConfirmSavePopup = ref(false)
+const showGuideDetailsPopup = ref(false)
+const isSavingEdit = ref(false)
 const editError = ref('')
+const selectedGuideDetails = ref(null)
 const editForm = ref({
+  mode: 'edit',
   tab: 'customers',
   rowId: '',
   recordKey: '',
-  name: '',
+  firstName: '',
+  lastName: '',
   email: '',
+  selectedLanguageCodes: [],
+  selectedTourIds: [],
+  guideTimezone: 'UTC',
+  dailyAvailability: {},
 })
+
+const WEEK_DAYS = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+]
 
 const pageTitle = computed(() =>
   activeTab.value === 'guides' ? 'Guide Directory' : 'Customer Directory',
@@ -127,7 +158,7 @@ const filteredRows = computed(() => {
 
   return currentRows.value.filter((row) => {
     const searchable = activeTab.value === 'guides'
-      ? `${row.id ?? ''} ${row.name ?? ''} ${row.email ?? ''} ${row.languages ?? ''} ${row.expertiseTours ?? ''} ${row.availability ?? ''} ${row.status ?? ''}`
+      ? `${row.id ?? ''} ${row.name ?? ''} ${row.email ?? ''} ${row.languageCodesDisplay ?? ''} ${row.availabilityDisplay ?? ''} ${row.status ?? ''}`
       : `${row.name ?? ''} ${row.email ?? ''} ${row.customerId ?? ''} ${row.totalVisits ?? ''} ${row.firstTourDate ?? ''}`
 
     const normalizedSearchable = searchable.toLowerCase()
@@ -180,14 +211,25 @@ const paginationLabel = computed(() => {
 })
 
 const editTargetLabel = computed(() =>
-  editForm.value.tab === 'guides' ? `Guide #${editForm.value.rowId}` : `Customer ${editForm.value.recordKey}`,
+  editForm.value.mode === 'create'
+    ? 'New Guide'
+    : editForm.value.tab === 'guides'
+      ? `Guide #${editForm.value.rowId}`
+      : `Customer ${editForm.value.recordKey}`,
 )
 
 const canSaveEdit = computed(() => {
-  const name = String(editForm.value.name || '').trim()
+  const firstName = String(editForm.value.firstName || '').trim()
+  const lastName = String(editForm.value.lastName || '').trim()
   const email = String(editForm.value.email || '').trim()
-  return Boolean(name) && Boolean(email)
+  return Boolean(firstName) && Boolean(lastName) && Boolean(email)
 })
+
+const confirmMessage = computed(() =>
+  editForm.value.mode === 'create'
+    ? 'This will create a new guide using the backend API. Do you want to proceed?'
+    : 'This will save changes using the backend API. Do you want to proceed?',
+)
 
 const currentColumns = computed(() => {
   if (activeTab.value === 'customers') {
@@ -204,11 +246,63 @@ const currentColumns = computed(() => {
     { key: 'id', label: 'Guide ID' },
     { key: 'name', label: 'Guide' },
     { key: 'email', label: 'Email' },
-    { key: 'languages', label: 'Languages' },
-    { key: 'expertiseTours', label: 'Expertise Tours' },
-    { key: 'availability', label: 'Availability' },
+    { key: 'languageCodesDisplay', label: 'Languages' },
+    { key: 'availabilityDisplay', label: 'Availability' },
     { key: 'status', label: 'Status' },
   ]
+})
+
+const languageLabelByCode = computed(() =>
+  Object.fromEntries(
+    languageOptions.value.map((language) => [
+      String(language.code || '').toLowerCase(),
+      language.label,
+    ]),
+  ),
+)
+
+const tourLabelById = computed(() =>
+  Object.fromEntries(
+    tourOptions.value.map((tour) => [String(tour.id), tour.label]),
+  ),
+)
+
+const selectedGuideLanguageLabels = computed(() => {
+  const guide = selectedGuideDetails.value
+  const codes = Array.isArray(guide?.languageCodes) ? guide.languageCodes : []
+  const labelsFromCodes = codes.map(
+    (code) => languageLabelByCode.value[String(code).toLowerCase()] || String(code),
+  )
+  if (labelsFromCodes.length > 0) return labelsFromCodes
+  return Array.isArray(guide?.languageLabels) ? guide.languageLabels : []
+})
+
+const selectedGuideTourLabels = computed(() => {
+  const guide = selectedGuideDetails.value
+  const ids = Array.isArray(guide?.expertiseTourIds) ? guide.expertiseTourIds : []
+  const labelsFromIds = ids.map((id) => tourLabelById.value[String(id)] || `Tour #${id}`)
+  if (labelsFromIds.length > 0) return labelsFromIds
+  return Array.isArray(guide?.expertiseLabels) ? guide.expertiseLabels : []
+})
+
+const selectedGuideWeeklySchedule = computed(() => {
+  const guide = selectedGuideDetails.value
+  const firstPattern = Array.isArray(guide?.availabilityPatterns) && guide.availabilityPatterns.length
+    ? guide.availabilityPatterns[0]
+    : null
+  const slots = Array.isArray(firstPattern?.slots) ? firstPattern.slots : []
+
+  const slotsByDay = Object.fromEntries(
+    slots.map((slot) => [String(slot.day_of_week || '').trim(), slot]),
+  )
+
+  return WEEK_DAYS.map((day) => {
+    const slot = slotsByDay[day]
+    return {
+      day,
+      text: slot ? `${slot.start_time} - ${slot.end_time}` : 'Off',
+    }
+  })
 })
 
 function isCenteredColumn(columnKey) {
@@ -216,11 +310,14 @@ function isCenteredColumn(columnKey) {
 }
 
 function normalizeCustomerRow(item, idx) {
+  const recordKey = String(item?.clorian_client_id || '').trim()
+
   return {
     id: idx + 1,
     name: String(item?.full_name || item?.name || 'Unknown'),
     email: String(item?.email || 'Not provided'),
-    customerId: String(item?.clorian_client_id || 'N/A'),
+    customerId: recordKey || 'N/A',
+    recordKey,
     totalVisits: Number(item?.total_visits) || 0,
     firstTourDate: item?.first_tour_date ? String(item.first_tour_date).slice(0, 10) : '-',
     phone: String(item?.phone || 'Not provided'),
@@ -228,29 +325,28 @@ function normalizeCustomerRow(item, idx) {
 }
 
 function normalizeGuideRow(item) {
-  function normalizeGuideField(value, fallback = 'Not configured') {
-    if (typeof value === 'boolean') {
-      return value ? 'Available' : 'Unavailable'
-    }
+  function normalizeCollection(value) {
+    if (!Array.isArray(value)) return []
 
-    if (Array.isArray(value)) {
-      const mapped = value
-        .map((entry) => {
-          if (entry == null) return ''
-          if (typeof entry === 'string') return entry.trim()
-          if (typeof entry === 'number') return String(entry)
-          if (typeof entry === 'object') {
-            return String(entry.name || entry.title || entry.code || entry.id || '').trim()
-          }
-          return ''
-        })
-        .filter(Boolean)
-
-      return mapped.length > 0 ? mapped.join(', ') : fallback
-    }
-
-    const normalized = String(value || '').trim()
-    return normalized || fallback
+    return value
+      .map((entry) => {
+        if (entry == null) return null
+        if (typeof entry === 'string') {
+          const trimmed = entry.trim()
+          return trimmed ? { id: trimmed, label: trimmed } : null
+        }
+        if (typeof entry === 'number') {
+          return { id: entry, label: String(entry) }
+        }
+        if (typeof entry === 'object') {
+          const id = entry.id ?? entry.code ?? entry.name ?? entry.title
+          const label = entry.name || entry.title || entry.code || entry.id
+          if (id == null && label == null) return null
+          return { id, label: String(label || id).trim() }
+        }
+        return null
+      })
+      .filter(Boolean)
   }
 
   const firstName = String(item?.first_name || '').trim()
@@ -264,24 +360,149 @@ function normalizeGuideRow(item) {
       ? (item.active ? 'active' : 'inactive')
       : String(item?.status || 'inactive').toLowerCase()
 
+  const languageCollection = normalizeCollection(item?.language_codes)
+  const fallbackLanguageCollection = normalizeCollection(
+    item?.languages ?? item?.spoken_languages ?? item?.language,
+  )
+  const expertiseCollection = normalizeCollection(item?.expertise_tour_ids)
+  const fallbackExpertiseCollection = normalizeCollection(
+    item?.expertise_tours ?? item?.tour_types ?? item?.tours ?? item?.expertise,
+  )
+  const availabilityPatterns = Array.isArray(item?.availability_patterns)
+    ? item.availability_patterns
+    : []
+  const availabilityLabel = availabilityPatterns.length > 0
+    ? `${availabilityPatterns.length} pattern(s)`
+    : typeof item?.availability === 'boolean'
+      ? item.availability ? 'Available' : 'Unavailable'
+      : String(item?.availability_status || item?.availability || 'Not mapped').trim() || 'Not mapped'
+
   return {
     id: item?.id ?? 'N/A',
+    firstName,
+    lastName,
     name: fullName || String(item?.name || 'Unknown'),
     email: String(item?.email || 'Not provided'),
-    languages: normalizeGuideField(
-      item?.languages ?? item?.spoken_languages ?? item?.language_codes ?? item?.language,
-      'Not mapped',
-    ),
-    expertiseTours: normalizeGuideField(
-      item?.expertise_tours ?? item?.tour_types ?? item?.tours ?? item?.expertise,
-      'Not mapped',
-    ),
-    availability: normalizeGuideField(
-      item?.availability ?? item?.availability_status ?? item?.is_available,
-      'Not mapped',
-    ),
     phone: String(item?.phone || 'Not provided'),
+    languageCodes: languageCollection.map((entry) => String(entry.id).toLowerCase()),
+    languageLabels: (languageCollection.length > 0 ? languageCollection : fallbackLanguageCollection)
+      .map((entry) => String(entry.label)),
+    expertiseTourIds: expertiseCollection
+      .map((entry) => Number(entry.id))
+      .filter((entry) => Number.isInteger(entry) && entry > 0),
+    expertiseLabels: (expertiseCollection.length > 0 ? expertiseCollection : fallbackExpertiseCollection)
+      .map((entry) => String(entry.label)),
+    availabilityPatterns,
+    languageCodesDisplay: (languageCollection.length > 0 ? languageCollection : fallbackLanguageCollection)
+      .map((entry) => String(entry.label))
+      .join(', ') || 'Not mapped',
+    expertiseDisplay: (expertiseCollection.length > 0 ? expertiseCollection : fallbackExpertiseCollection)
+      .map((entry) => String(entry.label))
+      .join(', ') || 'Not mapped',
+    availabilityDisplay: availabilityLabel,
     status: normalizedStatus,
+  }
+}
+
+function splitName(fullName) {
+  const normalized = String(fullName || '').trim()
+  if (!normalized) return { firstName: '', lastName: '' }
+
+  const parts = normalized.split(/\s+/)
+  if (parts.length === 1) return { firstName: parts[0], lastName: '' }
+
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' '),
+  }
+}
+
+function createDefaultDailyAvailability() {
+  return Object.fromEntries(
+    WEEK_DAYS.map((day) => [
+      day,
+      {
+        enabled: false,
+        start: '09:00:00',
+        end: '17:00:00',
+      },
+    ]),
+  )
+}
+
+function dailyAvailabilityFromPatterns(patterns) {
+  const daily = createDefaultDailyAvailability()
+  const firstPattern = Array.isArray(patterns) && patterns.length ? patterns[0] : null
+  const slots = Array.isArray(firstPattern?.slots) ? firstPattern.slots : []
+
+  for (const slot of slots) {
+    const day = String(slot?.day_of_week || '').trim()
+    if (!WEEK_DAYS.includes(day)) continue
+
+    daily[day] = {
+      enabled: true,
+      start: String(slot?.start_time || '09:00:00'),
+      end: String(slot?.end_time || '17:00:00'),
+    }
+  }
+
+  return daily
+}
+
+function availabilityPatternsFromDaily() {
+  const slots = WEEK_DAYS
+    .filter((day) => editForm.value.dailyAvailability?.[day]?.enabled)
+    .map((day) => {
+      const config = editForm.value.dailyAvailability[day]
+      return {
+        day_of_week: day,
+        start_time: config.start,
+        end_time: config.end,
+      }
+    })
+
+  return [
+    {
+      timezone: String(editForm.value.guideTimezone || 'UTC').trim() || 'UTC',
+      slots,
+    },
+  ]
+}
+
+async function loadGuideEditorOptions() {
+  if (hasLoadedGuideEditorOptions.value) return
+  if (isLoadingGuideEditorOptions.value) return
+
+  isLoadingGuideEditorOptions.value = true
+
+  try {
+    const [tours, languages] = await Promise.all([getTours(), getLanguages()])
+
+    tourOptions.value = Array.isArray(tours)
+      ? tours.map((tour) => ({ id: tour.id, label: `${tour.id} - ${tour.name}` }))
+      : []
+
+    languageOptions.value = Array.isArray(languages)
+      ? languages.map((language) => ({
+        id: language.id,
+        code: String(language.code || '').toLowerCase(),
+        label: `${language.name} (${String(language.code || '').toLowerCase()})`,
+      }))
+      : []
+
+    hasLoadedGuideEditorOptions.value = true
+  } finally {
+    isLoadingGuideEditorOptions.value = false
+  }
+}
+
+async function ensureGuideEditorOptionsLoaded() {
+  if (hasLoadedGuideEditorOptions.value || isLoadingGuideEditorOptions.value) return
+
+  try {
+    await loadGuideEditorOptions()
+  } catch (error) {
+    apiError.value = String(error?.message || 'Failed to load guide editor options.')
   }
 }
 
@@ -316,6 +537,11 @@ function switchTab(tab) {
   searchQuery.value = ''
   currentPage.value = 1
   apiError.value = ''
+
+  if (tab === 'guides') {
+    ensureGuideEditorOptionsLoaded()
+  }
+
   loadTabData(tab)
 }
 
@@ -349,16 +575,65 @@ function statusClasses(status) {
   return 'bg-emerald-100 text-emerald-800 border-emerald-300'
 }
 
-function openEditPopup(row) {
+function openGuideDetails(row) {
+  selectedGuideDetails.value = row
+  showGuideDetailsPopup.value = true
+}
+
+function closeGuideDetails() {
+  showGuideDetailsPopup.value = false
+  selectedGuideDetails.value = null
+}
+
+async function openEditPopup(row) {
   const rowId = String(row?.id ?? '')
-  const recordKey = activeTab.value === 'guides' ? rowId : String(row?.customerId || '')
+  const recordKey = activeTab.value === 'guides' ? rowId : String(row?.recordKey || '').trim()
+  const split = splitName(row?.name)
+
+  if (activeTab.value === 'customers' && !recordKey) {
+    editError.value = 'This customer does not have a valid backend identifier and cannot be edited.'
+    return
+  }
+
+  if (activeTab.value === 'guides') {
+    await ensureGuideEditorOptionsLoaded()
+  }
 
   editForm.value = {
+    mode: 'edit',
     tab: activeTab.value,
     rowId,
     recordKey,
-    name: String(row?.name || '').trim(),
+    firstName: String(row?.firstName || split.firstName || '').trim(),
+    lastName: String(row?.lastName || split.lastName || '').trim(),
     email: String(row?.email || '').trim(),
+    selectedLanguageCodes: Array.isArray(row?.languageCodes) ? [...row.languageCodes] : [],
+    selectedTourIds: Array.isArray(row?.expertiseTourIds) ? [...row.expertiseTourIds] : [],
+    guideTimezone: Array.isArray(row?.availabilityPatterns) && row.availabilityPatterns.length
+      ? String(row.availabilityPatterns[0]?.timezone || 'UTC')
+      : 'UTC',
+    dailyAvailability: dailyAvailabilityFromPatterns(row?.availabilityPatterns),
+  }
+  editError.value = ''
+  showConfirmSavePopup.value = false
+  showEditPopup.value = true
+}
+
+async function openCreateGuidePopup() {
+  await ensureGuideEditorOptionsLoaded()
+
+  editForm.value = {
+    mode: 'create',
+    tab: 'guides',
+    rowId: '',
+    recordKey: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    selectedLanguageCodes: [],
+    selectedTourIds: [],
+    guideTimezone: 'UTC',
+    dailyAvailability: createDefaultDailyAvailability(),
   }
   editError.value = ''
   showConfirmSavePopup.value = false
@@ -366,6 +641,8 @@ function openEditPopup(row) {
 }
 
 function closeEditPopup() {
+  if (isSavingEdit.value) return
+
   showConfirmSavePopup.value = false
   showEditPopup.value = false
   editError.value = ''
@@ -373,40 +650,70 @@ function closeEditPopup() {
 
 function requestEditConfirmation() {
   if (!canSaveEdit.value) {
-    editError.value = 'Name and email are required.'
+    editError.value = 'First name, last name and email are required.'
     return
   }
 
   showConfirmSavePopup.value = true
 }
 
-function applyRowEdit() {
-  const normalizedName = String(editForm.value.name || '').trim()
+async function applyRowEdit() {
+  const normalizedFirstName = String(editForm.value.firstName || '').trim()
+  const normalizedLastName = String(editForm.value.lastName || '').trim()
   const normalizedEmail = String(editForm.value.email || '').trim()
 
-  if (editForm.value.tab === 'customers') {
-    customers.value = customers.value.map((item) => {
-      if (String(item.customerId || '') !== editForm.value.recordKey) return item
-      return {
-        ...item,
-        name: normalizedName,
-        email: normalizedEmail,
-      }
-    })
-  } else {
-    guides.value = guides.value.map((item) => {
-      if (String(item.id ?? '') !== editForm.value.rowId) return item
-      return {
-        ...item,
-        name: normalizedName,
-        email: normalizedEmail,
-      }
-    })
-  }
-
-  showConfirmSavePopup.value = false
-  showEditPopup.value = false
+  isSavingEdit.value = true
   editError.value = ''
+
+  try {
+    if (editForm.value.tab === 'customers') {
+      if (!String(editForm.value.recordKey || '').trim()) {
+        throw new Error('Customer backend identifier is missing. Unable to update this customer.')
+      }
+
+      await updateCustomer(editForm.value.recordKey, {
+        first_name: normalizedFirstName,
+        last_name: normalizedLastName,
+        email: normalizedEmail,
+      })
+    } else {
+      const slots = WEEK_DAYS
+        .filter((day) => editForm.value.dailyAvailability?.[day]?.enabled)
+        .map((day) => editForm.value.dailyAvailability[day])
+
+      if (!slots.length) {
+        throw new Error('Select at least one working day for guide availability.')
+      }
+
+      if (slots.some((slot) => !slot.start || !slot.end || slot.start >= slot.end)) {
+        throw new Error('Each enabled day must have a valid start/end time.')
+      }
+
+      const guidePayload = {
+        first_name: normalizedFirstName,
+        last_name: normalizedLastName,
+        email: normalizedEmail,
+        language_codes: [...editForm.value.selectedLanguageCodes],
+        expertise_tour_ids: [...editForm.value.selectedTourIds],
+        availability_patterns: availabilityPatternsFromDaily(),
+      }
+
+      if (editForm.value.mode === 'create') {
+        await createGuide(guidePayload)
+      } else {
+        await updateGuide(editForm.value.rowId, guidePayload)
+      }
+    }
+
+    await loadTabData(editForm.value.tab)
+    showConfirmSavePopup.value = false
+    showEditPopup.value = false
+    editError.value = ''
+  } catch (error) {
+    editError.value = String(error?.message || 'Failed to save changes.')
+  } finally {
+    isSavingEdit.value = false
+  }
 }
 
 onMounted(() => {
@@ -425,7 +732,16 @@ onMounted(() => {
             <h1 class="typo-page-title">{{ pageTitle }}</h1>
           </div>
 
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-2 items-center">
+            <button
+              v-if="activeTab === 'guides'"
+              type="button"
+              class="px-3 py-1.5 rounded text-sm font-semibold border bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700"
+              @click="openCreateGuidePopup"
+            >
+              + Add Guide
+            </button>
+
             <button
               v-for="tab in tabs"
               :key="tab.key"
@@ -535,6 +851,14 @@ onMounted(() => {
                     >
                       {{ row.status }}
                     </span>
+                    <button
+                      v-else-if="column.key === 'name' && activeTab === 'guides'"
+                      type="button"
+                      class="text-blue-700 underline hover:text-blue-900"
+                      @click="openGuideDetails(row)"
+                    >
+                      {{ row[column.key] }}
+                    </button>
                     <span v-else>{{ row[column.key] }}</span>
                   </td>
                   <td class="px-4 py-3 text-right">
@@ -570,7 +894,15 @@ onMounted(() => {
               class="rounded-xl border border-slate-200 p-3 bg-slate-50"
             >
               <div class="flex items-start justify-between gap-3">
-                <h3 class="font-semibold text-slate-900">{{ row.name }}</h3>
+                <button
+                  v-if="activeTab === 'guides'"
+                  type="button"
+                  class="font-semibold text-slate-900 text-left underline"
+                  @click="openGuideDetails(row)"
+                >
+                  {{ row.name }}
+                </button>
+                <h3 v-else class="font-semibold text-slate-900">{{ row.name }}</h3>
                 <div class="flex items-center gap-2">
                   <span
                     v-if="row.status"
@@ -706,12 +1038,22 @@ onMounted(() => {
 
         <div class="space-y-3">
           <div>
-            <label class="text-gray-300 block mb-1">Name</label>
+            <label class="text-gray-300 block mb-1">First Name</label>
             <input
-              v-model="editForm.name"
+              v-model="editForm.firstName"
               type="text"
               class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
-              placeholder="Enter name"
+              placeholder="Enter first name"
+            />
+          </div>
+
+          <div>
+            <label class="text-gray-300 block mb-1">Last Name</label>
+            <input
+              v-model="editForm.lastName"
+              type="text"
+              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+              placeholder="Enter last name"
             />
           </div>
 
@@ -725,12 +1067,141 @@ onMounted(() => {
             />
           </div>
 
+          <template v-if="editForm.tab === 'guides'">
+            <div>
+              <label class="text-gray-300 block mb-1">Languages</label>
+              <div class="max-h-28 overflow-y-auto rounded border border-[#ACBAC4] bg-[#2d2d2d] p-2 space-y-1">
+                <label
+                  v-for="language in languageOptions"
+                  :key="`lang-${language.id}`"
+                  class="flex items-center gap-2 text-xs text-gray-200"
+                >
+                  <input
+                    v-model="editForm.selectedLanguageCodes"
+                    type="checkbox"
+                    :value="language.code"
+                  />
+                  <span>{{ language.label }}</span>
+                </label>
+                <p v-if="!languageOptions.length" class="text-xs text-gray-400">No language options available.</p>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-gray-300 block mb-1">Tour Expertise</label>
+              <div class="max-h-28 overflow-y-auto rounded border border-[#ACBAC4] bg-[#2d2d2d] p-2 space-y-1">
+                <label
+                  v-for="tour in tourOptions"
+                  :key="`tour-${tour.id}`"
+                  class="flex items-center gap-2 text-xs text-gray-200"
+                >
+                  <input
+                    v-model="editForm.selectedTourIds"
+                    type="checkbox"
+                    :value="tour.id"
+                  />
+                  <span>{{ tour.label }}</span>
+                </label>
+                <p v-if="!tourOptions.length" class="text-xs text-gray-400">No tour options available.</p>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-gray-300 block mb-1">Availability Timezone</label>
+              <input
+                v-model="editForm.guideTimezone"
+                type="text"
+                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+                placeholder="UTC"
+              />
+            </div>
+
+            <div>
+              <label class="text-gray-300 block mb-1">Daily Availability</label>
+              <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-2 space-y-2">
+                <div
+                  v-for="day in WEEK_DAYS"
+                  :key="day"
+                  class="grid grid-cols-[auto_1fr_1fr] items-center gap-2 text-xs text-gray-200"
+                >
+                  <label class="flex items-center gap-2">
+                    <input v-model="editForm.dailyAvailability[day].enabled" type="checkbox" />
+                    <span class="w-20">{{ day.slice(0, 3) }}</span>
+                  </label>
+                  <input
+                    v-model="editForm.dailyAvailability[day].start"
+                    type="time"
+                    step="1"
+                    :disabled="!editForm.dailyAvailability[day].enabled"
+                    class="rounded border border-[#ACBAC4] bg-[#303030] px-2 py-1 disabled:opacity-50"
+                  />
+                  <input
+                    v-model="editForm.dailyAvailability[day].end"
+                    type="time"
+                    step="1"
+                    :disabled="!editForm.dailyAvailability[day].enabled"
+                    class="rounded border border-[#ACBAC4] bg-[#303030] px-2 py-1 disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            </div>
+          </template>
+
           <p v-if="editError" class="text-xs text-red-300">{{ editError }}</p>
-          <p class="text-xs text-gray-400">Changes are local for now and will not persist after page reload.</p>
+          <p class="text-xs text-gray-400">Changes are saved through backend API and then reloaded in this table.</p>
 
           <div class="pt-2 flex items-center justify-end gap-2">
-            <CancelButton @cancel="closeEditPopup" />
-            <SaveButton :disabled="!canSaveEdit" @save="requestEditConfirmation" />
+            <CancelButton :disabled="isSavingEdit" @cancel="closeEditPopup" />
+            <SaveButton :disabled="!canSaveEdit || isSavingEdit" :loading="isSavingEdit" @save="requestEditConfirmation" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showGuideDetailsPopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeGuideDetails">
+      <div class="absolute right-0 top-0 h-full w-full max-w-105 bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="typo-modal-eyebrow">Guide Details</div>
+            <h3 class="typo-modal-title-dark">{{ selectedGuideDetails?.name }}</h3>
+            <p class="text-sm text-gray-400">ID: {{ selectedGuideDetails?.id }}</p>
+          </div>
+          <button class="text-gray-300 hover:text-white text-xl leading-none" aria-label="Close guide details" @click="closeGuideDetails">×</button>
+        </div>
+
+        <div class="space-y-4 text-sm">
+          <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-3">
+            <p class="font-medium text-gray-300">Email</p>
+            <p>{{ selectedGuideDetails?.email || '-' }}</p>
+          </div>
+
+          <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-3">
+            <p class="font-medium text-gray-300">Languages</p>
+            <ul class="list-disc pl-5">
+              <li v-for="label in selectedGuideLanguageLabels" :key="label">{{ label }}</li>
+              <li v-if="!selectedGuideLanguageLabels.length" class="list-none text-gray-400">No languages configured.</li>
+            </ul>
+          </div>
+
+          <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-3">
+            <p class="font-medium text-gray-300">Tour Expertise</p>
+            <ul class="list-disc pl-5">
+              <li v-for="label in selectedGuideTourLabels" :key="label">{{ label }}</li>
+              <li v-if="!selectedGuideTourLabels.length" class="list-none text-gray-400">No expertise configured.</li>
+            </ul>
+          </div>
+
+          <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-3">
+            <p class="font-medium text-gray-300">Weekly Working Schedule</p>
+            <p class="text-xs text-gray-400 mb-1">
+              Timezone: {{ selectedGuideDetails?.availabilityPatterns?.[0]?.timezone || 'UTC' }}
+            </p>
+            <ul class="divide-y divide-[#ACBAC4] border border-[#ACBAC4] rounded">
+              <li v-for="day in selectedGuideWeeklySchedule" :key="day.day" class="flex items-center justify-between px-3 py-2">
+                <span class="font-medium">{{ day.day }}</span>
+                <span>{{ day.text }}</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -738,9 +1209,11 @@ onMounted(() => {
 
     <ConfirmDialog
       :open="showConfirmSavePopup"
-      title="Apply local changes"
-      message="This edit is local only and will reset after page reload. Do you want to proceed?"
-      confirm-label="Apply locally"
+      title="Confirm save"
+      :message="confirmMessage"
+      confirm-label="Save"
+      :loading="isSavingEdit"
+      :disabled="isSavingEdit"
       @cancel="showConfirmSavePopup = false"
       @confirm="applyRowEdit"
     />

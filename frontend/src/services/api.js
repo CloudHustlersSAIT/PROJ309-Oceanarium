@@ -204,9 +204,30 @@ export async function updateGuide(guideId, payload) {
   })
 }
 
+export async function createGuide(payload) {
+  return fetchAPI('/guides', {
+    method: 'POST',
+    requiresAuth: true,
+    body: JSON.stringify(payload || {}),
+  })
+}
+
 // Get all customers
 export async function getCustomers() {
   return fetchAPI('/customers')
+}
+
+export async function updateCustomer(customerId, payload) {
+  const normalizedCustomerId = String(customerId || '').trim()
+  if (!normalizedCustomerId) {
+    throw new Error('Customer ID is required to update customer details.')
+  }
+
+  return fetchAPI(`/customers/${encodeURIComponent(normalizedCustomerId)}`, {
+    method: 'PATCH',
+    requiresAuth: true,
+    body: JSON.stringify(payload || {}),
+  })
 }
 
 // Get all tours
