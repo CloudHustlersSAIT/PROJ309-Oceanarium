@@ -49,7 +49,7 @@ async function handleSubmit() {
           loop
           playsinline
           class="h-full w-full object-cover"
-          src="/src/assets/videos/Oceanarium_clip2.mp4"
+          src="/videos/Oceanarium_clip2.mp4"
         >
           Your browser does not support the video tag.
         </video>
@@ -58,7 +58,7 @@ async function handleSubmit() {
 
         <div class="absolute inset-0 flex items-center justify-center">
           <img
-            src="/src/assets/images/logo.svg"
+            src="/images/logo.svg"
             alt="Oceanarium logo"
             class="h-40 lg:h-44 w-auto drop-shadow-xl"
           />
@@ -73,7 +73,7 @@ async function handleSubmit() {
           >
             <header class="mb-5">
               <img
-                src="/src/assets/images/logo-text.svg"
+                src="/images/logo-text.svg"
                 alt="Oceanarium"
                 class="h-7 sm:h-8 w-auto mb-3"
               />

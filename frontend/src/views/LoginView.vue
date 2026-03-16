@@ -8,7 +8,7 @@
           loop
           playsinline
           class="h-full w-full object-cover"
-          src="/src/assets/videos/Oceanarium_clip2.mp4"
+          src="/videos/Oceanarium_clip2.mp4"
         >
           Your browser does not support the video tag.
         </video>
@@ -17,7 +17,7 @@
 
         <div class="absolute inset-0 flex items-center justify-center">
           <img
-            src="/src/assets/images/logo.svg"
+            src="/images/logo.svg"
             alt="Oceanarium logo"
             class="h-40 lg:h-44 w-auto drop-shadow-xl"
           />
@@ -29,7 +29,7 @@
           <div class="min-h-[620px] rounded-none border border-black/5 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40 sm:p-7">
             <header class="mb-5">
               <img
-                src="/src/assets/images/logo-text.svg"
+                src="/images/logo-text.svg"
                 alt="Oceanarium"
                 class="h-7 sm:h-8 w-auto mb-3"
               />
