@@ -132,7 +132,7 @@ async function handleLogout() {
       <div
         class="flex items-center justify-center rounded-xl bg-white px-10 py-4 drop-shadow-xl/25"
       >
-        <img src="/src/assets/images/logo-text.svg" alt="Company logo text" class="h-10 w-auto" />
+        <img src="/images/logo-text.svg" alt="Company logo text" class="h-10 w-auto" />
       </div>
     </div>
 
