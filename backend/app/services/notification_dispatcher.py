@@ -41,7 +41,7 @@ warnings.warn(
 )
 
 
-def dispatch_events(conn, events: list[dict]) -> None:
+def dispatch_events(conn, events: list[dict], *, commit: bool = True) -> None:
     """Dispatch a list of notification events.
 
     Args:
@@ -53,23 +53,69 @@ def dispatch_events(conn, events: list[dict]) -> None:
 
         try:
             if event_type == "GUIDE_ASSIGNED":
-                notification_service.notify_guide_assignment(
-                    conn, event["schedule_id"], event["guide_id"], event["assignment_type"]
-                )
+                if commit:
+                    notification_service.notify_guide_assignment(
+                        conn,
+                        event["schedule_id"],
+                        event["guide_id"],
+                        event["assignment_type"],
+                    )
+                else:
+                    notification_service.notify_guide_assignment(
+                        conn,
+                        event["schedule_id"],
+                        event["guide_id"],
+                        event["assignment_type"],
+                        commit=False,
+                    )
             elif event_type == "GUIDE_UNASSIGNED":
-                notification_service.notify_guide_unassignment(
-                    conn, event["schedule_id"], event["guide_id"], event["reason"]
-                )
+                if commit:
+                    notification_service.notify_guide_unassignment(
+                        conn,
+                        event["schedule_id"],
+                        event["guide_id"],
+                        event["reason"],
+                    )
+                else:
+                    notification_service.notify_guide_unassignment(
+                        conn,
+                        event["schedule_id"],
+                        event["guide_id"],
+                        event["reason"],
+                        commit=False,
+                    )
             elif event_type == "SCHEDULE_UNASSIGNABLE":
-                notification_service.notify_schedule_unassignable(conn, event["schedule_id"], event["reasons"])
+                if commit:
+                    notification_service.notify_schedule_unassignable(
+                        conn,
+                        event["schedule_id"],
+                        event["reasons"],
+                    )
+                else:
+                    notification_service.notify_schedule_unassignable(
+                        conn,
+                        event["schedule_id"],
+                        event["reasons"],
+                        commit=False,
+                    )
             elif event_type == "SCHEDULE_CHANGED":
-                notification_service.notify_schedule_change(
-                    conn,
-                    event["schedule_id"],
-                    event["event_type"],
-                    event["reason"],
-                    affected_guide_id=event.get("affected_guide_id"),
-                )
+                if commit:
+                    notification_service.notify_schedule_change(
+                        conn,
+                        event["schedule_id"],
+                        event["event_type"],
+                        event["reason"],
+                        affected_guide_id=event.get("affected_guide_id"),
+                    )
+                else:
+                    notification_service.notify_schedule_change(
+                        conn,
+                        event["schedule_id"],
+                        event["event_type"],
+                        event["reason"],
+                        affected_guide_id=event.get("affected_guide_id"),
+                        commit=False,
+                    )
             else:
                 logger.warning(f"Unknown notification event type: {event_type}")
         except Exception as e:

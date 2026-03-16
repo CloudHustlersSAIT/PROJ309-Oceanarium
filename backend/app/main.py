@@ -66,7 +66,6 @@ app.include_router(issue_router)
 app.include_router(stats_router)
 app.include_router(mock_router)
 app.include_router(auth_router)
-app.include_router(guide_requests_router)
 app.include_router(guide_dashboard_router)
 app.include_router(guide_availability_router)
 app.include_router(guide_languages_router)
@@ -96,12 +95,15 @@ _POLLER_WARNING_INTERVAL = 60.0
 
 
 def run_listener():
+    logger.debug("Listener tick...")
     global _last_poller_warning_at
     try:
         with engine.begin() as conn:
             processed = process_staging_rows(conn)
             if processed > 0:
-                print(f"Processed {processed} staging rows")
+                logger.info(f"Processed {processed} staging rows")
+            else:
+                logger.debug("No new staging rows to process")
         _last_poller_warning_at = None  # reset on success
     except Exception as e:
         now = time.monotonic()
@@ -113,6 +115,6 @@ def run_listener():
             _last_poller_warning_at = now
 
 
-scheduler.add_job(run_listener, "interval", seconds=5)
+scheduler.add_job(run_listener, "interval", seconds=600)
 
 scheduler.start()

@@ -74,6 +74,7 @@ def _build_mock_conn(staging_rows, old_reservation=None, latest_hash=None):
         execute_returns.append(_fetchone((100,)))  # INSERT/UPSERT reservation RETURNING id
         if old_reservation is None:
             execute_returns.append(MagicMock())  # UPDATE reservations SET schedule_id
+            execute_returns.append(_fetchone((None,)))  # SELECT guide_id FROM schedule
         execute_returns.append(MagicMock())  # INSERT ticket
 
         hash_row = (latest_hash,) if latest_hash else None
@@ -81,7 +82,9 @@ def _build_mock_conn(staging_rows, old_reservation=None, latest_hash=None):
         if not latest_hash or latest_hash != "anything":
             execute_returns.append(MagicMock())  # INSERT reservation_versions
 
-        execute_returns.append(MagicMock())  # UPDATE poll_staging
+        # execute_returns.append(MagicMock())  # UPDATE poll_staging
+        execute_returns.append(MagicMock())  # UPDATE poll_staging SUCCESS
+        execute_returns.append(MagicMock())  # UPDATE poll_staging FAILED (for exception cases)
 
     conn.execute.side_effect = execute_returns
     return conn
@@ -107,6 +110,11 @@ class TestProcessStagingRows:
             "app.services.poller_listener.get_or_create_schedule",
             lambda *args, **kwargs: 1,
         )
+        # Prevent real guide assignment logic from running
+        monkeypatch.setattr(
+            "app.services.poller_listener.auto_assign_guide",
+            lambda *args, **kwargs: {"guide_id": 1},
+        )
 
     def test_no_rows_returns_zero(self, mock_conn):
         mappings_result = MagicMock()
@@ -124,7 +132,7 @@ class TestProcessStagingRows:
         count = process_staging_rows(conn)
         assert count == 1
 
-    def test_tour_not_found_raises(self, mock_conn):
+    def test_tour_not_found_marks_failed_and_continues(self, mock_conn):
         row = _make_staging_row()
         mappings_result = MagicMock()
         mappings_result.all.return_value = [row]
@@ -136,10 +144,26 @@ class TestProcessStagingRows:
             MagicMock(),  # INSERT customer
             _scalar_one(1),  # SELECT customer id
             _fetchone(None),  # SELECT tour id -- NOT FOUND
+            MagicMock(),  # UPDATE poll_staging (failure record)
         ]
 
-        with pytest.raises(Exception, match="Tour not found"):
-            process_staging_rows(mock_conn)
+        count = process_staging_rows(mock_conn)
+        assert count == 0
+
+        # Verify that the staging row was marked as FAILED with an error message.
+        update_calls = [
+            call_args
+            for call_args in mock_conn.execute.call_args_list
+            if "UPDATE public.poll_staging" in str(call_args.args[0])
+        ]
+        assert update_calls, "Expected an UPDATE to public.poll_staging to record failure"
+        update_call = update_calls[0]
+        # Typically execute is called as execute(sql, params)
+        assert len(update_call.args) >= 2, "Expected parameters for failure UPDATE"
+        update_params = update_call.args[1]
+        assert update_params.get("processed_status") == "FAILED"
+        processed_error = update_params.get("processed_error")
+        assert processed_error is not None and processed_error != ""
 
     @patch("app.services.poller_listener.dispatch_events")
     @patch("app.services.poller_listener.handle_reservation_cancellation")

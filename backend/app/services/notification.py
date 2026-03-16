@@ -212,6 +212,8 @@ def notify_guide_assignment(
     schedule_id: int,
     guide_id: int,
     assignment_type: str,
+    *,
+    commit: bool = True,
 ) -> None:
     """Send notifications for guide assignment.
 
@@ -303,7 +305,8 @@ def notify_guide_assignment(
                 elif row and row[0] == "PORTAL":
                     send_pending_notification(conn, notif_id)
 
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def notify_guide_unassignment(
@@ -311,6 +314,8 @@ def notify_guide_unassignment(
     schedule_id: int,
     guide_id: int,
     reason: str,
+    *,
+    commit: bool = True,
 ) -> None:
     """Send notifications for guide unassignment."""
     schedule = fetch_schedule_details(conn, schedule_id)
@@ -365,13 +370,16 @@ def notify_guide_unassignment(
             elif row and row[0] == "PORTAL":
                 send_pending_notification(conn, notif_id)
 
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def notify_schedule_unassignable(
     conn,
     schedule_id: int,
     reasons: list[str],
+    *,
+    commit: bool = True,
 ) -> None:
     """Send URGENT notifications to admins when schedule cannot be auto-assigned."""
     schedule = fetch_schedule_details(conn, schedule_id)
@@ -414,7 +422,8 @@ def notify_schedule_unassignable(
             elif row and row[0] == "PORTAL":
                 send_pending_notification(conn, notif_id)
 
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def notify_schedule_change(
@@ -423,6 +432,8 @@ def notify_schedule_change(
     change_type: str,
     change_details: str,
     affected_guide_id: int | None = None,
+    *,
+    commit: bool = True,
 ) -> None:
     """Send general schedule change notifications to guide and admins."""
     schedule = fetch_schedule_details(conn, schedule_id)
@@ -489,7 +500,8 @@ def notify_schedule_change(
                 elif row and row[0] == "PORTAL":
                     send_pending_notification(conn, notif_id)
 
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def retry_failed_email_notification(conn, notification_id: int) -> bool:
