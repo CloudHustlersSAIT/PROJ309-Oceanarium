@@ -43,7 +43,7 @@ const listTitle = computed(() =>
 
 const searchPlaceholder = computed(() =>
   activeTab.value === 'guides'
-    ? 'Search by guide name or email'
+    ? 'Search by guide name, email or language'
     : 'Search by customer name, email or id',
 )
 
@@ -127,7 +127,7 @@ const filteredRows = computed(() => {
 
   return currentRows.value.filter((row) => {
     const searchable = activeTab.value === 'guides'
-      ? `${row.id ?? ''} ${row.name ?? ''} ${row.email ?? ''} ${row.status ?? ''}`
+      ? `${row.id ?? ''} ${row.name ?? ''} ${row.email ?? ''} ${row.languages ?? ''} ${row.expertiseTours ?? ''} ${row.availability ?? ''} ${row.status ?? ''}`
       : `${row.name ?? ''} ${row.email ?? ''} ${row.customerId ?? ''} ${row.totalVisits ?? ''} ${row.firstTourDate ?? ''}`
 
     const normalizedSearchable = searchable.toLowerCase()
@@ -204,8 +204,10 @@ const currentColumns = computed(() => {
     { key: 'id', label: 'Guide ID' },
     { key: 'name', label: 'Guide' },
     { key: 'email', label: 'Email' },
+    { key: 'languages', label: 'Languages' },
+    { key: 'expertiseTours', label: 'Expertise Tours' },
+    { key: 'availability', label: 'Availability' },
     { key: 'status', label: 'Status' },
-    
   ]
 })
 
@@ -226,6 +228,31 @@ function normalizeCustomerRow(item, idx) {
 }
 
 function normalizeGuideRow(item) {
+  function normalizeGuideField(value, fallback = 'Not configured') {
+    if (typeof value === 'boolean') {
+      return value ? 'Available' : 'Unavailable'
+    }
+
+    if (Array.isArray(value)) {
+      const mapped = value
+        .map((entry) => {
+          if (entry == null) return ''
+          if (typeof entry === 'string') return entry.trim()
+          if (typeof entry === 'number') return String(entry)
+          if (typeof entry === 'object') {
+            return String(entry.name || entry.title || entry.code || entry.id || '').trim()
+          }
+          return ''
+        })
+        .filter(Boolean)
+
+      return mapped.length > 0 ? mapped.join(', ') : fallback
+    }
+
+    const normalized = String(value || '').trim()
+    return normalized || fallback
+  }
+
   const firstName = String(item?.first_name || '').trim()
   const lastName = String(item?.last_name || '').trim()
   const fullName = `${firstName} ${lastName}`.trim()
@@ -241,6 +268,18 @@ function normalizeGuideRow(item) {
     id: item?.id ?? 'N/A',
     name: fullName || String(item?.name || 'Unknown'),
     email: String(item?.email || 'Not provided'),
+    languages: normalizeGuideField(
+      item?.languages ?? item?.spoken_languages ?? item?.language_codes ?? item?.language,
+      'Not mapped',
+    ),
+    expertiseTours: normalizeGuideField(
+      item?.expertise_tours ?? item?.tour_types ?? item?.tours ?? item?.expertise,
+      'Not mapped',
+    ),
+    availability: normalizeGuideField(
+      item?.availability ?? item?.availability_status ?? item?.is_available,
+      'Not mapped',
+    ),
     phone: String(item?.phone || 'Not provided'),
     status: normalizedStatus,
   }
@@ -656,7 +695,7 @@ onMounted(() => {
     </main>
 
     <div v-if="showEditPopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeEditPopup">
-      <div class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
+      <div class="absolute right-0 top-0 h-full w-full max-w-105 bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <div>
             <div class="typo-modal-eyebrow">Edit</div>
