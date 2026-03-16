@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { getSchedules, getStats } from '../services/api'
 import { useAuth } from '../contexts/authContext'
 import AppSidebar from '../components/AppSidebar.vue'
+import ThemeToggle from '../components/ThemeToggle.vue'
 import { formatScheduleTimeForDisplay, formatStatusLabel } from '../utils/reservation'
 
 const router = useRouter()
@@ -66,12 +67,12 @@ function getStatusTone(status) {
     .trim()
     .toLowerCase()
   if (normalized === 'cancelled' || normalized === 'overbooked') {
-    return 'bg-red-50 text-red-700 border-red-200'
+    return 'bg-red-50 text-red-700 border-red-200 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
   }
   if (normalized === 'delay' || normalized === 'delayed') {
-    return 'bg-yellow-50 text-yellow-700 border-yellow-200'
+    return 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
   }
-  return 'bg-green-50 text-green-700 border-green-200'
+  return 'bg-green-50 text-green-700 border-green-200 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
 }
 
 function buildScheduleRowsFromApi(schedules) {
@@ -236,34 +237,38 @@ onMounted(loadHomeData)
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-[#F3F5F8] overflow-x-hidden">
+  <div class="flex min-h-screen overflow-x-hidden bg-[#F3F5F8] dark:bg-[#0F1117]">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 xl:p-8">
-      <header class="mb-6">
-        <h1 class="text-2xl font-bold text-slate-800">{{ homeGreeting }}</h1>
-        <p class="mt-1 text-base text-slate-600">Today's Operations Overview</p>
+      <header class="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800 dark:text-slate-100">{{ homeGreeting }}</h1>
+          <p class="mt-1 text-base text-slate-600 dark:text-slate-400">Today's Operations Overview</p>
+        </div>
+
+        <ThemeToggle icon-only />
       </header>
 
       <section class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 items-start">
         <article
-          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2 2xl:col-span-1"
+          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30 lg:col-span-2 2xl:col-span-1"
         >
-          <h2 class="text-xl font-semibold text-slate-800 mb-2">Today's Schedule</h2>
-          <p v-if="scheduleLoadWarning" class="mb-2 text-xs text-amber-700">
+          <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Today's Schedule</h2>
+          <p v-if="scheduleLoadWarning" class="mb-2 text-xs text-amber-700 dark:text-amber-300">
             {{ scheduleLoadWarning }}
           </p>
           <ul class="mt-2 space-y-2">
             <li
               v-for="row in visibleScheduleRows"
               :key="row.id"
-              class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+              class="flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-[#1A2231] sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
-                <p class="text-sm font-semibold text-slate-800">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {{ row.time }} - Guide: {{ row.guide }}
                 </p>
-                <p class="text-sm text-slate-600">{{ row.tour }}</p>
+                <p class="text-sm text-slate-600 dark:text-slate-400">{{ row.tour }}</p>
               </div>
               <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="row.tone">{{
                 row.status
@@ -271,13 +276,13 @@ onMounted(loadHomeData)
             </li>
             <li
               v-if="scheduleSectionLoading"
-              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600"
+              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 dark:border-white/15 dark:bg-[#1A2231] dark:text-slate-400"
             >
               Loading today's schedule...
             </li>
             <li
               v-else-if="!visibleScheduleRows.length"
-              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600"
+              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 dark:border-white/15 dark:bg-[#1A2231] dark:text-slate-400"
             >
               No schedules for today.
             </li>
@@ -285,54 +290,54 @@ onMounted(loadHomeData)
           <button
             v-if="hasMoreSchedules"
             type="button"
-            class="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 rounded"
+            class="mt-3 rounded text-xs font-semibold text-blue-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:text-sky-300 dark:hover:text-sky-200"
             @click="openScheduleModal"
           >
             View More
           </button>
         </article>
 
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 class="text-xl font-semibold text-slate-800 mb-2">Alerts</h2>
-          <ul class="mt-2 space-y-2 text-sm text-slate-700">
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+          <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Alerts</h2>
+          <ul class="mt-2 space-y-2 text-sm text-slate-700 dark:text-slate-300">
             <li v-for="alert in alerts" :key="alert" class="flex items-center gap-2">
               <span
-                class="inline-flex items-center justify-center w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full"
+                class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 dark:bg-yellow-950/60 dark:text-yellow-300"
                 >!</span
               >
               <span>{{ alert }}</span>
             </li>
-            <li v-if="!alerts.length" class="text-slate-600">No alerts available.</li>
+            <li v-if="!alerts.length" class="text-slate-600 dark:text-slate-400">No alerts available.</li>
           </ul>
           <button
             type="button"
-            class="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 rounded"
+            class="mt-3 rounded text-xs font-semibold text-blue-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:text-sky-300 dark:hover:text-sky-200"
             @click="goToNotifications"
           >
             View Details
           </button>
         </article>
 
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 class="text-xl font-semibold text-slate-800 mb-2">Today's Activity</h2>
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+          <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Today's Activity</h2>
           <ul class="mt-2 space-y-2">
             <li
               v-for="item in recentActivity"
               :key="`${item.metric}-${item.value}`"
-              class="border-b border-slate-200 pb-2 last:border-b-0 last:pb-0"
+              class="border-b border-slate-200 pb-2 last:border-b-0 last:pb-0 dark:border-white/10"
             >
-              <span class="text-xs uppercase tracking-wide text-gray-500">{{ item.metric }}</span>
-              <span class="ml-2 text-sm font-semibold text-slate-800">{{ item.value }}</span>
+              <span class="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-500">{{ item.metric }}</span>
+              <span class="ml-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{{ item.value }}</span>
             </li>
-            <li v-if="!recentActivity.length" class="text-sm text-slate-600">
+            <li v-if="!recentActivity.length" class="text-sm text-slate-600 dark:text-slate-400">
               No recent activity available.
             </li>
           </ul>
         </article>
       </section>
 
-      <section class="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 class="text-xl font-semibold text-slate-800 mb-2">Quick Actions</h2>
+      <section class="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+        <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Quick Actions</h2>
         <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
           <button
             type="button"
@@ -364,13 +369,13 @@ onMounted(loadHomeData)
         @click.self="closeScheduleModal"
       >
         <section
-          class="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl"
+          class="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
         >
           <div class="mb-3 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-slate-800">All Schedules for Today</h3>
+            <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100">All Schedules for Today</h3>
             <button
               type="button"
-              class="rounded px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
+              class="rounded px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5"
               @click="closeScheduleModal"
             >
               Close
@@ -381,13 +386,13 @@ onMounted(loadHomeData)
             <li
               v-for="row in allDayScheduleRows"
               :key="`modal-${row.id}`"
-              class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+              class="flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-[#1A2231] sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
-                <p class="text-sm font-semibold text-slate-800">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {{ row.time }} - Guide: {{ row.guide }}
                 </p>
-                <p class="text-sm text-slate-600">{{ row.tour }}</p>
+                <p class="text-sm text-slate-600 dark:text-slate-400">{{ row.tour }}</p>
               </div>
               <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="row.tone">{{
                 row.status

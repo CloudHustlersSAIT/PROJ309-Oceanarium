@@ -122,20 +122,20 @@ function isSelectedDate(dateLike) {
 
 <template>
   <section
-    class="bg-white rounded-xl shadow-md p-4 border border-blue-500 h-full min-h-[640px] xl:min-h-[865px]"
+    class="h-full min-h-[640px] rounded-xl border border-blue-500 bg-white p-4 shadow-md dark:border-sky-700/40 dark:bg-[#161B27] dark:shadow-black/30 xl:min-h-[865px]"
   >
     <div v-if="view === 'month'">
       <div class="flex items-center justify-end mb-2 gap-2">
         <div class="flex items-center gap-2">
           <button
-            class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
+            class="flex h-9 w-9 items-center justify-center rounded-full border border-[#ACBAC4] bg-white text-lg leading-none text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
             aria-label="Previous month"
             @click="emit('navigate-prev')"
           >
             &lt;
           </button>
           <button
-            class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
+            class="flex h-9 w-9 items-center justify-center rounded-full border border-[#ACBAC4] bg-white text-lg leading-none text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
             aria-label="Next month"
             @click="emit('navigate-next')"
           >
@@ -147,7 +147,7 @@ function isSelectedDate(dateLike) {
         <div
           v-for="name in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']"
           :key="name"
-          class="text-[11px] font-semibold uppercase tracking-wide text-gray-600 text-center py-1.5 border border-[#ACBAC4] rounded bg-gray-50"
+          class="rounded border border-[#ACBAC4] bg-gray-50 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:border-white/15 dark:bg-[#1A2231] dark:text-slate-400"
         >
           {{ name }}
         </div>
@@ -159,15 +159,15 @@ function isSelectedDate(dateLike) {
           :class="
             cell
               ? isSelectedDate(cell)
-                ? 'border-blue-600 bg-blue-50 cursor-pointer'
+                ? 'border-blue-600 bg-blue-50 cursor-pointer dark:bg-sky-950/45'
                 : isToday(cell)
-                  ? 'border-blue-400 bg-blue-50/40 cursor-pointer hover:bg-gray-50'
-                  : 'border-[#ACBAC4] bg-white cursor-pointer hover:bg-gray-50'
-              : 'border-[#ACBAC4] bg-gray-50'
+                  ? 'border-blue-400 bg-blue-50/40 cursor-pointer hover:bg-gray-50 dark:bg-sky-950/30 dark:hover:bg-white/5'
+                  : 'border-[#ACBAC4] bg-white cursor-pointer hover:bg-gray-50 dark:border-white/10 dark:bg-[#1C2333] dark:hover:bg-white/5'
+              : 'border-[#ACBAC4] bg-gray-50 dark:border-white/10 dark:bg-[#1A2231]'
           "
           @click="cell && emit('select-date', cell)"
         >
-          <div v-if="cell" class="text-[11px] font-semibold text-gray-700 mb-1.5">
+          <div v-if="cell" class="mb-1.5 text-[11px] font-semibold text-gray-700 dark:text-slate-300">
             {{ cell.getDate() }}
           </div>
           <div class="space-y-1">
@@ -183,7 +183,7 @@ function isSelectedDate(dateLike) {
             />
             <button
               v-if="hiddenEventsCountForDate(cell) > 0"
-              class="w-full rounded border border-dashed border-blue-300 bg-blue-50 px-1.5 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-100"
+              class="w-full rounded border border-dashed border-blue-300 bg-blue-50 px-1.5 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-100 dark:border-sky-700/50 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-950/60"
               @click.stop="emit('open-day-events', cell)"
             >
               +{{ hiddenEventsCountForDate(cell) }} more
@@ -205,14 +205,14 @@ function isSelectedDate(dateLike) {
         </button>
         <div class="flex items-center gap-2">
           <button
-          class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-[#ACBAC4] bg-white text-lg leading-none text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
           aria-label="Previous week"
           @click="emit('navigate-prev')"
         >
           &lt;
         </button>
         <button
-          class="h-9 w-9 rounded-full border border-[#ACBAC4] bg-white text-gray-700 hover:bg-gray-50 text-lg leading-none flex items-center justify-center"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-[#ACBAC4] bg-white text-lg leading-none text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
           aria-label="Next week"
           @click="emit('navigate-next')"
         >
@@ -224,16 +224,16 @@ function isSelectedDate(dateLike) {
         <div
           v-for="day in weekDays"
           :key="day.toISOString()"
-          class="border rounded p-1.5 min-h-[560px] xl:min-h-[680px] bg-white"
+          class="min-h-[560px] rounded border bg-white p-1.5 dark:border-white/10 dark:bg-[#1C2333] xl:min-h-[680px]"
           :class="isToday(day) ? 'border-blue-400' : 'border-[#ACBAC4]'"
         >
-          <div class="mb-2 pb-2 border-b border-[#ACBAC4]">
-            <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+          <div class="mb-2 border-b border-[#ACBAC4] pb-2 dark:border-white/10">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-slate-500">
               {{ day.toLocaleDateString('en-CA', { weekday: 'short' }) }}
             </div>
             <div
               class="text-sm font-semibold"
-              :class="isToday(day) ? 'text-blue-700' : 'text-gray-700'"
+              :class="isToday(day) ? 'text-blue-700 dark:text-sky-300' : 'text-gray-700 dark:text-slate-300'"
             >
               {{ day.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }) }}
             </div>
@@ -261,7 +261,7 @@ function isSelectedDate(dateLike) {
           <div
             v-for="slot in daySlots"
             :key="slot.key"
-            class="h-12 xl:h-14 text-xs text-gray-600 flex items-center px-2 border border-[#ACBAC4] rounded bg-gray-50 font-medium"
+            class="flex h-12 items-center rounded border border-[#ACBAC4] bg-gray-50 px-2 text-xs font-medium text-gray-600 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-400 xl:h-14"
           >
             {{ slot.label }}
           </div>
@@ -270,7 +270,7 @@ function isSelectedDate(dateLike) {
           <div
             v-for="slot in daySlots"
             :key="`day-slot-${slot.key}`"
-            class="min-h-12 xl:min-h-14 border border-[#ACBAC4] rounded p-1.5 bg-white"
+            class="min-h-12 rounded border border-[#ACBAC4] bg-white p-1.5 dark:border-white/10 dark:bg-[#1C2333] xl:min-h-14"
           >
             <div class="space-y-1">
               <CalendarEventCard

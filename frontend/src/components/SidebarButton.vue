@@ -36,7 +36,7 @@ function go() {
   <button
     type="button"
     class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition hover:bg-white/15 active:scale-[0.98]"
-    :class="isActive ? 'bg-white/25 shadow-sm' : 'bg-white/5'"
+    :class="isActive ? 'bg-white/25 shadow-sm dark:bg-white/12' : 'bg-white/5 dark:bg-white/4'"
     @click="go"
   >
     <div class="relative flex items-center justify-center h-8 w-8 rounded-full bg-white/10">

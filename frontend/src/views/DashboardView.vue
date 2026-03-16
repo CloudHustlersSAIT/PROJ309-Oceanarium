@@ -683,10 +683,10 @@ function percentage(value, max) {
 }
 
 function alertClasses(severity) {
-  if (severity === 'critical') return 'border-rose-200 bg-rose-50 text-rose-700'
-  if (severity === 'warning') return 'border-amber-200 bg-amber-50 text-amber-700'
-  if (severity === 'watch') return 'border-sky-200 bg-sky-50 text-sky-700'
-  return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (severity === 'critical') return 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/45 dark:text-rose-300'
+  if (severity === 'warning') return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+  if (severity === 'watch') return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/45 dark:text-sky-300'
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
 }
 
 function toggleAlertCenter() {
@@ -801,7 +801,7 @@ watch(alertReadState, (value) => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-[#F8FAFC] overflow-x-hidden">
+  <div class="flex min-h-screen overflow-x-hidden bg-[#F8FAFC] dark:bg-[#0F1117]">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
@@ -820,7 +820,7 @@ watch(alertReadState, (value) => {
                   <input
                     v-model="selectedDate"
                     type="date"
-                    class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2"
+                    class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
                   />
                 </label>
 
@@ -828,7 +828,7 @@ watch(alertReadState, (value) => {
                   <span class="typo-card-label">Range</span>
                   <select
                     v-model="selectedRange"
-                    class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2"
+                    class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
                   >
                     <option v-for="option in rangeOptions" :key="option.value" :value="option.value">
                       {{ option.label }}
@@ -839,7 +839,7 @@ watch(alertReadState, (value) => {
 
               <button
                 type="button"
-                class="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
+                class="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
                 aria-label="Open alert center"
                 aria-controls="dashboard-alert-center"
                 :aria-expanded="showAlertCenter"
@@ -863,13 +863,13 @@ watch(alertReadState, (value) => {
             id="dashboard-alert-center"
             role="region"
             aria-label="Dashboard alert center"
-            class="absolute right-6 top-22 z-20 w-full max-w-sm rounded-xl border border-slate-200 bg-white p-3 shadow-xl"
+            class="absolute right-6 top-22 z-20 w-full max-w-sm rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
           >
             <div class="flex items-center justify-between gap-3">
               <h3 class="typo-section-title text-base">Alert Center</h3>
               <button
                 type="button"
-                class="typo-caption text-slate-500 hover:text-slate-700"
+                class="typo-caption text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 @click="closeAlertCenter"
               >
                 Close
@@ -882,17 +882,17 @@ watch(alertReadState, (value) => {
               <article
                 v-for="alert in alertCenterAlerts"
                 :key="alert.id"
-                class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+                class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-[#1A2231]"
               >
                 <div class="flex items-start justify-between gap-2">
                   <div>
                     <p class="typo-card-label">{{ alert.severity }}</p>
-                    <p class="typo-body font-semibold text-slate-800">{{ alert.title }}</p>
+                    <p class="typo-body font-semibold text-slate-800 dark:text-slate-100">{{ alert.title }}</p>
                     <p class="mt-1 typo-caption">{{ alert.detail }}</p>
                   </div>
                   <button
                     type="button"
-                    class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700"
+                    class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300"
                     @click="openAlertDetail(alert)"
                   >
                     Details
@@ -906,7 +906,7 @@ watch(alertReadState, (value) => {
             <div class="mt-3 flex justify-end">
               <button
                 type="button"
-                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300"
                 @click="markAllAlertsRead"
               >
                 Mark all as read
@@ -919,14 +919,14 @@ watch(alertReadState, (value) => {
           </p>
         </header>
 
-        <p v-if="apiError" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 typo-body text-rose-700">
+        <p v-if="apiError" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 typo-body text-rose-700 dark:border-rose-800 dark:bg-rose-950/45 dark:text-rose-300">
           {{ apiError }}
         </p>
 
-        <div v-if="apiWarnings.length > 0" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p class="typo-card-label text-amber-700">Partial Data Notice</p>
+        <div v-if="apiWarnings.length > 0" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40">
+          <p class="typo-card-label text-amber-700 dark:text-amber-300">Partial Data Notice</p>
           <ul class="mt-2 space-y-1">
-            <li v-for="warning in apiWarnings" :key="warning" class="typo-body text-amber-700">
+            <li v-for="warning in apiWarnings" :key="warning" class="typo-body text-amber-700 dark:text-amber-300">
               {{ warning }}
             </li>
           </ul>
@@ -968,11 +968,11 @@ watch(alertReadState, (value) => {
                 :key="item.label"
                 class="grid grid-cols-[minmax(0,170px)_1fr_70px] items-start gap-3"
               >
-                <span class="typo-caption wrap-break-word leading-tight text-slate-700">{{ item.label }}</span>
-                <div class="h-3 overflow-hidden rounded bg-slate-100">
+                <span class="typo-caption wrap-break-word leading-tight text-slate-700 dark:text-slate-300">{{ item.label }}</span>
+                <div class="h-3 overflow-hidden rounded bg-slate-100 dark:bg-white/8">
                   <div class="h-full rounded bg-blue-600" :style="{ width: percentage(item.value, maxVisitorsPerTour) }" />
                 </div>
-                <span class="typo-caption text-right text-slate-700">{{ formatNumber(item.value) }}</span>
+                <span class="typo-caption text-right text-slate-700 dark:text-slate-300">{{ formatNumber(item.value) }}</span>
               </div>
 
               <p v-if="visitorsPerTour.length === 0" class="typo-muted">No reservation data available.</p>
@@ -990,10 +990,10 @@ watch(alertReadState, (value) => {
                 class="grid grid-cols-[48px_1fr_70px] items-center gap-3"
               >
                 <span class="typo-caption">{{ item.label }}</span>
-                <div class="h-3 overflow-hidden rounded bg-slate-100">
+                <div class="h-3 overflow-hidden rounded bg-slate-100 dark:bg-white/8">
                   <div class="h-full rounded bg-sky-500" :style="{ width: percentage(item.value, maxToursPerYear) }" />
                 </div>
-                <span class="typo-caption text-right text-slate-700">{{ formatNumber(item.value) }}</span>
+                <span class="typo-caption text-right text-slate-700 dark:text-slate-300">{{ formatNumber(item.value) }}</span>
               </div>
 
               <p v-if="toursPerYear.length === 0" class="typo-muted">No schedule data available.</p>
@@ -1008,17 +1008,17 @@ watch(alertReadState, (value) => {
             {{ activeRangeLabel.toLowerCase() }}.
           </p>
 
-          <div class="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div class="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]">
             <p class="typo-caption">
-              <span class="font-semibold text-slate-700">Bookings:</span>
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Bookings:</span>
               {{ currentWindowBookings }}
             </p>
             <p class="typo-caption">
-              <span class="font-semibold text-slate-700">Cancellations:</span>
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Cancellations:</span>
               {{ currentWindowCancellations }}
             </p>
             <p class="typo-caption">
-              <span class="font-semibold text-slate-700">Cancellation Rate:</span>
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Cancellation Rate:</span>
               {{ currentWindowCancellationRate.toFixed(1) }}%
             </p>
           </div>
@@ -1126,7 +1126,7 @@ watch(alertReadState, (value) => {
           <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
             <p class="typo-caption">
               Highest cancellation month:
-              <span class="font-semibold text-slate-700">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">
                 {{ highestCancellationMonth ? `${highestCancellationMonth.month} (${highestCancellationMonth.cancellationRate.toFixed(1)}%)` : 'N/A' }}
               </span>
             </p>
@@ -1146,13 +1146,13 @@ watch(alertReadState, (value) => {
             <h2 class="typo-section-title">Top Guides by Tours</h2>
             <p class="mt-0.5 typo-muted">Assigned tours in selected window.</p>
 
-            <ul class="mt-3 divide-y divide-slate-100">
+            <ul class="mt-3 divide-y divide-slate-100 dark:divide-white/8">
               <li
                 v-for="guide in topGuides"
                 :key="guide.name"
                 class="grid grid-cols-[1fr_auto_auto] items-center gap-2 py-1.5"
               >
-                <span class="typo-body text-slate-700 truncate">{{ guide.name }}</span>
+                <span class="typo-body text-slate-700 truncate dark:text-slate-300">{{ guide.name }}</span>
                 <span class="typo-caption text-slate-500">{{ guide.tours }}t</span>
                 <span class="typo-caption font-medium text-amber-600">{{ guide.rating }} ★</span>
               </li>
@@ -1165,14 +1165,14 @@ watch(alertReadState, (value) => {
             <h2 class="typo-section-title">Top Rated Guides</h2>
             <p class="mt-0.5 typo-muted">Ranked by overall rating score.</p>
 
-            <ul class="mt-3 divide-y divide-slate-100">
+            <ul class="mt-3 divide-y divide-slate-100 dark:divide-white/8">
               <li
                 v-for="(guide, index) in topRatedGuides"
                 :key="guide.name"
                 class="grid grid-cols-[20px_1fr_auto] items-center gap-2 py-1.5"
               >
                 <span class="typo-caption font-semibold text-slate-400">#{{ index + 1 }}</span>
-                <span class="typo-body text-slate-700 truncate">{{ guide.name }}</span>
+                <span class="typo-body text-slate-700 truncate dark:text-slate-300">{{ guide.name }}</span>
                 <span class="typo-caption font-semibold text-amber-600">{{ guide.rating.toFixed(1) }} ★</span>
               </li>
             </ul>
@@ -1257,7 +1257,7 @@ watch(alertReadState, (value) => {
               <div
                 v-for="segment in tourLanguageInfographic.segments"
                 :key="`label-${segment.id}`"
-                class="absolute w-22 rounded-lg border border-slate-200 bg-white/95 px-2 py-1.5 shadow-sm"
+                class="absolute w-22 rounded-lg border border-slate-200 bg-white/95 px-2 py-1.5 shadow-sm dark:border-white/10 dark:bg-[#161B27]/95"
                 :style="{
                   left: `${(segment.labelX / 320) * 100}%`,
                   top: `${(segment.labelY / 320) * 100}%`,
@@ -1265,7 +1265,7 @@ watch(alertReadState, (value) => {
                   textAlign: segment.rightSide ? 'left' : 'right',
                 }"
               >
-                <p class="typo-caption font-semibold leading-tight text-slate-700">{{ segment.title }}</p>
+                <p class="typo-caption font-semibold leading-tight text-slate-700 dark:text-slate-200">{{ segment.title }}</p>
                 <p class="typo-caption mt-0.5 leading-tight text-slate-400">{{ segment.subtitle }}</p>
               </div>
             </div>
@@ -1280,7 +1280,7 @@ watch(alertReadState, (value) => {
     </main>
 
     <div v-if="showAlertDetail && selectedAlertDetail" class="fixed inset-0 z-40 bg-black/40" @click.self="closeAlertDetail">
-      <div class="absolute inset-x-0 top-20 mx-auto w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
+      <div class="absolute inset-x-0 top-20 mx-auto w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40">
         <div class="flex items-start justify-between gap-4">
           <div>
             <p class="typo-card-label">{{ selectedAlertDetail.severity }}</p>
@@ -1288,7 +1288,7 @@ watch(alertReadState, (value) => {
           </div>
           <button
             type="button"
-            class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-600"
+            class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-600 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300"
             aria-label="Close alert details"
             @click="closeAlertDetail"
           >
@@ -1296,11 +1296,11 @@ watch(alertReadState, (value) => {
           </button>
         </div>
 
-        <p class="mt-3 typo-body text-slate-700">{{ selectedAlertDetail.detail }}</p>
+        <p class="mt-3 typo-body text-slate-700 dark:text-slate-300">{{ selectedAlertDetail.detail }}</p>
 
-        <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]">
           <p class="typo-card-label">Recommended Action</p>
-          <p class="mt-1 typo-body text-slate-700">{{ selectedAlertDetail.recommendation }}</p>
+          <p class="mt-1 typo-body text-slate-700 dark:text-slate-300">{{ selectedAlertDetail.recommendation }}</p>
         </div>
 
         <p class="mt-4 typo-caption">Generated from current dashboard metrics and selected filter window.</p>

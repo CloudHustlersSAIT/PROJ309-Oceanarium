@@ -657,7 +657,7 @@ onUnmounted(() => {
 })</script>
 
 <template>
-  <div class="flex min-h-screen bg-gray-100 overflow-x-hidden">
+  <div class="flex min-h-screen overflow-x-hidden bg-gray-100 dark:bg-[#0F1117]">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6">
@@ -669,22 +669,22 @@ onUnmounted(() => {
               v-model="searchText"
               type="text"
               placeholder="Search reservations"
-              class="w-full rounded-xl border border-gray-400 bg-white py-2.5 px-4 text-sm"
+              class="w-full rounded-xl border border-gray-400 bg-white px-4 py-2.5 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
           <PrimaryCreateButton @create="openCreatePopup" />
         </div>
       </div>
 
-      <section class="bg-white border border-gray-300 rounded-lg overflow-hidden">
-        <div v-if="loading" class="p-4 text-sm text-gray-500">Loading reservations...</div>
-        <div v-else-if="error" class="p-4 text-sm text-red-600">
+      <section class="overflow-hidden rounded-lg border border-gray-300 bg-white dark:border-white/10 dark:bg-[#161B27]">
+        <div v-if="loading" class="p-4 text-sm text-gray-500 dark:text-slate-400">Loading reservations...</div>
+        <div v-else-if="error" class="p-4 text-sm text-red-600 dark:text-red-300">
           <div>{{ error }}</div>
-          <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs" @click="loadReservations">
+          <button type="button" class="mt-2 rounded border border-red-300 px-3 py-1 text-xs dark:border-red-800 dark:bg-red-950/35" @click="loadReservations">
             Retry
           </button>
         </div>
-        <div v-else-if="filteredReservations.length === 0" class="p-4 text-sm text-gray-500">No reservations found.</div>
+        <div v-else-if="filteredReservations.length === 0" class="p-4 text-sm text-gray-500 dark:text-slate-400">No reservations found.</div>
         <div v-else class="overflow-hidden">
           <table class="w-full table-fixed text-sm">
             <colgroup>
@@ -696,7 +696,7 @@ onUnmounted(() => {
               <col class="w-[10%]" />
               <col class="w-[26%]" />
             </colgroup>
-            <thead class="bg-gray-50 text-gray-800 border-b border-gray-200">
+            <thead class="border-b border-gray-200 bg-gray-50 text-gray-800 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-200">
               <tr>
                 <th class="px-5 py-3 text-left typo-table-head">Reservation</th>
                 <th class="px-5 py-3 text-center typo-table-head">Date</th>
@@ -711,20 +711,20 @@ onUnmounted(() => {
               <tr
                 v-for="(reservation, index) in paginatedReservations"
                 :key="getRowKey(reservation, index)"
-                class="border-b border-gray-200 hover:bg-gray-50"
+                class="border-b border-gray-200 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/[0.03]"
               >
-                <td class="px-5 py-4 text-left text-gray-700 wrap-break-word">{{ getReservationDisplayId(reservation) }}</td>
-                <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatShortDate(getReservationDate(reservation)) }}</td>
-                <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getCustomerId(reservation) }}</td>
-                <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ getTourId(reservation) }}</td>
-                <td class="px-5 py-4 text-center text-gray-700 wrap-break-word">{{ getReservationLanguage(reservation) }}</td>
-                <td class="px-5 py-4 text-center text-gray-700 whitespace-nowrap">{{ formatStatusLabel(getStatus(reservation), '-') }}</td>
+                <td class="wrap-break-word px-5 py-4 text-left text-gray-700 dark:text-slate-300">{{ getReservationDisplayId(reservation) }}</td>
+                <td class="whitespace-nowrap px-5 py-4 text-center text-gray-700 dark:text-slate-300">{{ formatShortDate(getReservationDate(reservation)) }}</td>
+                <td class="wrap-break-word px-5 py-4 text-center text-gray-700 dark:text-slate-300">{{ getCustomerId(reservation) }}</td>
+                <td class="whitespace-nowrap px-5 py-4 text-center text-gray-700 dark:text-slate-300">{{ getTourId(reservation) }}</td>
+                <td class="wrap-break-word px-5 py-4 text-center text-gray-700 dark:text-slate-300">{{ getReservationLanguage(reservation) }}</td>
+                <td class="whitespace-nowrap px-5 py-4 text-center text-gray-700 dark:text-slate-300">{{ formatStatusLabel(getStatus(reservation), '-') }}</td>
                 <td class="px-5 py-4 text-center">
                   <div class="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
                     <button
                       v-if="!isCancelledStatus(reservation)"
                       type="button"
-                      class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700"
+                      class="rounded border border-blue-300 px-2 py-1 text-xs text-blue-700 dark:border-sky-700/40 dark:bg-sky-950/40 dark:text-sky-300"
                       :disabled="actionState.id === getReservationId(reservation)"
                       @click="handleRescheduleReservation(reservation)"
                     >
@@ -733,7 +733,7 @@ onUnmounted(() => {
                     <button
                       v-else
                       type="button"
-                      class="rounded border border-gray-300 px-2 py-1 text-xs text-gray-400 cursor-not-allowed"
+                      class="cursor-not-allowed rounded border border-gray-300 px-2 py-1 text-xs text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600"
                       disabled
                       aria-disabled="true"
                     >
@@ -761,7 +761,7 @@ onUnmounted(() => {
 
           <footer
             v-if="filteredReservations.length > pageSize"
-            class="border-t border-gray-200 px-4 py-4"
+            class="border-t border-gray-200 px-4 py-4 dark:border-white/10"
           >
             <div
               role="navigation"
@@ -776,8 +776,8 @@ onUnmounted(() => {
                   class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition"
                   :class="
                     currentPage === 1
-                      ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
-                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                      ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
                   "
                   :disabled="currentPage === 1"
                   @click="goToPage(currentPage - 1)"
@@ -802,7 +802,7 @@ onUnmounted(() => {
                     :class="
                       currentPage === item
                         ? 'border-[#0077B6] bg-[#0077B6] text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
                     "
                     :aria-current="currentPage === item ? 'page' : undefined"
                     :aria-label="`Go to page ${item}`"
@@ -817,8 +817,8 @@ onUnmounted(() => {
                   class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition"
                   :class="
                     currentPage === totalPages
-                      ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
-                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                      ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
                   "
                   :disabled="currentPage === totalPages"
                   @click="goToPage(currentPage + 1)"

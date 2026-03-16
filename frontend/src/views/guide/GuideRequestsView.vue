@@ -4,24 +4,24 @@
       <h1 class="app-title">Swap Requests</h1>
       <p class="app-subtitle">Send a swap request or accept and reject incoming swaps</p>
 
-      <div class="mt-5 rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4">
+      <div class="mt-5 rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4 dark:border-sky-800/60 dark:bg-sky-950/45">
         <div class="mb-4 grid gap-3 md:grid-cols-2">
-          <div class="rounded-2xl border border-[#7DB8CC]/60 bg-white/55 px-4 py-3">
+          <div class="rounded-2xl border border-[#7DB8CC]/60 bg-white/55 px-4 py-3 dark:border-sky-700/40 dark:bg-white/8">
             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#0077B6]">Step 1</p>
-            <p class="mt-1 text-sm font-semibold text-[#1C1C1C]">Choose one of your assigned schedules</p>
+            <p class="mt-1 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Choose one of your assigned schedules</p>
           </div>
-          <div class="rounded-2xl border border-[#7DB8CC]/60 bg-white/55 px-4 py-3">
+          <div class="rounded-2xl border border-[#7DB8CC]/60 bg-white/55 px-4 py-3 dark:border-sky-700/40 dark:bg-white/8">
             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#0077B6]">Step 2</p>
-            <p class="mt-1 text-sm font-semibold text-[#1C1C1C]">Pick an available guide for that schedule</p>
+            <p class="mt-1 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Pick an available guide for that schedule</p>
           </div>
         </div>
 
         <div class="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
           <div>
-            <label class="mb-2 block text-sm font-semibold text-[#1C1C1C]">My Schedule</label>
+            <label class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">My Schedule</label>
             <select
               v-model="selectedScheduleId"
-              class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+              class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
               :disabled="submitting || !mySchedules.length"
             >
               <option value="">{{ mySchedules.length ? 'Choose your schedule' : 'No assigned schedules' }}</option>
@@ -32,10 +32,10 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-semibold text-[#1C1C1C]">Available Guide</label>
+            <label class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Available Guide</label>
             <select
               v-model="selectedGuideId"
-              class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+              class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
               :disabled="!selectedScheduleId || !availableGuides.length || submitting || candidatesLoading"
             >
               <option value="">
@@ -65,7 +65,7 @@
         <p v-if="candidatesError" class="mt-3 text-sm font-medium text-[#B91C1C]">
           {{ candidatesError }}
         </p>
-        <p v-if="!swapApiAvailable" class="mt-3 text-sm text-black/65">
+        <p v-if="!swapApiAvailable" class="mt-3 text-sm text-black/65 dark:text-slate-400">
           Swap request API is not available in this branch yet. Guide and schedule data still load normally.
         </p>
         <p v-if="formError" class="mt-3 text-sm font-medium text-[#B91C1C]">
@@ -106,11 +106,11 @@
           </div>
         </div>
 
-        <div v-if="requestsLoading" class="text-sm text-black/60">Loading swap requests...</div>
+        <div v-if="requestsLoading" class="text-sm text-black/60 dark:text-slate-400">Loading swap requests...</div>
         <div v-else-if="requestsError && swapApiAvailable" class="text-sm font-medium text-[#B91C1C]">
           {{ requestsError }}
         </div>
-        <div v-else-if="requests.length === 0" class="text-sm text-black/60">No pending requests.</div>
+        <div v-else-if="requests.length === 0" class="text-sm text-black/60 dark:text-slate-400">No pending requests.</div>
       </div>
 
       <p v-if="toast" class="mt-4 text-sm font-semibold text-[#0077B6]">

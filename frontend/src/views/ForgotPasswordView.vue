@@ -39,7 +39,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="fixed inset-0 overflow-hidden bg-white text-black">
+  <div class="fixed inset-0 overflow-hidden bg-white text-black dark:bg-[#0F1117] dark:text-slate-100">
     <div class="h-full grid grid-cols-1 md:grid-cols-[35%_1fr] lg:grid-cols-[30%_1fr]">
       <!-- Left media panel -->
       <aside class="relative hidden md:block overflow-hidden">
@@ -69,7 +69,7 @@ async function handleSubmit() {
       <main class="flex items-center justify-center px-4 py-3 md:py-4 overflow-hidden">
         <div class="w-full max-w-[500px]">
           <div
-            class="bg-white shadow-xl rounded-none border border-black/5 p-6 sm:p-7 min-h-[620px]"
+            class="min-h-[620px] rounded-none border border-black/5 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40 sm:p-7"
           >
             <header class="mb-5">
               <img
@@ -77,17 +77,17 @@ async function handleSubmit() {
                 alt="Oceanarium"
                 class="h-7 sm:h-8 w-auto mb-3"
               />
-              <h1 class="text-3xl sm:text-3xl font-bold leading-[1.15] tracking-tight text-black">
+              <h1 class="text-3xl sm:text-3xl font-bold leading-[1.15] tracking-tight text-black dark:text-slate-100">
                 Forgot your password?
               </h1>
-              <p class="mt-1.5 text-sm text-black/70">
+              <p class="mt-1.5 text-sm text-black/70 dark:text-slate-400">
                 Enter your registered email to receive a reset link.
               </p>
             </header>
 
             <form class="space-y-4" @submit.prevent="handleSubmit">
               <div class="space-y-1.5">
-                <label class="text-sm font-semibold text-black">Email address</label>
+                <label class="text-sm font-semibold text-black dark:text-slate-100">Email address</label>
                 <div class="relative">
                   <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                     <img
@@ -100,7 +100,7 @@ async function handleSubmit() {
                     v-model="email"
                     type="email"
                     required
-                    class="w-full rounded-2xl border border-black/15 pl-12 pr-4 py-2.5 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+                    class="w-full rounded-2xl border border-black/15 bg-white py-2.5 pl-12 pr-4 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                     placeholder="you@example.com"
                     autocomplete="email"
                   />
@@ -117,21 +117,21 @@ async function handleSubmit() {
 
               <p
                 v-if="successMessage"
-                class="text-sm text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-2xl px-4 py-3"
+                class="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
               >
                 {{ successMessage }}
               </p>
 
               <p
                 v-if="localError"
-                class="text-sm text-red-900 bg-red-50 border border-red-300 rounded-2xl px-4 py-3"
+                class="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/50 dark:text-red-300"
               >
                 {{ localError }}
               </p>
 
               <button
                 type="button"
-                class="w-full rounded-2xl border border-[#0077B6]/35 bg-white py-2.5 text-sm font-semibold text-[#0077B6] hover:bg-[#0077B6]/10 transition focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25"
+                class="w-full rounded-2xl border border-[#0077B6]/35 bg-white py-2.5 text-sm font-semibold text-[#0077B6] transition hover:bg-[#0077B6]/10 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 dark:border-sky-700/40 dark:bg-[#1C2333] dark:text-sky-300 dark:hover:bg-sky-950/50 dark:focus:ring-sky-800/50"
                 @click="router.push('/login')"
               >
                 Back to login
