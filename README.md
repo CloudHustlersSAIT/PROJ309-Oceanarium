@@ -21,6 +21,12 @@ Vercel Deployment: cpsy301-small-prototype.vercel.app/
 
 Jira Board: https://cloudhustler.atlassian.net/jira/software/projects/SCRUM/summary
 
+# Frontend Documentation
+
+Admin screen documentation is available at:
+
+- [frontend/DOCS/OVERVIEW.md](frontend/DOCS/OVERVIEW.md)
+
 
 # Running it Locally
 
