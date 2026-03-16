@@ -44,7 +44,7 @@ const summaryCards = computed(() => [
       store.loadNotifications()
     },
     accent: store.summary.unread > 0,
-    accentClass: 'border-[#00B4D8] bg-[#CAF0F8]/40',
+    accentClass: 'border-[#00B4D8] bg-[#CAF0F8]/40 dark:border-sky-700/40 dark:bg-sky-950/45',
   },
   {
     label: 'Urgent',
@@ -56,7 +56,7 @@ const summaryCards = computed(() => [
       store.loadNotifications()
     },
     accent: (store.summary.by_priority?.urgent ?? 0) > 0,
-    accentClass: 'border-red-300 bg-red-50',
+    accentClass: 'border-red-300 bg-red-50 hover:bg-red-100 dark:border-red-700/70 dark:bg-red-950/65 dark:hover:bg-red-950/75',
   },
   {
     label: 'Action Required',
@@ -64,7 +64,7 @@ const summaryCards = computed(() => [
     note: 'Pending decisions',
     filterAction: null,
     accent: store.summary.action_required > 0,
-    accentClass: 'border-amber-300 bg-amber-50',
+    accentClass: 'border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-700/70 dark:bg-amber-950/60 dark:hover:bg-amber-950/70',
   },
 ])
 
@@ -104,21 +104,21 @@ function eventTypeBadgeClass(eventType) {
   const t = String(eventType || '')
     .trim()
     .toLowerCase()
-  if (t.includes('unassignable')) return 'border-red-200 bg-red-50 text-red-700'
-  if (t.includes('cancel')) return 'border-red-200 bg-red-50 text-red-700'
-  if (t.includes('reassign')) return 'border-amber-200 bg-amber-50 text-amber-700'
-  if (t.includes('assign')) return 'border-sky-200 bg-sky-50 text-sky-700'
-  if (t.includes('change') || t.includes('move')) return 'border-teal-200 bg-teal-50 text-teal-700'
-  return 'border-slate-200 bg-slate-50 text-slate-700'
+  if (t.includes('unassignable')) return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
+  if (t.includes('cancel')) return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
+  if (t.includes('reassign')) return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+  if (t.includes('assign')) return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/45 dark:text-sky-300'
+  if (t.includes('change') || t.includes('move')) return 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/45 dark:text-teal-300'
+  return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-300'
 }
 
 function statusBadgeClass(status) {
   const s = String(status || '')
     .trim()
     .toLowerCase()
-  if (s === 'sent') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  if (s === 'failed' || s === 'error') return 'border-red-200 bg-red-50 text-red-700'
-  return 'border-slate-200 bg-slate-50 text-slate-700'
+  if (s === 'sent') return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
+  if (s === 'failed' || s === 'error') return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
+  return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-300'
 }
 
 function priorityBorderClass(priority) {
@@ -140,11 +140,11 @@ function iconGlyph(type) {
 }
 
 function iconBgClass(type) {
-  if (type === 'assign') return 'bg-sky-100 text-sky-700'
-  if (type === 'cancel') return 'bg-red-100 text-red-700'
-  if (type === 'warning') return 'bg-amber-100 text-amber-700'
-  if (type === 'move') return 'bg-teal-100 text-teal-700'
-  return 'bg-slate-100 text-slate-700'
+  if (type === 'assign') return 'bg-sky-100 text-sky-700 dark:bg-sky-950/45 dark:text-sky-300'
+  if (type === 'cancel') return 'bg-red-100 text-red-700 dark:bg-red-950/45 dark:text-red-300'
+  if (type === 'warning') return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+  if (type === 'move') return 'bg-teal-100 text-teal-700 dark:bg-teal-950/45 dark:text-teal-300'
+  return 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'
 }
 
 function emptyMessage() {
@@ -193,7 +193,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-[#F4F7FA] overflow-x-hidden">
+  <div class="flex min-h-screen overflow-x-hidden bg-[#F4F7FA] dark:bg-[#0F1117]">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
@@ -213,8 +213,9 @@ onUnmounted(() => {
               v-for="card in summaryCards"
               :key="card.label"
               type="button"
-              class="rounded-xl border px-4 py-3 text-left transition hover:shadow-sm"
-              :class="card.accent ? card.accentClass : 'border-slate-200 bg-slate-50'"
+              class="rounded-xl border px-4 py-3 text-left transition hover:shadow-sm disabled:cursor-default disabled:opacity-90"
+              :class="card.accent ? card.accentClass : 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-[#1A2231]'"
+              :disabled="!card.filterAction"
               :title="`Click to filter by ${card.label.toLowerCase()}`"
               @click="card.filterAction?.()"
             >
@@ -236,7 +237,7 @@ onUnmounted(() => {
                   :value="searchInputRef"
                   type="search"
                   placeholder="Search by message, event type, schedule, or status"
-                  class="typo-body w-full rounded-xl border border-slate-300 bg-white px-10 py-2.5 outline-none focus:ring-2 focus:ring-sky-200"
+                  class="typo-body w-full rounded-xl border border-slate-300 bg-white px-10 py-2.5 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                   @input="onSearchInput"
                 />
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -258,7 +259,7 @@ onUnmounted(() => {
                 <label class="typo-card-label">Read State</label>
                 <select
                   :value="store.filters.readFilter"
-                  class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-sky-200"
+                  class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
                   @change="setReadFilter($event.target.value)"
                 >
                   <option
@@ -274,7 +275,7 @@ onUnmounted(() => {
               <button
                 v-if="store.hasActiveFilters"
                 type="button"
-                class="mb-0.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-[#0077B6] transition hover:bg-sky-50"
+                class="mb-0.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-[#0077B6] transition hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40"
                 @click="clearFiltersAndReload"
               >
                 Clear filters
@@ -283,7 +284,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Event Type Chips -->
-          <div class="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+          <div class="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-white/10">
             <button
               v-for="chip in EVENT_TYPE_CHIPS"
               :key="chip.key ?? 'all'"
@@ -293,8 +294,8 @@ onUnmounted(() => {
                 store.filters.eventType === chip.key
                   ? 'border-[#0077B6] bg-[#0077B6] text-white'
                   : chip.key === 'SCHEDULE_UNASSIGNABLE' && chipCount(chip.key) > 0
-                    ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                    ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300 dark:hover:bg-red-950/60'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
               "
               @click="selectEventType(chip.key)"
             >
@@ -304,7 +305,7 @@ onUnmounted(() => {
                 :class="
                   store.filters.eventType === chip.key
                     ? 'bg-white/25 text-white'
-                    : 'bg-slate-200/70 text-slate-600'
+                    : 'bg-slate-200/70 text-slate-600 dark:bg-white/10 dark:text-slate-300'
                 "
               >
                 {{ chipCount(chip.key) }}
@@ -321,7 +322,7 @@ onUnmounted(() => {
           </p>
           <button
             type="button"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
             :disabled="store.unreadCount === 0"
             @click="handleMarkAllRead"
           >
@@ -334,12 +335,12 @@ onUnmounted(() => {
           <!-- Error State -->
           <div
             v-if="store.error"
-            class="flex items-center justify-between gap-3 border-b border-red-200 bg-red-50 px-4 py-3 md:px-5"
+            class="flex items-center justify-between gap-3 border-b border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-950/45 md:px-5"
           >
-            <p class="typo-body text-red-700">{{ store.error }}</p>
+            <p class="typo-body text-red-700 dark:text-red-300">{{ store.error }}</p>
             <button
               type="button"
-              class="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+              class="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:bg-[#1C2333] dark:text-red-300 dark:hover:bg-red-950/35"
               @click="store.loadNotifications()"
             >
               Retry
@@ -347,19 +348,19 @@ onUnmounted(() => {
           </div>
 
           <!-- Loading Skeleton -->
-          <div v-if="store.loading" class="divide-y divide-slate-200">
+          <div v-if="store.loading" class="divide-y divide-slate-200 dark:divide-white/10">
             <div v-for="i in 3" :key="i" class="px-4 py-4 md:px-5">
               <div class="flex gap-4 animate-pulse">
-                <div class="h-8 w-8 shrink-0 rounded-full bg-slate-200" />
+                <div class="h-8 w-8 shrink-0 rounded-full bg-slate-200 dark:bg-white/10" />
                 <div class="flex-1 space-y-3">
-                  <div class="h-4 w-3/4 rounded bg-slate-200" />
+                  <div class="h-4 w-3/4 rounded bg-slate-200 dark:bg-white/10" />
                   <div class="flex gap-2">
-                    <div class="h-5 w-24 rounded-full bg-slate-200" />
-                    <div class="h-5 w-20 rounded-full bg-slate-200" />
-                    <div class="h-5 w-16 rounded-full bg-slate-200" />
+                    <div class="h-5 w-24 rounded-full bg-slate-200 dark:bg-white/10" />
+                    <div class="h-5 w-20 rounded-full bg-slate-200 dark:bg-white/10" />
+                    <div class="h-5 w-16 rounded-full bg-slate-200 dark:bg-white/10" />
                   </div>
                 </div>
-                <div class="h-4 w-20 rounded bg-slate-200" />
+                <div class="h-4 w-20 rounded bg-slate-200 dark:bg-white/10" />
               </div>
             </div>
           </div>
@@ -370,7 +371,7 @@ onUnmounted(() => {
             class="px-4 py-14 text-center md:px-5"
           >
             <div
-              class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"
+              class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-white/10 dark:text-slate-500"
             >
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -393,7 +394,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Notification Cards -->
-          <ul v-else class="divide-y divide-slate-100">
+          <ul v-else class="divide-y divide-slate-100 dark:divide-white/8">
             <li
               v-for="notification in store.filteredNotifications"
               :key="notification.id"
@@ -417,7 +418,7 @@ onUnmounted(() => {
                   <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                     <div class="min-w-0">
                       <p
-                        class="typo-body leading-snug text-slate-900"
+                        class="typo-body leading-snug text-slate-900 dark:text-slate-100"
                         :class="{ 'font-semibold': !notification.read }"
                       >
                         {{ notification.message }}
@@ -433,7 +434,7 @@ onUnmounted(() => {
                         </span>
                         <span
                           v-if="notification.scheduleId"
-                          class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold tracking-wide text-slate-600"
+                          class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold tracking-wide text-slate-600 dark:border-white/10 dark:bg-[#1C2333] dark:text-slate-300"
                         >
                           Schedule #{{ notification.scheduleId }}
                         </span>
@@ -457,13 +458,13 @@ onUnmounted(() => {
                         </span>
                         <span
                           v-if="notification.priority === 'urgent'"
-                          class="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-red-700"
+                          class="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300"
                         >
                           Urgent
                         </span>
                         <span
                           v-if="notification.actionRequired"
-                          class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-amber-700"
+                          class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
                         >
                           Action Required
                         </span>
@@ -472,7 +473,7 @@ onUnmounted(() => {
 
                     <!-- Timestamp -->
                     <div class="shrink-0 typo-caption lg:text-right">
-                      <p class="font-medium text-slate-600">{{ notification.timeAgo }}</p>
+                      <p class="font-medium text-slate-600 dark:text-slate-300">{{ notification.timeAgo }}</p>
                       <p class="mt-0.5">{{ notification.createdAtLabel }}</p>
                     </div>
                   </div>
@@ -482,7 +483,7 @@ onUnmounted(() => {
                     <button
                       v-if="!notification.read"
                       type="button"
-                      class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                      class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
                       @click="store.markRead(notification.id)"
                     >
                       Mark read
@@ -497,7 +498,7 @@ onUnmounted(() => {
                     </button>
                     <button
                       type="button"
-                      class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                      class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:bg-[#1C2333] dark:text-red-300 dark:hover:bg-red-950/35"
                       @click="confirmDelete(notification.id)"
                     >
                       Delete
@@ -520,7 +521,7 @@ onUnmounted(() => {
         >
           <p
             v-if="store.feedbackMessage"
-            class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-medium text-emerald-700 shadow-lg"
+            class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-medium text-emerald-700 shadow-lg dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300"
           >
             {{ store.feedbackMessage }}
           </p>

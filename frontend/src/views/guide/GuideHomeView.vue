@@ -6,8 +6,8 @@
         <p class="app-subtitle">Here's your next scheduled tour.</p>
       </div>
 
-      <div class="mt-4 min-h-[112px] rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4">
-        <div v-if="loading" class="text-sm text-black/60">Loading dashboard...</div>
+      <div class="mt-4 min-h-[112px] rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4 dark:border-sky-800/60 dark:bg-sky-950/50">
+        <div v-if="loading" class="text-sm text-black/60 dark:text-slate-400">Loading dashboard...</div>
         <div v-else-if="error" class="text-sm font-medium text-[#B91C1C]">{{ error }}</div>
         <div v-else class="flex flex-wrap items-center justify-between gap-2">
           <div class="space-y-0.5">
@@ -21,7 +21,7 @@
           </div>
 
           <span
-            class="inline-flex items-center self-center rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-[#0077B6] ring-1 ring-[#00B4D8]/30"
+            class="inline-flex items-center self-center rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-[#0077B6] ring-1 ring-[#00B4D8]/30 dark:bg-white/10 dark:text-sky-200 dark:ring-sky-700/40"
           >
             Next Up
           </span>
@@ -58,13 +58,13 @@
     <section class="grid gap-4 md:grid-cols-3">
       <div class="app-surface-card p-5">
         <p class="app-subtitle">This Week</p>
-        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C]">{{ stats.weekTours }}</p>
+        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ stats.weekTours }}</p>
         <p class="app-subtitle">tours assigned</p>
       </div>
 
       <div class="app-surface-card p-5">
         <p class="app-subtitle">Pending Requests</p>
-        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C]">{{ stats.pendingRequests }}</p>
+        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ stats.pendingRequests }}</p>
         <p class="app-subtitle">need action</p>
 
         <div v-if="stats.pendingRequests > 0" class="mt-3">
@@ -78,7 +78,7 @@
 
       <div class="app-surface-card p-5">
         <p class="app-subtitle">Avg Rating</p>
-        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C]">{{ stats.avgRating }}</p>
+        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ stats.avgRating }}</p>
         <p class="app-subtitle">last 30 days</p>
 
         <div class="mt-3">
@@ -93,7 +93,7 @@
 
     <section class="app-surface-card app-section-padding">
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-[#1C1C1C]">Today</h2>
+        <h2 class="text-lg font-semibold text-[#1C1C1C] dark:text-slate-100">Today</h2>
         <RouterLink
           to="/guide/schedule"
           class="text-sm font-semibold text-[#0077B6] hover:text-[#0097E7]"
@@ -103,13 +103,13 @@
       </div>
 
       <div class="mt-4 space-y-3">
-        <div v-if="loading" class="text-sm text-black/60">Loading today's schedule...</div>
-        <div v-else-if="!todayEvents.length" class="text-sm text-black/60">No tours scheduled for today.</div>
+        <div v-if="loading" class="text-sm text-black/60 dark:text-slate-400">Loading today's schedule...</div>
+        <div v-else-if="!todayEvents.length" class="text-sm text-black/60 dark:text-slate-400">No tours scheduled for today.</div>
 
         <div
           v-for="e in todayEvents"
           :key="e.id"
-          class="flex items-center justify-between gap-4 rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4"
+          class="flex items-center justify-between gap-4 rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4 dark:border-sky-800/60 dark:bg-sky-950/40"
         >
           <div class="flex items-center gap-3">
             <div class="h-3 w-3 shrink-0 rounded-full bg-[#00B4D8]"></div>
@@ -120,7 +120,7 @@
           </div>
 
           <span
-            class="inline-flex items-center rounded-full border border-[#7DB8CC] bg-white/70 px-3 py-1 text-sm font-semibold text-black"
+            class="inline-flex items-center rounded-full border border-[#7DB8CC] bg-white/70 px-3 py-1 text-sm font-semibold text-black dark:border-sky-700/50 dark:bg-white/10 dark:text-slate-200"
           >
             {{ e.status }}
           </span>

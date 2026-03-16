@@ -570,9 +570,9 @@ watch(filteredRows, () => {
 
 function statusClasses(status) {
   if (String(status).toLowerCase() === 'inactive') {
-    return 'bg-rose-100 text-rose-800 border-rose-300'
+    return 'bg-rose-100 text-rose-800 border-rose-300 dark:border-rose-800 dark:bg-rose-950/45 dark:text-rose-300'
   }
-  return 'bg-emerald-100 text-emerald-800 border-emerald-300'
+  return 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
 }
 
 function openGuideDetails(row) {
@@ -722,11 +722,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-slate-100 overflow-x-hidden">
+  <div class="flex min-h-screen overflow-x-hidden bg-slate-100 dark:bg-[#0F1117]">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 xl:p-8">
-      <section class="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 md:p-6">
+      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30 md:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 class="typo-page-title">{{ pageTitle }}</h1>
@@ -750,7 +750,7 @@ onMounted(() => {
               :class="
                 activeTab === tab.key
                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                  : 'bg-white text-gray-700 border-[#ACBAC4] hover:bg-gray-50'
+                  : 'bg-white text-gray-700 border-[#ACBAC4] hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
               "
               @click="switchTab(tab.key)"
             >
@@ -763,7 +763,7 @@ onMounted(() => {
           <article
             v-for="card in summaryCards"
             :key="card.label"
-            class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+            class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1A2231]"
           >
             <p class="typo-card-label">{{ card.label }}</p>
             <p class="typo-card-value">{{ card.value }}</p>
@@ -776,16 +776,16 @@ onMounted(() => {
               v-model="searchQuery"
               type="search"
               :placeholder="searchPlaceholder"
-              class="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
+              class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
             />
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
           </div>
 
           <label class="flex flex-col gap-1 text-sm text-slate-600 lg:w-52">
-            <span class="font-medium text-slate-700">Sort by</span>
+            <span class="font-medium text-slate-700 dark:text-slate-300">Sort by</span>
             <select
               v-model="currentSort"
-              class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200"
+              class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
             >
               <option v-for="option in sortOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
@@ -803,21 +803,21 @@ onMounted(() => {
 
       </section>
 
-      <section class="mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <header class="px-4 md:px-5 py-4 border-b border-slate-200">
+      <section class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+        <header class="border-b border-slate-200 px-4 py-4 dark:border-white/10 md:px-5">
           <h2 class="typo-section-title">{{ listTitle }}</h2>
           <p class="typo-muted">
-            Showing <span class="font-semibold text-slate-900">{{ paginatedRows.length }}</span> of
-            <span class="font-semibold text-slate-900">{{ totalCount }}</span>
+            Showing <span class="font-semibold text-slate-900 dark:text-slate-100">{{ paginatedRows.length }}</span> of
+            <span class="font-semibold text-slate-900 dark:text-slate-100">{{ totalCount }}</span>
           </p>
         </header>
 
-        <div v-if="isLoading" class="p-8 text-sm text-slate-500 text-center">Loading data...</div>
+        <div v-if="isLoading" class="p-8 text-center text-sm text-slate-500 dark:text-slate-400">Loading data...</div>
 
         <template v-else>
           <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full text-sm">
-              <thead class="bg-slate-300 text-slate-700">
+              <thead class="bg-slate-300 text-slate-700 dark:bg-[#1A2231] dark:text-slate-200">
                 <tr>
                   <th
                     v-for="column in currentColumns"
@@ -830,14 +830,14 @@ onMounted(() => {
                   <th class="px-4 py-3 text-right font-bold whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-200 text-slate-800">
+              <tbody class="divide-y divide-slate-200 text-slate-800 dark:divide-white/10 dark:text-slate-300">
                 <tr v-if="paginatedRows.length === 0">
-                  <td :colspan="currentColumns.length + 1" class="px-4 py-10 text-center text-slate-500">
+                  <td :colspan="currentColumns.length + 1" class="px-4 py-10 text-center text-slate-500 dark:text-slate-400">
                     No records found for the current filters.
                   </td>
                 </tr>
 
-                <tr v-for="row in paginatedRows" :key="`${activeTab}-${row.id}`" class="hover:bg-slate-50">
+                <tr v-for="row in paginatedRows" :key="`${activeTab}-${row.id}`" class="hover:bg-slate-50 dark:hover:bg-white/[0.03]">
                   <td
                     v-for="column in currentColumns"
                     :key="column.key"
@@ -854,7 +854,7 @@ onMounted(() => {
                     <button
                       v-else-if="column.key === 'name' && activeTab === 'guides'"
                       type="button"
-                      class="text-blue-700 underline hover:text-blue-900"
+                      class="text-blue-700 underline hover:text-blue-900 dark:text-sky-300 dark:hover:text-sky-200"
                       @click="openGuideDetails(row)"
                     >
                       {{ row[column.key] }}
@@ -864,7 +864,7 @@ onMounted(() => {
                   <td class="px-4 py-3 text-right">
                     <button
                       type="button"
-                      class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-slate-100"
+                      class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-slate-100 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
                       :aria-label="`Edit ${activeTab === 'guides' ? 'guide' : 'customer'} ${row.name}`"
                       @click="openEditPopup(row)"
                     >
@@ -891,18 +891,18 @@ onMounted(() => {
             <article
               v-for="row in paginatedRows"
               :key="`mobile-${activeTab}-${row.id}`"
-              class="rounded-xl border border-slate-200 p-3 bg-slate-50"
+              class="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
             >
               <div class="flex items-start justify-between gap-3">
                 <button
                   v-if="activeTab === 'guides'"
                   type="button"
-                  class="font-semibold text-slate-900 text-left underline"
+                  class="text-left font-semibold text-slate-900 underline dark:text-slate-100"
                   @click="openGuideDetails(row)"
                 >
                   {{ row.name }}
                 </button>
-                <h3 v-else class="font-semibold text-slate-900">{{ row.name }}</h3>
+                <h3 v-else class="font-semibold text-slate-900 dark:text-slate-100">{{ row.name }}</h3>
                 <div class="flex items-center gap-2">
                   <span
                     v-if="row.status"
@@ -913,7 +913,7 @@ onMounted(() => {
                   </span>
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-slate-100"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:bg-slate-100 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
                     :aria-label="`Edit ${activeTab === 'guides' ? 'guide' : 'customer'} ${row.name}`"
                     @click="openEditPopup(row)"
                   >
@@ -933,12 +933,12 @@ onMounted(() => {
                 </div>
               </div>
 
-              <div class="mt-2 grid grid-cols-1 gap-1 text-sm text-slate-600">
+              <div class="mt-2 grid grid-cols-1 gap-1 text-sm text-slate-600 dark:text-slate-400">
                 <p
                   v-for="column in currentColumns.filter((item) => item.key !== 'name' && item.key !== 'status')"
                   :key="column.key"
                 >
-                  <span class="font-medium text-slate-700">{{ column.label }}:</span>
+                  <span class="font-medium text-slate-700 dark:text-slate-300">{{ column.label }}:</span>
                   {{ row[column.key] }}
                 </p>
               </div>
@@ -946,7 +946,7 @@ onMounted(() => {
 
             <div
               v-if="paginatedRows.length === 0"
-              class="rounded-xl border border-slate-200 p-5 text-center text-sm text-slate-500 bg-slate-50"
+              class="rounded-xl border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-400"
             >
               No records found for the current filters.
             </div>
@@ -954,7 +954,7 @@ onMounted(() => {
 
           <footer
             v-if="filteredRows.length > pageSize"
-            class="border-t border-slate-200 px-4 py-4 md:px-5"
+            class="border-t border-slate-200 px-4 py-4 dark:border-white/10 md:px-5"
           >
             <div
               aria-label="Pagination"
@@ -969,8 +969,8 @@ onMounted(() => {
                   class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition"
                   :class="
                     currentPage === 1
-                      ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                      ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
+                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
                   "
                   :disabled="currentPage === 1"
                   @click="goToPage(currentPage - 1)"
@@ -995,7 +995,7 @@ onMounted(() => {
                     :class="
                       currentPage === item
                         ? 'border-[#0077B6] bg-[#0077B6] text-white'
-                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
                     "
                     :aria-current="currentPage === item ? 'page' : undefined"
                     :aria-label="`Go to page ${item}`"
@@ -1010,8 +1010,8 @@ onMounted(() => {
                   class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition"
                   :class="
                     currentPage === totalPages
-                      ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                      ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
+                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
                   "
                   :disabled="currentPage === totalPages"
                   @click="goToPage(currentPage + 1)"

@@ -35,13 +35,13 @@ function sameDate(a, b) {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl shadow-md p-4 border-1 border-blue-500">
-    <h3 class="text-sm font-semibold text-gray-700 mb-3">{{ monthLabel }}</h3>
+  <div class="rounded-xl border border-blue-500 bg-white p-4 shadow-md dark:border-sky-700/40 dark:bg-[#161B27] dark:shadow-black/30">
+    <h3 class="mb-3 text-sm font-semibold text-gray-700 dark:text-slate-100">{{ monthLabel }}</h3>
     <div class="grid grid-cols-7 gap-1 text-xs">
       <div
         v-for="day in ['S', 'M', 'T', 'W', 'T', 'F', 'S']"
         :key="day"
-        class="text-center text-gray-400"
+        class="text-center text-gray-400 dark:text-slate-500"
       >
         {{ day }}
       </div>
@@ -53,7 +53,7 @@ function sameDate(a, b) {
           day
             ? sameDate(day, selectedDate)
               ? 'bg-blue-600 text-white'
-              : 'hover:bg-blue-100 text-gray-700'
+              : 'hover:bg-blue-100 text-gray-700 dark:text-slate-300 dark:hover:bg-sky-950/40'
             : 'cursor-default'
         "
         :disabled="!day"

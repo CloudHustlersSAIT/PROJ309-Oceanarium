@@ -29,7 +29,7 @@
           </svg>
         </button>
 
-        <div class="mb-8 rounded-2xl bg-white px-6 py-4 shadow-lg">
+        <div class="mb-8 rounded-2xl bg-white px-6 py-4 shadow-lg dark:bg-[#16304A]/90 dark:shadow-black/30">
           <img :src="logoText" alt="Oceanarium" class="h-11 w-auto" />
         </div>
 
@@ -59,7 +59,7 @@
 
         <div class="mt-auto border-t border-white/25 pt-4">
           <div class="mb-3 flex items-center gap-3 px-1">
-            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/85 text-lg font-bold text-[#0E4EA8]">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/85 text-lg font-bold text-[#0E4EA8] dark:bg-white/15 dark:text-white">
               {{ avatarInitial }}
             </span>
             <div class="min-w-0">
@@ -69,7 +69,7 @@
           </div>
 
           <button
-            class="w-full rounded-xl bg-white px-4 py-2.5 text-lg font-bold text-[#0E4EA8] transition hover:bg-[#CAF0F8]"
+            class="w-full rounded-xl bg-white px-4 py-2.5 text-lg font-bold text-[#0E4EA8] transition hover:bg-[#CAF0F8] dark:bg-white/12 dark:text-white dark:hover:bg-white/18"
             @click="handleLogout"
           >
             Log out

@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 overflow-hidden bg-white text-black">
+  <div class="fixed inset-0 overflow-hidden bg-white text-black dark:bg-[#0F1117] dark:text-slate-100">
     <div class="h-full grid grid-cols-1 md:grid-cols-[35%_1fr] lg:grid-cols-[30%_1fr]">
       <aside class="relative hidden md:block overflow-hidden">
         <video
@@ -26,7 +26,7 @@
 
       <main class="flex items-center justify-center px-4 py-3 md:py-4 overflow-hidden">
         <div class="w-full max-w-[620px]">
-          <div class="bg-white shadow-xl rounded-none border border-black/5 p-6 sm:p-7 min-h-[620px]">
+          <div class="min-h-[620px] rounded-none border border-black/5 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40 sm:p-7">
             <header class="mb-5">
               <img
                 src="/src/assets/images/logo-text.svg"
@@ -34,58 +34,58 @@
                 class="h-7 sm:h-8 w-auto mb-3"
               />
 
-              <h1 class="text-3xl sm:text-3xl font-bold leading-[1.15] tracking-tight text-black">
+              <h1 class="text-3xl sm:text-3xl font-bold leading-[1.15] tracking-tight text-black dark:text-slate-100">
                 Welcome back
               </h1>
 
-              <p class="mt-1.5 text-sm text-black/70">
+              <p class="mt-1.5 text-sm text-black/70 dark:text-slate-400">
                 Sign in with your team-managed Oceanarium account.
               </p>
             </header>
 
             <section
               v-if="firebaseDisabled"
-              class="mb-6 rounded-2xl border border-yellow-700/30 bg-yellow-50 p-5"
+              class="mb-6 rounded-2xl border border-yellow-700/30 bg-yellow-50 p-5 dark:border-yellow-800 dark:bg-yellow-950/45"
             >
-              <p class="text-sm text-yellow-900">
+              <p class="text-sm text-yellow-900 dark:text-yellow-200">
                 <strong>Authentication unavailable:</strong> Firebase is not configured.
               </p>
-              <p class="mt-4 text-sm text-black/70">
+              <p class="mt-4 text-sm text-black/70 dark:text-slate-400">
                 Public signup and client-side role selection are disabled. Configure Firebase to continue.
               </p>
             </section>
 
-            <p v-if="loading" class="text-sm text-black/70 mb-4">Checking auth status...</p>
+            <p v-if="loading" class="mb-4 text-sm text-black/70 dark:text-slate-400">Checking auth status...</p>
 
             <form v-else-if="!firebaseDisabled" class="space-y-4" @submit.prevent="handleSubmit">
               <div class="space-y-1.5">
-                <label class="text-sm font-semibold text-black">Email address</label>
+                <label class="text-sm font-semibold text-black dark:text-slate-100">Email address</label>
                 <input
                   v-model="email"
                   type="email"
                   required
-                  class="w-full rounded-2xl border border-black/15 px-4 py-2.5 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+                  class="w-full rounded-2xl border border-black/15 bg-white px-4 py-2.5 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                   placeholder="you@example.com"
                   autocomplete="email"
                 />
               </div>
 
               <div class="space-y-1.5">
-                <label class="text-sm font-semibold text-black">Password</label>
+                <label class="text-sm font-semibold text-black dark:text-slate-100">Password</label>
 
                 <div class="relative">
                   <input
                     v-model="password"
                     :type="showPassword ? 'text' : 'password'"
                     required
-                    class="w-full rounded-2xl border border-black/15 px-4 py-2.5 pr-12 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20"
+                    class="w-full rounded-2xl border border-black/15 bg-white px-4 py-2.5 pr-12 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                     placeholder="Password"
                     autocomplete="current-password"
                   />
 
                   <button
                     type="button"
-                    class="absolute inset-y-0 right-0 flex items-center justify-center w-12 text-black/60 hover:text-black transition focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 rounded-r-2xl"
+                    class="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-black/60 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 dark:text-slate-400 dark:hover:text-slate-100 dark:focus:ring-sky-800/50"
                     aria-label="Toggle password visibility"
                     @mousedown.prevent="showPassword = true"
                     @mouseup="showPassword = false"
@@ -136,7 +136,7 @@
               <div class="text-center">
                 <button
                   type="button"
-                  class="text-sm font-medium text-[#0077B6] underline underline-offset-2 hover:text-[#005a8a] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 rounded-md px-1"
+                  class="rounded-md px-1 text-sm font-medium text-[#0077B6] underline underline-offset-2 hover:text-[#005a8a] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 dark:text-sky-300 dark:hover:text-sky-200 dark:focus:ring-sky-800/50"
                   @click="router.push('/forgot-password')"
                 >
                   Forgot password?
@@ -145,19 +145,19 @@
 
               <p
                 v-if="localError"
-                class="text-sm text-red-900 bg-red-50 border border-red-300 rounded-2xl px-4 py-3"
+                class="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/50 dark:text-red-300"
               >
                 {{ localError }}
               </p>
 
               <p
                 v-else-if="error"
-                class="text-sm text-red-900 bg-red-50 border border-red-300 rounded-2xl px-4 py-3"
+                class="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/50 dark:text-red-300"
               >
                 {{ error.message || error }}
               </p>
 
-              <p class="text-xs text-black/50 text-center pt-0.5">
+              <p class="pt-0.5 text-center text-xs text-black/50 dark:text-slate-500">
                 By continuing, you agree to Oceanarium's terms and privacy policy.
               </p>
             </form>

@@ -27,7 +27,7 @@ function handleCreate(event) {
     type="button"
     :disabled="disabled"
     :aria-label="ariaLabel || label"
-    class="px-3 py-1.5 rounded bg-blue-600 text-white border border-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+    class="px-3 py-1.5 rounded bg-blue-600 text-white border border-blue-600 hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-sky-700/50 dark:focus-visible:ring-offset-[#161B27] disabled:cursor-not-allowed disabled:opacity-60"
     @click="handleCreate"
   >
     {{ label }}

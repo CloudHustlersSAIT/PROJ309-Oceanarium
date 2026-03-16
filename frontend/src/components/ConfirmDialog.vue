@@ -38,7 +38,7 @@ const emit = defineEmits(['confirm', 'cancel'])
 		class="fixed inset-0 z-[60] bg-black/50 p-4 flex items-center justify-center"
 		@click.self="emit('cancel')"
 	>
-		<div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+		<div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40">
 			<h4 class="typo-modal-title">{{ title }}</h4>
 			<p class="mt-2 typo-body">{{ message }}</p>
 			<div class="mt-5 flex items-center justify-end gap-2">

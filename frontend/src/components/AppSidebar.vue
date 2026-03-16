@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/authContext'
 import { useNotificationStore } from '../stores/notification'
 
 import SidebarButton from './SidebarButton.vue'
+import ThemeToggle from './ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -85,7 +86,7 @@ async function handleLogout() {
   <button
     type="button"
     aria-label="Open menu"
-    class="fixed left-4 top-4 z-30 flex md:hidden h-10 w-10 items-center justify-center rounded-lg bg-[#0077B6] text-white shadow-lg hover:bg-[#0097e7] transition"
+    class="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-lg bg-[#0077B6] text-white shadow-lg transition hover:bg-[#0097e7] dark:border dark:border-white/10 dark:bg-[#1C2333] dark:hover:bg-[#273247] md:hidden"
     @click="openMobile"
   >
     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -108,7 +109,7 @@ async function handleLogout() {
 
   <!-- Sidebar: drawer on mobile (fixed, slide-in), normal on md+ -->
   <aside
-    class="w-80 max-w-[85vw] min-h-dvh md:h-screen md:max-h-screen md:max-w-none flex flex-col p-4 bg-linear-to-b from-[#00B4D8] to-[#0047ab] text-white shadow-lg fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-out -translate-x-full md:translate-x-0 overflow-y-auto md:overflow-hidden"
+    class="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[85vw] min-h-dvh -translate-x-full transform flex-col overflow-y-auto bg-linear-to-b from-[#00B4D8] to-[#0047ab] p-4 text-white shadow-lg transition-transform duration-200 ease-out dark:from-[#161B27] dark:to-[#0F1117] md:h-screen md:max-h-screen md:max-w-none md:translate-x-0 md:overflow-hidden"
     :class="{ 'translate-x-0': mobileOpen }"
   >
     <!-- Close button for mobile (visible only when drawer is open) -->
@@ -129,7 +130,7 @@ async function handleLogout() {
     </button>
     <div class="mb-6 md:mb-8">
       <div
-        class="items-center bg-white rounded-xl px-10 py-4 drop-shadow-xl/25 flex justify-center"
+        class="flex items-center justify-center rounded-xl bg-white px-10 py-4 drop-shadow-xl/25"
       >
         <img src="/src/assets/images/logo-text.svg" alt="Company logo text" class="h-10 w-auto" />
       </div>
@@ -153,7 +154,7 @@ async function handleLogout() {
         <div class="flex items-center gap-3 mb-3 px-1">
           <!-- Avatar circle -->
           <div
-            class="h-10 w-10 rounded-full bg-white/90 text-[#0077B6] flex items-center justify-center text-lg font-semibold shadow-md"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-lg font-semibold text-[#0077B6] shadow-md dark:bg-white/15 dark:text-white"
           >
             {{ avatarInitial }}
           </div>
@@ -166,10 +167,13 @@ async function handleLogout() {
           </div>
         </div>
 
+        <!-- Dark mode toggle -->
+        <ThemeToggle />
+
         <!-- Logout button -->
         <button
           type="button"
-          class="w-full py-2.5 rounded-xl text-sm font-semibold bg-white text-[#0077B6] hover:bg-[#CAF0F8] hover:text-[#0077B6] transition shadow-sm"
+          class="w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-[#0077B6] shadow-sm transition hover:bg-[#CAF0F8] hover:text-[#0077B6] dark:border dark:border-white/10 dark:bg-[#1C2333] dark:text-slate-100 dark:hover:bg-[#273247]"
           @click="handleLogout"
         >
           Log out

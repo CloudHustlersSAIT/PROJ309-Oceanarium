@@ -1,12 +1,25 @@
 ﻿@import 'tailwindcss';
 
+/*
+  Class-based dark mode: toggle the `dark` class on <html> to enable.
+  All `dark:` utilities activate for any element inside a `.dark` ancestor.
+  Matches the official Tailwind v4 manual dark mode strategy.
+*/
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root { color-scheme: light; }
+  .dark { color-scheme: dark; }
+}
+
 @layer components {
   .app-page-wrap {
     @apply mx-auto w-full max-w-6xl space-y-5;
   }
 
   .app-surface-card {
-    @apply rounded-2xl border border-black/10 bg-white shadow-sm;
+    @apply rounded-2xl border border-black/10 bg-white shadow-sm
+           dark:border-white/[0.08] dark:bg-[#161B27] dark:shadow-black/40;
   }
 
   .app-section-padding {
@@ -14,55 +27,63 @@
   }
 
   .app-title {
-    @apply text-xl font-bold tracking-tight text-[#1C1C1C] sm:text-2xl;
+    @apply text-xl font-bold tracking-tight text-[#1C1C1C] sm:text-2xl dark:text-slate-100;
   }
 
   .app-subtitle {
-    @apply text-sm font-medium text-black/75 sm:text-base;
+    @apply text-sm font-medium text-black/75 sm:text-base dark:text-slate-400;
   }
 
   .app-body-title {
-    @apply text-sm font-bold text-[#1C1C1C] sm:text-base;
+    @apply text-sm font-bold text-[#1C1C1C] sm:text-base dark:text-slate-100;
   }
 
   .app-body-meta {
-    @apply text-xs text-black/65 sm:text-sm;
+    @apply text-xs text-black/65 sm:text-sm dark:text-slate-400;
   }
 
   .app-action-btn {
-    @apply h-10 rounded-lg px-3.5 text-sm font-bold transition;
+    @apply h-10 rounded-lg px-3.5 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-sky-700/50 dark:focus-visible:ring-offset-[#161B27];
   }
 
   .typo-page-title {
-    @apply text-3xl font-semibold tracking-tight text-gray-900 md:text-4xl;
+    @apply text-3xl font-semibold tracking-tight text-gray-900 md:text-4xl
+           dark:text-slate-100;
   }
 
   .typo-section-title {
-    @apply text-xl font-semibold text-slate-900;
+    @apply text-xl font-semibold text-slate-900
+           dark:text-slate-100;
   }
 
   .typo-card-label {
-    @apply text-xs font-medium uppercase tracking-wide text-slate-500;
+    @apply text-xs font-medium uppercase tracking-wide text-slate-500
+           dark:text-slate-400;
   }
 
   .typo-card-value {
-    @apply mt-1 text-2xl font-semibold text-slate-900;
+    @apply mt-1 text-2xl font-semibold text-slate-900
+           dark:text-slate-100;
   }
 
   .typo-body {
-    @apply text-sm text-slate-700;
+    @apply text-sm text-slate-700
+           dark:text-slate-300;
   }
 
   .typo-muted {
-    @apply text-sm text-slate-500;
+    @apply text-sm text-slate-500
+           dark:text-slate-400;
   }
 
   .typo-caption {
-    @apply text-xs text-slate-500;
+    @apply text-xs text-slate-500
+           dark:text-slate-400;
   }
 
   .typo-table-head {
-    @apply text-sm font-semibold text-gray-800;
+    @apply text-sm font-semibold text-gray-800
+           dark:text-slate-200;
   }
 
   .typo-modal-eyebrow {
@@ -70,7 +91,8 @@
   }
 
   .typo-modal-title {
-    @apply text-lg font-semibold text-slate-900;
+    @apply text-lg font-semibold text-slate-900
+           dark:text-white;
   }
 
   .typo-modal-title-dark {
@@ -78,10 +100,10 @@
   }
 
   .notification-card {
-    @apply rounded-xl border border-black/10 bg-[#F4F8FB] transition hover:bg-[#EDF3F7];
+    @apply rounded-xl border border-black/10 bg-[#F4F8FB] transition hover:bg-[#EDF3F7] dark:border-white/10 dark:bg-[#1A2231] dark:hover:bg-[#202A3B];
   }
 
   .notification-card-unread {
-    @apply rounded-xl border border-[#00B4D8]/35 bg-[#CAF0F8]/50 transition hover:bg-[#BFEAF5]/60;
+    @apply rounded-xl border border-[#00B4D8]/35 bg-[#CAF0F8]/50 transition hover:bg-[#BFEAF5]/60 dark:border-sky-700/40 dark:bg-sky-950/45 dark:hover:bg-sky-950/60;
   }
 }

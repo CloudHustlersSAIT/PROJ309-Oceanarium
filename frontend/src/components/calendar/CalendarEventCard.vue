@@ -27,15 +27,15 @@ function isUnassignedStatus(status) {
       conflict
         ? 'border-red-400 bg-red-50'
         : isUnassignedStatus(event.status)
-          ? 'border-amber-400 bg-amber-50'
-          : 'border-blue-200 bg-blue-50',
+          ? 'border-amber-400 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40'
+          : 'border-blue-200 bg-blue-50 dark:border-sky-700/40 dark:bg-sky-950/35',
       selected ? 'ring-2 ring-blue-500 shadow-sm' : 'hover:shadow-sm',
     ]"
     :title="`${event.title} • ${formatTime(event.start)}-${formatTime(event.end)} • ${event.resourceName}`"
     @click.stop="emit('select', event)"
   >
     <div class="flex items-start justify-between gap-1">
-      <div class="font-semibold text-gray-800 truncate leading-tight">{{ event.title }}</div>
+      <div class="truncate font-semibold leading-tight text-gray-800 dark:text-slate-100">{{ event.title }}</div>
       <input
         type="checkbox"
         :checked="checked"
@@ -44,23 +44,23 @@ function isUnassignedStatus(status) {
       />
     </div>
 
-    <div class="text-[11px] text-gray-600 mt-1 leading-tight">
+    <div class="mt-1 text-[11px] leading-tight text-gray-600 dark:text-slate-400">
       {{ formatTime(event.start) }} - {{ formatTime(event.end) }}
     </div>
-    <div class="text-[10px] text-gray-500 truncate mt-0.5">
+    <div class="mt-0.5 truncate text-[10px] text-gray-500 dark:text-slate-500">
       Status: {{ String(event.status || 'Unknown').toUpperCase() }}
     </div>
 
     <div
       v-if="isUnassignedStatus(event.status)"
-      class="mt-1 inline-flex rounded border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800"
+      class="mt-1 inline-flex rounded border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-950/55 dark:text-amber-300"
     >
       {{ String(event.status || 'UNASSIGNED').toUpperCase() }}
     </div>
 
     <div
       v-if="conflict"
-      class="mt-1 text-[10px] font-semibold text-red-700 uppercase tracking-wide"
+      class="mt-1 text-[10px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300"
     >
       Conflict detected
     </div>

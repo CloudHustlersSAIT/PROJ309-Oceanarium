@@ -1,72 +1,71 @@
-import { computed, ref } from "vue";
+/**
+ * useTheme — singleton composable for class-based dark mode.
+ *
+ * Applies the `dark` class to <html> — required by Tailwind's `dark:` utilities.
+ * Priority: localStorage → system prefers-color-scheme → light
+ */
+import { computed, ref } from 'vue'
 
-const THEME_STORAGE_KEY = "oceanarium-theme";
-const DARK_CLASS = "theme-dark";
-const theme = ref("light");
-const initialized = ref(false);
+const THEME_STORAGE_KEY = 'oceanarium-theme'
 
-function normalizeTheme(value) {
-  return value === "dark" ? "dark" : "light";
+// Module-level singleton so all component instances share the same state
+const theme = ref('light')
+let _initialized = false
+
+function _normalize(val) {
+  return val === 'dark' ? 'dark' : 'light'
 }
 
-function detectSystemTheme() {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return "light";
+function _apply(val) {
+  if (typeof document === 'undefined') return
+
+  // Toggle the `dark` class on <html> — this is what activates all dark: utilities
+  document.documentElement.classList.toggle('dark', val === 'dark')
+  document.documentElement.setAttribute('data-theme', val)
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, val)
+  } catch {
+    /* noop */
+  }
+}
+
+function _init() {
+  if (_initialized) return
+  _initialized = true
+
+  if (typeof window === 'undefined') {
+    theme.value = 'light'
+    return
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
-function applyTheme(nextTheme) {
-  if (typeof document === "undefined") return;
-
-  const root = document.documentElement;
-  const isDark = nextTheme === "dark";
-  root.classList.toggle(DARK_CLASS, isDark);
-  root.setAttribute("data-theme", nextTheme);
-}
-
-function readStoredTheme() {
-  if (typeof localStorage === "undefined") return null;
-  return localStorage.getItem(THEME_STORAGE_KEY);
-}
-
-function persistTheme(nextTheme) {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-}
-
-export function initTheme() {
-  if (!initialized.value) {
-    const preferred = normalizeTheme(readStoredTheme() || detectSystemTheme());
-    theme.value = preferred;
-    initialized.value = true;
+  let stored = null
+  try {
+    stored = localStorage.getItem(THEME_STORAGE_KEY)
+  } catch {
+    /* noop */
   }
-
-  applyTheme(theme.value);
-  return theme.value;
+  const system = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  theme.value = _normalize(stored || system)
+  _apply(theme.value)
 }
 
 export function useTheme() {
-  if (!initialized.value) {
-    initTheme();
-  }
+  _init()
 
-  function setTheme(nextTheme) {
-    const normalized = normalizeTheme(nextTheme);
-    theme.value = normalized;
-    applyTheme(normalized);
-    persistTheme(normalized);
+  function setTheme(val) {
+    const next = _normalize(val)
+    theme.value = next
+    _apply(next)
   }
 
   function toggleTheme() {
-    setTheme(theme.value === "dark" ? "light" : "dark");
+    setTheme(theme.value === 'dark' ? 'light' : 'dark')
   }
 
   return {
     theme,
-    isDark: computed(() => theme.value === "dark"),
+    isDark: computed(() => theme.value === 'dark'),
     setTheme,
     toggleTheme,
-  };
+  }
 }

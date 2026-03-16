@@ -569,12 +569,12 @@ function reservationDetailsStatusClass(status) {
     .trim()
     .toLowerCase()
   if (normalized === 'confirmed') {
-    return 'border-green-300 bg-green-50 text-green-800'
+    return 'border-green-300 bg-green-50 text-green-800 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
   }
   if (normalized === 'canceled' || normalized === 'cancelled') {
-    return 'border-red-300 bg-red-50 text-red-800'
+    return 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
   }
-  return 'border-[#ACBAC4] bg-white text-gray-700'
+  return 'border-[#ACBAC4] bg-white text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300'
 }
 
 function closeDayEventsPopup() {
@@ -761,7 +761,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-gray-50 overflow-x-hidden">
+  <div class="flex min-h-screen overflow-x-hidden bg-gray-50 dark:bg-[#0F1117]">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-3 md:p-4 xl:p-6">
@@ -775,9 +775,9 @@ onBeforeUnmount(() => {
         />
 
         <div
-          class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white rounded-xl shadow-md p-3 border border-blue-500"
+          class="flex flex-col gap-3 rounded-xl border border-blue-500 bg-white p-3 shadow-md dark:border-sky-700/40 dark:bg-[#161B27] dark:shadow-black/30 md:flex-row md:items-center md:justify-between"
         >
-          <div class="text-sm text-gray-600">
+          <div class="text-sm text-gray-600 dark:text-slate-400">
             {{
               calendar.loading
                 ? 'Loading tours...'
@@ -793,7 +793,7 @@ onBeforeUnmount(() => {
               Delete selected
             </button>
             <button
-              class="px-3 py-1.5 rounded border border-gray-300 text-sm"
+              class="rounded border border-gray-300 px-3 py-1.5 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300"
               :disabled="calendar.bulkSelection.length === 0"
               @click="calendar.clearBulkSelection()"
             >
@@ -825,10 +825,10 @@ onBeforeUnmount(() => {
           class="rounded border px-3 py-2 text-sm"
           :class="
             assignmentNotice.type === 'error'
-              ? 'border-red-300 bg-red-50 text-red-700'
+              ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
               : assignmentNotice.type === 'warning'
-                ? 'border-amber-300 bg-amber-50 text-amber-800'
-                : 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                : 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
           "
         >
           <p v-for="line in assignmentNotice.lines" :key="line">{{ line }}</p>
@@ -842,12 +842,12 @@ onBeforeUnmount(() => {
       @click.self="closeDayEventsPopup"
     >
       <div
-        class="absolute left-1/2 top-1/2 w-[94%] max-w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-2xl border border-[#ACBAC4]"
+        class="absolute left-1/2 top-1/2 w-[94%] max-w-160 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">Events on {{ selectedDayLabel }}</h3>
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Events on {{ selectedDayLabel }}</h3>
           <button
-            class="text-red-300 hover:text-red-500 text-xl leading-none"
+            class="text-xl leading-none text-red-300 hover:text-red-500 dark:text-slate-500 dark:hover:text-slate-200"
             aria-label="Close day events popup"
             @click="closeDayEventsPopup"
           >
@@ -857,32 +857,32 @@ onBeforeUnmount(() => {
 
         <div
           v-if="selectedDayEvents.length === 0"
-          class="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-600"
+          class="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-600 dark:border-white/15 dark:bg-[#1A2231] dark:text-slate-400"
         >
           No events scheduled for this date.
         </div>
 
-        <ul v-else class="max-h-[420px] overflow-y-auto space-y-2 pr-1">
+        <ul v-else class="max-h-105 overflow-y-auto space-y-2 pr-1">
           <li
             v-for="event in selectedDayEvents"
             :key="event.id"
-            class="rounded border border-[#ACBAC4] px-3 py-2 hover:bg-gray-50"
+            class="rounded border border-[#ACBAC4] px-3 py-2 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:hover:bg-white/5"
           >
             <button class="w-full text-left" @click="handleSelectEvent(event)">
-              <div class="text-sm font-semibold text-gray-800">{{ event.title }}</div>
-              <div class="text-xs text-gray-600 mt-0.5">
+              <div class="text-sm font-semibold text-gray-800 dark:text-slate-100">{{ event.title }}</div>
+              <div class="mt-0.5 text-xs text-gray-600 dark:text-slate-400">
                 {{ formatLocalTimeLowerAmPm(event.start) }}
                 -
                 {{ formatLocalTimeLowerAmPm(event.end) }}
               </div>
-              <div class="text-xs text-gray-500 mt-0.5">{{ event.resourceName }}</div>
+              <div class="mt-0.5 text-xs text-gray-500 dark:text-slate-500">{{ event.resourceName }}</div>
             </button>
           </li>
         </ul>
 
         <div class="mt-5 flex justify-end">
           <button
-            class="px-4 py-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+            class="rounded border border-red-200 bg-red-50 px-4 py-2 text-red-600 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300 dark:hover:bg-red-950/60"
             @click="closeDayEventsPopup"
           >
             Close
@@ -897,12 +897,12 @@ onBeforeUnmount(() => {
       @click.self="closeTourDetailsPopup"
     >
       <div
-        class="absolute left-1/2 top-1/2 w-[92%] max-w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-xl p-5 shadow-2xl border border-[#ACBAC4] bg-white"
+        class="absolute left-1/2 top-1/2 w-[92%] max-w-130 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">Reservation Details</h3>
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Reservation Details</h3>
           <button
-            class="text-red-300 hover:text-red-500 text-xl leading-none"
+            class="text-xl leading-none text-red-300 hover:text-red-500 dark:text-slate-500 dark:hover:text-slate-200"
             aria-label="Close tour details popup"
             @click="closeTourDetailsPopup"
           >
@@ -910,7 +910,7 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <div class="space-y-4 text-sm text-gray-700">
+        <div class="space-y-4 text-sm text-gray-700 dark:text-slate-300">
           <div
             v-if="String(selectedTourDetails.status || '').trim().toLowerCase() !== 'unassignable'"
             class="rounded border px-2 py-1"
@@ -919,49 +919,49 @@ onBeforeUnmount(() => {
             <span class="font-semibold">Status:</span> {{ selectedTourDetails.status }}
           </div>
 
-          <div class="grid grid-cols-1 gap-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 sm:grid-cols-2">
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Schedule ID</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.schedule_id }}</p>
+          <div class="grid grid-cols-1 gap-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231] sm:grid-cols-2">
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Schedule ID</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.schedule_id }}</p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Tour ID</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.tour_id }}</p>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Tour ID</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.tour_id }}</p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 sm:col-span-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Tour</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.tour_title }}</p>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333] sm:col-span-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Tour</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.tour_title }}</p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Date</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.date }}</p>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Date</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.date }}</p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Time</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.time_range }}</p>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Time</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.time_range }}</p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Language</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.language }}</p>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Language</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.language }}</p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Total People</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.reservation_count }}</p>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Total People</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.reservation_count }}</p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 sm:col-span-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Guide</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800">{{ selectedTourDetails.guide_name }}</p>
+            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333] sm:col-span-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Guide</p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.guide_name }}</p>
             </div>
           </div>
         </div>
 
-        <div v-if="selectedScheduleId && !isSelectedStatusCancelled" class="mt-4 rounded border border-[#ACBAC4] bg-gray-50 p-3">
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Guide Assignment</p>
+        <div v-if="selectedScheduleId && !isSelectedStatusCancelled" class="mt-4 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231]">
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Guide Assignment</p>
 
           <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-1">
             <button
               type="button"
-              class="rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              class="rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
               :disabled="manualAssignSubmitting || cancellingGuideAssignment"
               @click="openManualAssignPopup"
             >
@@ -970,7 +970,7 @@ onBeforeUnmount(() => {
 
             <button
               type="button"
-              class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+              class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300 dark:hover:bg-red-950/60"
               :disabled="manualAssignSubmitting || cancellingGuideAssignment"
               @click="requestCancelGuideAssignment"
             >
@@ -987,13 +987,13 @@ onBeforeUnmount(() => {
       @click.self="closeManualAssignPopup"
     >
       <div
-        class="absolute left-1/2 top-1/2 w-[92%] max-w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl"
+        class="absolute left-1/2 top-1/2 w-[92%] max-w-140 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
       >
         <div class="flex items-center justify-between gap-3">
-          <h3 class="text-lg font-semibold text-gray-800">Manual Assign Guide</h3>
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Manual Assign Guide</h3>
           <button
             type="button"
-            class="text-red-300 hover:text-red-500 text-xl leading-none"
+            class="text-xl leading-none text-red-300 hover:text-red-500 dark:text-slate-500 dark:hover:text-slate-200"
             aria-label="Close manual assign popup"
             @click="closeManualAssignPopup"
           >
@@ -1001,23 +1001,23 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <p class="mt-1 text-xs text-gray-500">Schedule ID: {{ selectedScheduleId }}</p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-slate-500">Schedule ID: {{ selectedScheduleId }}</p>
 
         <div
           v-if="manualAssignError"
-          class="mt-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700"
+          class="mt-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300"
         >
           {{ manualAssignError }}
         </div>
 
-        <div v-if="manualAssignLoadingCandidates" class="mt-4 text-sm text-gray-600">
+        <div v-if="manualAssignLoadingCandidates" class="mt-4 text-sm text-gray-600 dark:text-slate-400">
           Loading eligible guides...
         </div>
 
         <div v-else class="mt-4 space-y-3">
           <div
             v-if="eligibleGuideReasons.length > 0"
-            class="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+            class="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
           >
             <p class="font-semibold">No fully eligible guides found.</p>
             <p v-for="reason in eligibleGuideReasons" :key="reason">Reason: {{ formatReasonCode(reason) }}</p>
@@ -1027,7 +1027,7 @@ onBeforeUnmount(() => {
             <label
               v-for="guide in eligibleGuides"
               :key="guide.id"
-              class="flex cursor-pointer items-start gap-3 rounded border border-[#ACBAC4] px-3 py-2 hover:bg-gray-50"
+              class="flex cursor-pointer items-start gap-3 rounded border border-[#ACBAC4] px-3 py-2 hover:bg-gray-50 dark:border-white/10 dark:bg-[#1C2333] dark:hover:bg-white/5"
             >
               <input
                 v-model="manualAssignGuideId"
@@ -1036,24 +1036,24 @@ onBeforeUnmount(() => {
                 :value="String(guide.id)"
                 class="mt-0.5"
               />
-              <div class="text-sm text-gray-700">
+              <div class="text-sm text-gray-700 dark:text-slate-300">
                 <p class="font-semibold">{{ guide.first_name }} {{ guide.last_name }} (ID {{ guide.id }})</p>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-gray-500 dark:text-slate-500">
                   Rating: {{ guide.guide_rating ?? 'N/A' }} · Same-day assignments: {{ guide.same_day_assignments }} · Languages: {{ guide.languageLabel }}
                 </p>
               </div>
             </label>
-            <p v-if="eligibleGuides.length === 0" class="text-sm text-gray-600">
+            <p v-if="eligibleGuides.length === 0" class="text-sm text-gray-600 dark:text-slate-400">
               No eligible guide candidates returned by backend preview.
             </p>
           </div>
 
           <div>
-            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Reason (optional)</label>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Reason (optional)</label>
             <textarea
               v-model="manualAssignReason"
               rows="3"
-              class="w-full rounded border border-[#ACBAC4] px-3 py-2 text-sm text-gray-700"
+              class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500"
               placeholder="Example: Customer requested specific guide"
             />
           </div>
@@ -1078,12 +1078,12 @@ onBeforeUnmount(() => {
       @click.self="closeCreatePopup"
     >
       <div
-        class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto"
+        class="absolute right-0 top-0 h-full w-full max-w-105 overflow-y-auto border-l border-[#ACBAC4] bg-white p-5 text-gray-700 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:text-slate-100"
       >
         <div class="flex items-center justify-between mb-4">
           <div class="typo-modal-eyebrow">Create</div>
           <button
-            class="text-gray-300 hover:text-white text-xl leading-none"
+            class="text-xl leading-none text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-100"
             aria-label="Close create popup"
             @click="closeCreatePopup"
           >
@@ -1093,24 +1093,24 @@ onBeforeUnmount(() => {
 
         <div
           v-if="formError"
-          class="mt-3 rounded border border-red-400 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+          class="mt-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-400 dark:bg-red-500/10 dark:text-red-200"
         >
           {{ formError }}
         </div>
 
         <div class="mt-5 space-y-4 text-sm">
-          <div class="rounded border border-[#ACBAC4] p-3 space-y-3">
+          <div class="space-y-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231]">
             <div>
-              <div class="text-sm font-semibold text-gray-200 mb-2">{{ monthLabel }}</div>
+              <div class="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-200">{{ monthLabel }}</div>
               <div class="flex gap-2">
                 <button
-                  class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200"
+                  class="flex-1 rounded border border-[#ACBAC4] bg-white px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-200 dark:hover:bg-white/5"
                   @click="calendar.navigate(-1)"
                 >
                   Previous
                 </button>
                 <button
-                  class="flex-1 border border-[#ACBAC4] rounded px-2 py-1.5 text-sm text-gray-200"
+                  class="flex-1 rounded border border-[#ACBAC4] bg-white px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-200 dark:hover:bg-white/5"
                   @click="calendar.navigate(1)"
                 >
                   Next
@@ -1121,10 +1121,10 @@ onBeforeUnmount(() => {
           </div>
 
           <div>
-            <label class="mb-1 flex items-center gap-1 text-sm text-gray-300">
+            <label class="mb-1 flex items-center gap-1 text-sm text-gray-600 dark:text-slate-300">
               <button
                 type="button"
-                class="inline-flex items-center rounded p-0.5 text-gray-300 hover:bg-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-60"
+                class="inline-flex items-center rounded p-0.5 text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-300 dark:hover:bg-white/5"
                 :disabled="toursLoading"
                 aria-label="Refresh tours"
                 title="Refresh tours"
@@ -1150,7 +1150,7 @@ onBeforeUnmount(() => {
             </label>
             <select
               v-model="createForm.tourId"
-              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+              class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
               :disabled="toursLoading || availableTours.length === 0"
             >
               <option value="">Select a tour</option>
@@ -1158,16 +1158,16 @@ onBeforeUnmount(() => {
                 {{ buildTourOptionLabel(tour) }}
               </option>
             </select>
-            <p v-if="toursLoading" class="mt-1 text-xs text-gray-400">Loading tours...</p>
+            <p v-if="toursLoading" class="mt-1 text-xs text-gray-500 dark:text-slate-500">Loading tours...</p>
             <p v-else-if="toursError" class="mt-1 text-xs text-red-300">{{ toursError }}</p>
             <p v-else-if="!availableTours.length" class="mt-1 text-xs text-amber-300">No tours available.</p>
           </div>
 
           <div>
-            <label class="text-gray-300 block mb-1">Language</label>
+            <label class="mb-1 block text-gray-600 dark:text-slate-300">Language</label>
             <select
               v-model="createForm.languageCode"
-              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+              class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             >
               <option v-for="lang in LANGUAGE_CODE_OPTIONS" :key="lang.code" :value="lang.code">
                 {{ lang.label }} ({{ lang.code }})
@@ -1176,36 +1176,36 @@ onBeforeUnmount(() => {
           </div>
 
           <div>
-            <label class="text-gray-300 block mb-1">Date</label>
+            <label class="mb-1 block text-gray-600 dark:text-slate-300">Date</label>
             <input
               v-model="createForm.eventDate"
               type="date"
-              class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2"
+              class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             />
           </div>
 
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="text-gray-300 block mb-1">Start Time</label>
+              <label class="mb-1 block text-gray-600 dark:text-slate-300">Start Time</label>
               <input
                 v-model="createForm.startTime"
                 type="time"
-                class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2"
+                class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
               />
             </div>
             <div>
-              <label class="text-gray-300 block mb-1">End Time</label>
+              <label class="mb-1 block text-gray-600 dark:text-slate-300">End Time</label>
               <input
                 v-model="createForm.endTime"
                 type="time"
-                class="w-full bg-[#2d2d2d] border border-[#ACBAC4] rounded px-3 py-2"
+                class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
               />
             </div>
           </div>
 
           <div
             v-if="selectedCreateTour"
-            class="rounded border border-[#ACBAC4] bg-[#2a2a2a] px-3 py-2 text-xs text-gray-200"
+            class="rounded border border-[#ACBAC4] bg-gray-50 px-3 py-2 text-xs text-gray-700 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-200"
           >
             <div><span class="font-semibold">Tour:</span> {{ selectedCreateTour.name || `Tour ${selectedCreateTour.id}` }}</div>
             <div><span class="font-semibold">Language:</span> {{ createForm.languageCode }}</div>

@@ -94,30 +94,30 @@ function save() {
 </script>
 
 <template>
-  <aside class="bg-white rounded-xl shadow-md p-4 border-1 border-blue-500 h-full">
-    <h3 class="text-lg font-semibold text-gray-800 mb-3">Event Details</h3>
+  <aside class="h-full rounded-xl border border-blue-500 bg-white p-4 shadow-md dark:border-sky-700/40 dark:bg-[#161B27] dark:shadow-black/30">
+    <h3 class="mb-3 text-lg font-semibold text-gray-800 dark:text-slate-100">Event Details</h3>
 
-    <div v-if="!event" class="text-sm text-gray-500">Select an event to edit details.</div>
+    <div v-if="!event" class="text-sm text-gray-500 dark:text-slate-400">Select an event to edit details.</div>
 
     <div v-else class="space-y-3">
       <input
         v-model="form.title"
-        class="w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+        class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
         placeholder="Title"
       />
 
       <div class="grid grid-cols-1 gap-3">
         <div>
-          <label class="text-xs text-gray-600 block mb-1">Start</label>
+          <label class="mb-1 block text-xs text-gray-600 dark:text-slate-400">Start</label>
           <div class="grid grid-cols-[1fr_72px_72px_72px] gap-2">
             <input
               v-model="form.startDate"
               type="date"
-              class="border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+              class="rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             />
             <select
               v-model="form.startHour"
-              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+              class="rounded border border-[#ACBAC4] bg-white px-2 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             >
               <option v-for="hour in hourOptions" :key="`start-hour-${hour}`" :value="hour">
                 {{ hour }}
@@ -125,7 +125,7 @@ function save() {
             </select>
             <select
               v-model="form.startMinute"
-              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+              class="rounded border border-[#ACBAC4] bg-white px-2 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             >
               <option
                 v-for="minute in minuteOptions"
@@ -137,7 +137,7 @@ function save() {
             </select>
             <select
               v-model="form.startPeriod"
-              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+              class="rounded border border-[#ACBAC4] bg-white px-2 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             >
               <option
                 v-for="period in periodOptions"
@@ -151,16 +151,16 @@ function save() {
         </div>
 
         <div>
-          <label class="text-xs text-gray-600 block mb-1">End</label>
+          <label class="mb-1 block text-xs text-gray-600 dark:text-slate-400">End</label>
           <div class="grid grid-cols-[1fr_72px_72px_72px] gap-2">
             <input
               v-model="form.endDate"
               type="date"
-              class="border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+              class="rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             />
             <select
               v-model="form.endHour"
-              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+              class="rounded border border-[#ACBAC4] bg-white px-2 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             >
               <option v-for="hour in hourOptions" :key="`end-hour-${hour}`" :value="hour">
                 {{ hour }}
@@ -168,7 +168,7 @@ function save() {
             </select>
             <select
               v-model="form.endMinute"
-              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+              class="rounded border border-[#ACBAC4] bg-white px-2 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             >
               <option v-for="minute in minuteOptions" :key="`end-minute-${minute}`" :value="minute">
                 {{ minute }}
@@ -176,7 +176,7 @@ function save() {
             </select>
             <select
               v-model="form.endPeriod"
-              class="border border-[#ACBAC4] rounded px-2 py-2 text-sm"
+              class="rounded border border-[#ACBAC4] bg-white px-2 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
             >
               <option v-for="period in periodOptions" :key="`end-period-${period}`" :value="period">
                 {{ period.toLowerCase() }}
@@ -188,7 +188,7 @@ function save() {
 
       <select
         v-model="form.resourceId"
-        class="w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+        class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
       >
         <option v-for="resource in resources" :key="resource.id" :value="resource.id">
           {{ resource.name }}
@@ -196,13 +196,13 @@ function save() {
       </select>
 
       <div class="grid grid-cols-2 gap-2">
-        <select v-model="form.status" class="border border-[#ACBAC4] rounded px-3 py-2 text-sm">
+        <select v-model="form.status" class="rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100">
           <option value="scheduled">scheduled</option>
           <option value="confirmed">confirmed</option>
           <option value="pending">pending</option>
           <option value="cancelled">cancelled</option>
         </select>
-        <select v-model="form.priority" class="border border-[#ACBAC4] rounded px-3 py-2 text-sm">
+        <select v-model="form.priority" class="rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100">
           <option value="low">low</option>
           <option value="medium">medium</option>
           <option value="high">high</option>
@@ -212,14 +212,14 @@ function save() {
       <textarea
         v-model="form.notes"
         rows="4"
-        class="w-full border border-[#ACBAC4] rounded px-3 py-2 text-sm"
+        class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
         placeholder="Notes"
       />
 
       <div class="flex items-center gap-2 pt-2">
         <SaveButton @save="save" />
         <button
-          class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+          class="rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600 dark:bg-slate-600 dark:hover:bg-slate-500"
           @click="emit('duplicate', event.id)"
         >
           Duplicate
