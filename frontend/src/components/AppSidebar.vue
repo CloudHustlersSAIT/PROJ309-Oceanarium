@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/authContext'
 import { useNotificationStore } from '../stores/notification'
 
 import SidebarButton from './SidebarButton.vue'
-import ThemeToggle from './ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -166,9 +165,6 @@ async function handleLogout() {
             </span>
           </div>
         </div>
-
-        <!-- Dark mode toggle -->
-        <ThemeToggle />
 
         <!-- Logout button -->
         <button

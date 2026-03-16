@@ -12,7 +12,11 @@ const { user } = useAuth()
 
 const allDayScheduleRows = ref([])
 const alerts = ref([])
-const recentActivity = ref([])
+const statsSummary = ref({
+  toursToday: 0,
+  cancellations: 0,
+  delayedSchedules: 0,
+})
 const scheduleModalOpen = ref(false)
 const scheduleLoadWarning = ref('')
 const scheduleSectionLoading = ref(true)
@@ -45,6 +49,99 @@ const homeGreeting = computed(() => {
 
 const visibleScheduleRows = computed(() => allDayScheduleRows.value.slice(0, 5))
 const hasMoreSchedules = computed(() => allDayScheduleRows.value.length > 5)
+
+const unassignedSchedulesCount = computed(() =>
+  allDayScheduleRows.value.filter((row) => String(row.guide || '').toLowerCase() === 'unassigned').length,
+)
+
+const delayedSchedulesCount = computed(() => Number(statsSummary.value.delayedSchedules) || 0)
+
+const actionableAlertsCount = computed(() => {
+  const scheduleSyncIssueCount = scheduleLoadWarning.value ? 1 : 0
+  return cancellationCount.value + delayedSchedulesCount.value + scheduleSyncIssueCount
+})
+
+const cancellationCount = computed(() => {
+  const parsed = Number(statsSummary.value.cancellations)
+  return Number.isFinite(parsed) ? parsed : 0
+})
+
+const nextBestAction = computed(() => {
+  if (scheduleLoadWarning.value) {
+    return {
+      title: 'Review schedule sync issues',
+      description: "Today's schedule did not load correctly. Open Calendar to verify and refresh operations.",
+      buttonLabel: 'Open Calendar',
+      routeName: 'calendar',
+      tone: 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+    }
+  }
+
+  if (actionableAlertsCount.value > 0) {
+    return {
+      title: 'Resolve operational alerts',
+      description: `${actionableAlertsCount.value} alert(s) require attention. Review Notifications to prevent downstream issues.`,
+      buttonLabel: 'Review Alerts',
+      routeName: 'notifications',
+      tone: 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300',
+    }
+  }
+
+  if (unassignedSchedulesCount.value > 0) {
+    return {
+      title: 'Assign pending schedules',
+      description: `${unassignedSchedulesCount.value} schedule(s) are unassigned. Open Calendar to keep tours on track.`,
+      buttonLabel: 'Assign Guides',
+      routeName: 'calendar',
+      tone: 'border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-700 dark:bg-sky-950/45 dark:text-sky-300',
+    }
+  }
+
+  if (allDayScheduleRows.value.length === 0) {
+    return {
+      title: 'Plan today\'s operations',
+      description: 'No active schedules found today. Add bookings to kickstart the operational queue.',
+      buttonLabel: 'Add Booking',
+      routeName: 'bookings',
+      tone: 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300',
+    }
+  }
+
+  return {
+    title: 'Monitor performance trends',
+    description: 'Operations are stable. Open Dashboard to review trend lines and guide allocation quality.',
+    buttonLabel: 'Open Dashboard',
+    routeName: 'dashboard',
+    tone: 'border-slate-300 bg-slate-50 text-slate-800 dark:border-white/15 dark:bg-[#1A2231] dark:text-slate-200',
+  }
+})
+
+const operationalHighlights = computed(() => [
+  {
+    label: 'Active Schedules Today',
+    value: allDayScheduleRows.value.length,
+    note: 'Open Calendar',
+    routeName: 'calendar',
+  },
+  {
+    label: 'Alerts Requiring Action',
+    value: actionableAlertsCount.value,
+    note: 'Open Notifications',
+    routeName: 'notifications',
+  },
+  {
+    label: 'Unassigned Guides',
+    value: unassignedSchedulesCount.value,
+    note: 'Open Calendar',
+    routeName: 'calendar',
+  },
+  {
+    label: 'Cancellations Today',
+    value: cancellationCount.value,
+    note: 'Open Dashboard',
+    routeName: 'dashboard',
+  },
+])
 
 function getTodayIsoDate() {
   const now = new Date()
@@ -155,18 +252,9 @@ async function loadHomeData() {
     }
 
     const statsResponse = statsResult.status === 'fulfilled' ? statsResult.value : null
-    const totalEventsToday = Array.isArray(todaySchedules) ? todaySchedules.length : 'Unavailable'
     if (statsResponse) {
       const toursToday = Number(statsResponse?.toursToday) || 0
-      const customersToday = Number(statsResponse?.customersToday) || 0
       const cancellations = Number(statsResponse?.cancellations) || 0
-
-      const computedAlerts = []
-      if (Array.isArray(todaySchedules) && todaySchedules.length === 0) {
-        computedAlerts.push('No tours scheduled for today')
-      }
-      if (cancellations > 0) computedAlerts.push(`${cancellations} cancellation(s) recorded today`)
-
       const delayedCount = Array.isArray(todaySchedules)
         ? todaySchedules.filter((schedule) => {
             const status = String(schedule?.status || '')
@@ -176,22 +264,29 @@ async function loadHomeData() {
           }).length
         : 0
 
+      statsSummary.value = {
+        toursToday,
+        cancellations,
+        delayedSchedules: delayedCount,
+      }
+
+      const computedAlerts = []
+      if (Array.isArray(todaySchedules) && todaySchedules.length === 0) {
+        computedAlerts.push('No tours scheduled for today')
+      }
+      if (cancellations > 0) computedAlerts.push(`${cancellations} cancellation(s) recorded today`)
+
       if (delayedCount > 0) computedAlerts.push(`${delayedCount} schedule(s) delayed`)
       if (computedAlerts.length === 0) computedAlerts.push('No critical alerts at the moment')
 
       alerts.value = computedAlerts
-      recentActivity.value = [
-        { metric: 'Total Events', value: totalEventsToday },
-        { metric: 'Reservations', value: toursToday },
-        { metric: 'Tickets Assigned', value: customersToday },
-        { metric: 'Cancellations', value: cancellations },
-      ]
     } else {
       alerts.value = ['Live stats unavailable right now']
-      recentActivity.value = [
-        { metric: 'Total Events', value: totalEventsToday },
-        { metric: 'Status', value: 'Unavailable' },
-      ]
+      statsSummary.value = {
+        toursToday: 0,
+        cancellations: 0,
+        delayedSchedules: 0,
+      }
     }
 
     if (statsResult.status === 'rejected' || schedulesResult.status === 'rejected') {
@@ -209,20 +304,12 @@ async function loadHomeData() {
   }
 }
 
-function goToBookings() {
-  router.push({ name: 'bookings' })
-}
-
-function goToCalendar() {
-  router.push({ name: 'calendar' })
-}
-
-function goToDashboard() {
-  router.push({ name: 'dashboard' })
-}
-
 function goToNotifications() {
   router.push({ name: 'notifications' })
+}
+
+function goToRoute(routeName) {
+  router.push({ name: routeName })
 }
 
 function openScheduleModal() {
@@ -250,9 +337,41 @@ onMounted(loadHomeData)
         <ThemeToggle icon-only />
       </header>
 
-      <section class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 items-start">
+      <section class="mb-5 rounded-2xl border px-5 py-4 shadow-sm" :class="nextBestAction.tone">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide">Next Best Action</p>
+            <h2 class="mt-1 text-lg font-semibold">{{ nextBestAction.title }}</h2>
+            <p class="mt-1 text-sm opacity-90">{{ nextBestAction.description }}</p>
+          </div>
+
+          <button
+            type="button"
+            class="rounded-xl border border-current/30 bg-white/70 px-4 py-2 text-sm font-semibold transition hover:bg-white/90 dark:bg-white/10 dark:hover:bg-white/20"
+            @click="goToRoute(nextBestAction.routeName)"
+          >
+            {{ nextBestAction.buttonLabel }}
+          </button>
+        </div>
+      </section>
+
+      <section class="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <button
+          v-for="item in operationalHighlights"
+          :key="item.label"
+          type="button"
+          class="app-surface-card app-section-padding text-left transition hover:-translate-y-0.5 hover:shadow-md"
+          @click="goToRoute(item.routeName)"
+        >
+          <p class="typo-card-label">{{ item.label }}</p>
+          <p class="typo-card-value">{{ item.value }}</p>
+          <p class="typo-caption mt-1">{{ item.note }}</p>
+        </button>
+      </section>
+
+      <section class="grid grid-cols-1 gap-5 lg:grid-cols-2 items-start">
         <article
-          class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30 lg:col-span-2 2xl:col-span-1"
+          class="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30"
         >
           <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Today's Schedule</h2>
           <p v-if="scheduleLoadWarning" class="mb-2 text-xs text-amber-700 dark:text-amber-300">
@@ -297,10 +416,10 @@ onMounted(loadHomeData)
           </button>
         </article>
 
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+        <article class="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
           <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Alerts</h2>
           <ul class="mt-2 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-            <li v-for="alert in alerts" :key="alert" class="flex items-center gap-2">
+            <li v-for="alert in alerts.slice(0, 4)" :key="alert" class="flex items-center gap-2">
               <span
                 class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 dark:bg-yellow-950/60 dark:text-yellow-300"
                 >!</span
@@ -317,50 +436,6 @@ onMounted(loadHomeData)
             View Details
           </button>
         </article>
-
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
-          <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Today's Activity</h2>
-          <ul class="mt-2 space-y-2">
-            <li
-              v-for="item in recentActivity"
-              :key="`${item.metric}-${item.value}`"
-              class="border-b border-slate-200 pb-2 last:border-b-0 last:pb-0 dark:border-white/10"
-            >
-              <span class="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-500">{{ item.metric }}</span>
-              <span class="ml-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{{ item.value }}</span>
-            </li>
-            <li v-if="!recentActivity.length" class="text-sm text-slate-600 dark:text-slate-400">
-              No recent activity available.
-            </li>
-          </ul>
-        </article>
-      </section>
-
-      <section class="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
-        <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Quick Actions</h2>
-        <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
-          <button
-            type="button"
-            class="w-full py-2 rounded-lg bg-yellow-400 text-black font-semibold shadow hover:bg-yellow-500 transition"
-            @click="goToBookings"
-          >
-            + Add Booking
-          </button>
-          <button
-            type="button"
-            class="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition"
-            @click="goToCalendar"
-          >
-            Reschedule Tour
-          </button>
-          <button
-            type="button"
-            class="w-full py-2 rounded-lg bg-green-600 text-white font-semibold shadow hover:bg-green-700 transition sm:col-span-2 xl:col-span-1"
-            @click="goToDashboard"
-          >
-            View Guides
-          </button>
-        </div>
       </section>
 
       <div
