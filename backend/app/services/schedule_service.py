@@ -13,17 +13,6 @@ def get_or_create_schedule(
     event_end_datetime,
     status: str = "CONFIRMED",
 ):
-    """
-    Returns an existing schedule_id if a matching schedule exists.
-    Otherwise creates a new schedule and returns its id.
-
-    Matching rules (per PM instructions):
-        - tour_id
-        - language_code
-        - event_start_datetime
-
-    Multiple reservations can share the same schedule.
-    """
 
     language = (language_code or "").strip().lower()
 
