@@ -2,7 +2,7 @@ name: CI – Quality & Migrations
 
 on:
   pull_request:
-    paths: ["backend/**", "frontend/**"]
+    paths: ["backend/**", "frontend/**", ".github/workflows/**"]
 
 jobs:
   validate-migrations:
