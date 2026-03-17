@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import AppSidebar from '../components/AppSidebar.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import ManualAssignPopup from '../components/ManualAssignPopup.vue'
 import { useNotificationStore } from '../stores/notification'
 
 const store = useNotificationStore()
@@ -24,6 +25,8 @@ const READ_FILTER_OPTIONS = [
 ]
 
 const deleteConfirmId = ref(null)
+const assignScheduleId = ref(null)
+const showAssignPopup = ref(false)
 let searchDebounceTimer = null
 
 const summaryCards = computed(() => [
@@ -56,7 +59,8 @@ const summaryCards = computed(() => [
       store.loadNotifications()
     },
     accent: (store.summary.by_priority?.urgent ?? 0) > 0,
-    accentClass: 'border-red-300 bg-red-50 hover:bg-red-100 dark:border-red-700/70 dark:bg-red-950/65 dark:hover:bg-red-950/75',
+    accentClass:
+      'border-red-300 bg-red-50 hover:bg-red-100 dark:border-red-700/70 dark:bg-red-950/65 dark:hover:bg-red-950/75',
   },
   {
     label: 'Action Required',
@@ -64,7 +68,8 @@ const summaryCards = computed(() => [
     note: 'Pending decisions',
     filterAction: null,
     accent: store.summary.action_required > 0,
-    accentClass: 'border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-700/70 dark:bg-amber-950/60 dark:hover:bg-amber-950/70',
+    accentClass:
+      'border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-700/70 dark:bg-amber-950/60 dark:hover:bg-amber-950/70',
   },
 ])
 
@@ -104,11 +109,16 @@ function eventTypeBadgeClass(eventType) {
   const t = String(eventType || '')
     .trim()
     .toLowerCase()
-  if (t.includes('unassignable')) return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
-  if (t.includes('cancel')) return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
-  if (t.includes('reassign')) return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
-  if (t.includes('assign')) return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/45 dark:text-sky-300'
-  if (t.includes('change') || t.includes('move')) return 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/45 dark:text-teal-300'
+  if (t.includes('unassignable'))
+    return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
+  if (t.includes('cancel'))
+    return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
+  if (t.includes('reassign'))
+    return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+  if (t.includes('assign'))
+    return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/45 dark:text-sky-300'
+  if (t.includes('change') || t.includes('move'))
+    return 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/45 dark:text-teal-300'
   return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-300'
 }
 
@@ -116,8 +126,10 @@ function statusBadgeClass(status) {
   const s = String(status || '')
     .trim()
     .toLowerCase()
-  if (s === 'sent') return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
-  if (s === 'failed' || s === 'error') return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
+  if (s === 'sent')
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
+  if (s === 'failed' || s === 'error')
+    return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
   return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-300'
 }
 
@@ -142,7 +154,8 @@ function iconGlyph(type) {
 function iconBgClass(type) {
   if (type === 'assign') return 'bg-sky-100 text-sky-700 dark:bg-sky-950/45 dark:text-sky-300'
   if (type === 'cancel') return 'bg-red-100 text-red-700 dark:bg-red-950/45 dark:text-red-300'
-  if (type === 'warning') return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+  if (type === 'warning')
+    return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
   if (type === 'move') return 'bg-teal-100 text-teal-700 dark:bg-teal-950/45 dark:text-teal-300'
   return 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300'
 }
@@ -172,6 +185,19 @@ function handleDeleteForever() {
     store.showFeedback('Notification removed.')
     deleteConfirmId.value = null
   }
+}
+
+function openAssignPopup(notification) {
+  if (!notification.scheduleId) return
+  assignScheduleId.value = notification.scheduleId
+  showAssignPopup.value = true
+}
+
+function onGuideAssigned({ scheduleId, guideName, guideId }) {
+  showAssignPopup.value = false
+  store.showFeedback(`Guide assigned: ${guideName} (ID ${guideId}) to Schedule #${scheduleId}.`)
+  const notification = store.notifications.find((n) => n.scheduleId === scheduleId && !n.read)
+  if (notification) store.markRead(notification.id)
 }
 
 const searchInputRef = ref('')
@@ -214,7 +240,11 @@ onUnmounted(() => {
               :key="card.label"
               type="button"
               class="rounded-xl border px-4 py-3 text-left transition hover:shadow-sm disabled:cursor-default disabled:opacity-90"
-              :class="card.accent ? card.accentClass : 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-[#1A2231]'"
+              :class="
+                card.accent
+                  ? card.accentClass
+                  : 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-[#1A2231]'
+              "
               :disabled="!card.filterAction"
               :title="`Click to filter by ${card.label.toLowerCase()}`"
               @click="card.filterAction?.()"
@@ -284,7 +314,9 @@ onUnmounted(() => {
           </div>
 
           <!-- Event Type Chips -->
-          <div class="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-white/10">
+          <div
+            class="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-white/10"
+          >
             <button
               v-for="chip in EVENT_TYPE_CHIPS"
               :key="chip.key ?? 'all'"
@@ -473,7 +505,9 @@ onUnmounted(() => {
 
                     <!-- Timestamp -->
                     <div class="shrink-0 typo-caption lg:text-right">
-                      <p class="font-medium text-slate-600 dark:text-slate-300">{{ notification.timeAgo }}</p>
+                      <p class="font-medium text-slate-600 dark:text-slate-300">
+                        {{ notification.timeAgo }}
+                      </p>
                       <p class="mt-0.5">{{ notification.createdAtLabel }}</p>
                     </div>
                   </div>
@@ -492,7 +526,7 @@ onUnmounted(() => {
                       v-if="notification.primaryAction"
                       type="button"
                       class="rounded-lg border border-[#0077B6] bg-[#0077B6] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#006399]"
-                      @click="$router.push(notification.primaryAction.url)"
+                      @click="openAssignPopup(notification)"
                     >
                       {{ notification.primaryAction.label }}
                     </button>
@@ -535,6 +569,13 @@ onUnmounted(() => {
           confirm-label="Delete forever"
           @confirm="handleDeleteForever"
           @cancel="cancelDelete"
+        />
+
+        <ManualAssignPopup
+          :schedule-id="assignScheduleId"
+          :visible="showAssignPopup"
+          @close="showAssignPopup = false"
+          @assigned="onGuideAssigned"
         />
       </section>
     </main>
