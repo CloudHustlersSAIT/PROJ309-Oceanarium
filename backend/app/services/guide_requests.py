@@ -1,6 +1,11 @@
+import logging
+
 from sqlalchemy import text
 
+from . import notification as notification_service
 from .exceptions import ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 def get_swap_requests(conn, guide_id: int):
@@ -118,12 +123,14 @@ def accept_swap_request(conn, swap_request_id: int, caller_guide_id: int):
     fetch_sql = text(
         """
         SELECT
-            schedule_id,
-            guide_id
-        FROM tour_assignment_logs
-        WHERE id = :swap_request_id
-          AND action = 'SWAP_REQUEST'
-          AND assignment_type = 'SWAP'
+            tal.schedule_id,
+            tal.guide_id,
+            s.guide_id AS original_guide_id
+        FROM tour_assignment_logs tal
+        JOIN schedule s ON s.id = tal.schedule_id
+        WHERE tal.id = :swap_request_id
+          AND tal.action = 'SWAP_REQUEST'
+          AND tal.assignment_type = 'SWAP'
         """
     )
 
@@ -136,6 +143,7 @@ def accept_swap_request(conn, swap_request_id: int, caller_guide_id: int):
 
     schedule_id = row["schedule_id"]
     guide_id = row["guide_id"]
+    original_guide_id = row["original_guide_id"]
 
     update_sql = text(
         """
@@ -156,12 +164,47 @@ def accept_swap_request(conn, swap_request_id: int, caller_guide_id: int):
     )
     conn.execute(insert_sql, {"schedule_id": schedule_id, "guide_id": guide_id})
 
+    try:
+        notification_service.notify_guide_unassignment(
+            conn,
+            schedule_id,
+            original_guide_id,
+            "Guide swap accepted",
+            commit=False,
+        )
+    except Exception:
+        logger.exception("Failed to send unassignment notification for swap on schedule %s", schedule_id)
+
+    try:
+        notification_service.notify_guide_assignment(
+            conn,
+            schedule_id,
+            guide_id,
+            "SWAP",
+            commit=False,
+        )
+    except Exception:
+        logger.exception("Failed to send assignment notification for swap on schedule %s", schedule_id)
+
+    try:
+        notification_service.notify_schedule_change(
+            conn,
+            schedule_id,
+            change_type="GUIDE_SWAPPED",
+            change_details=f"Guide swap completed. Guide {guide_id} replaced Guide {original_guide_id}.",
+            affected_guide_id=guide_id,
+            commit=False,
+        )
+    except Exception:
+        logger.exception("Failed to send schedule change notification for swap on schedule %s", schedule_id)
+
     conn.commit()
 
     return {
         "status": "accepted",
         "schedule_id": schedule_id,
         "guide_id": guide_id,
+        "original_guide_id": original_guide_id,
     }
 
 
