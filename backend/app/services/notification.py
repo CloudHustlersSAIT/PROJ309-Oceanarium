@@ -14,6 +14,8 @@ from .notification_templates import (
     guide_unassigned_template,
     schedule_changed_admin_template,
     schedule_unassignable_admin_template,
+    swap_request_received_template,
+    swap_request_rejected_template,
 )
 
 logger = logging.getLogger(__name__)
@@ -499,6 +501,216 @@ def notify_schedule_change(
                     send_pending_notification(conn, notif_id, admin["email"], subject, text_body, html_body)
                 elif row and row[0] == "PORTAL":
                     send_pending_notification(conn, notif_id)
+
+    if commit:
+        conn.commit()
+
+
+def _fetch_guide_info(conn, guide_id: int) -> dict | None:
+    """Fetch guide name and email by ID."""
+    row = conn.execute(
+        text("SELECT first_name || ' ' || last_name as name, email FROM guides WHERE id = :id"),
+        {"id": guide_id},
+    ).fetchone()
+    if not row:
+        return None
+    return {"name": row[0], "email": row[1]}
+
+
+def notify_swap_request_received(
+    conn,
+    schedule_id: int,
+    candidate_guide_id: int,
+    requesting_guide_id: int,
+    *,
+    commit: bool = True,
+) -> None:
+    """Send notifications when a swap request is created.
+
+    - Candidate guide receives: PORTAL + EMAIL (if preferences allow)
+    - All admins receive: PORTAL (informational)
+    """
+    schedule = fetch_schedule_details(conn, schedule_id)
+    if not schedule:
+        return
+
+    candidate = _fetch_guide_info(conn, candidate_guide_id)
+    requester = _fetch_guide_info(conn, requesting_guide_id)
+    if not candidate or not requester:
+        return
+
+    candidate_prefs = get_notification_preferences(
+        conn, guide_id=candidate_guide_id, event_type="SWAP_REQUEST_RECEIVED"
+    )
+
+    subject, text_body, html_body, portal_message, detail = swap_request_received_template(
+        schedule, requester["name"], candidate["name"]
+    )
+
+    actions = [
+        {"label": "View Request", "url": "/guide/swap-requests", "primary": True, "urgent": False},
+        {"label": "Accept", "url": "/guide/swap-requests", "primary": False, "urgent": False},
+        {"label": "Reject", "url": "/guide/swap-requests", "primary": False, "urgent": False},
+    ]
+
+    candidate_channels = []
+    if candidate_prefs["portal_enabled"]:
+        candidate_channels.append("PORTAL")
+    if candidate_prefs["email_enabled"] and candidate["email"]:
+        candidate_channels.append("EMAIL")
+
+    if candidate_channels:
+        notif_ids = create_notification(
+            conn,
+            event_type="SWAP_REQUEST_RECEIVED",
+            schedule_id=schedule_id,
+            guide_id=candidate_guide_id,
+            user_id=None,
+            message=portal_message,
+            channels=candidate_channels,
+            priority="high",
+            action_required=True,
+            detail_json=detail,
+            actions_json=actions,
+        )
+
+        for notif_id in notif_ids:
+            row = conn.execute(
+                text("SELECT channel FROM notifications WHERE id = :id"),
+                {"id": notif_id},
+            ).fetchone()
+            if row and row[0] == "EMAIL" and candidate["email"]:
+                send_pending_notification(conn, notif_id, candidate["email"], subject, text_body, html_body)
+            elif row and row[0] == "PORTAL":
+                send_pending_notification(conn, notif_id)
+
+    admins = get_active_admins(conn)
+    date_str = schedule["event_start_datetime"].strftime("%B %d, %Y")
+    admin_message = (
+        f"Swap request: {requester['name']} requested {candidate['name']} "
+        f"to take over {schedule['tour_name']} on {date_str}"
+    )
+    for admin in admins:
+        admin_prefs = get_notification_preferences(conn, user_id=admin["id"], event_type="SWAP_REQUEST_RECEIVED")
+        if admin_prefs["portal_enabled"]:
+            notif_ids = create_notification(
+                conn,
+                event_type="SWAP_REQUEST_RECEIVED",
+                schedule_id=schedule_id,
+                guide_id=None,
+                user_id=admin["id"],
+                message=admin_message,
+                channels=["PORTAL"],
+                priority="normal",
+                action_required=False,
+                detail_json=detail,
+            )
+            for notif_id in notif_ids:
+                send_pending_notification(conn, notif_id)
+
+    if commit:
+        conn.commit()
+
+
+def notify_swap_request_rejected(
+    conn,
+    schedule_id: int,
+    candidate_guide_id: int,
+    requesting_guide_id: int,
+    *,
+    commit: bool = True,
+) -> None:
+    """Send notifications when a swap request is rejected.
+
+    - Requesting guide (original assignee) receives: PORTAL + EMAIL (if preferences allow)
+    - All admins receive: PORTAL (informational)
+    """
+    schedule = fetch_schedule_details(conn, schedule_id)
+    if not schedule:
+        return
+
+    candidate = _fetch_guide_info(conn, candidate_guide_id)
+    requester = _fetch_guide_info(conn, requesting_guide_id)
+    if not candidate or not requester:
+        return
+
+    requester_prefs = get_notification_preferences(
+        conn, guide_id=requesting_guide_id, event_type="SWAP_REQUEST_REJECTED"
+    )
+
+    subject, text_body, html_body, portal_message, detail = swap_request_rejected_template(
+        schedule, candidate["name"], requester["name"]
+    )
+
+    actions = [
+        {
+            "label": "Find Another Guide",
+            "url": f"/guide/swap-candidates?schedule_id={schedule_id}",
+            "primary": True,
+            "urgent": False,
+        },
+        {
+            "label": "Contact Admin",
+            "url": f"/messages?topic=schedule-{schedule_id}",
+            "primary": False,
+            "urgent": False,
+        },
+    ]
+
+    requester_channels = []
+    if requester_prefs["portal_enabled"]:
+        requester_channels.append("PORTAL")
+    if requester_prefs["email_enabled"] and requester["email"]:
+        requester_channels.append("EMAIL")
+
+    if requester_channels:
+        notif_ids = create_notification(
+            conn,
+            event_type="SWAP_REQUEST_REJECTED",
+            schedule_id=schedule_id,
+            guide_id=requesting_guide_id,
+            user_id=None,
+            message=portal_message,
+            channels=requester_channels,
+            priority="normal",
+            action_required=False,
+            detail_json=detail,
+            actions_json=actions,
+        )
+
+        for notif_id in notif_ids:
+            row = conn.execute(
+                text("SELECT channel FROM notifications WHERE id = :id"),
+                {"id": notif_id},
+            ).fetchone()
+            if row and row[0] == "EMAIL" and requester["email"]:
+                send_pending_notification(conn, notif_id, requester["email"], subject, text_body, html_body)
+            elif row and row[0] == "PORTAL":
+                send_pending_notification(conn, notif_id)
+
+    admins = get_active_admins(conn)
+    date_str = schedule["event_start_datetime"].strftime("%B %d, %Y")
+    admin_message = (
+        f"Swap declined: {candidate['name']} declined swap request from "
+        f"{requester['name']} for {schedule['tour_name']} on {date_str}"
+    )
+    for admin in admins:
+        admin_prefs = get_notification_preferences(conn, user_id=admin["id"], event_type="SWAP_REQUEST_REJECTED")
+        if admin_prefs["portal_enabled"]:
+            notif_ids = create_notification(
+                conn,
+                event_type="SWAP_REQUEST_REJECTED",
+                schedule_id=schedule_id,
+                guide_id=None,
+                user_id=admin["id"],
+                message=admin_message,
+                channels=["PORTAL"],
+                priority="normal",
+                action_required=False,
+                detail_json=detail,
+            )
+            for notif_id in notif_ids:
+                send_pending_notification(conn, notif_id)
 
     if commit:
         conn.commit()

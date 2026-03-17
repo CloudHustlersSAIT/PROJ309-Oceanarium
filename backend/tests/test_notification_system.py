@@ -173,6 +173,57 @@ def test_schedule_changed_admin_template():
     assert "Reservation #123 cancelled" in text
 
 
+def test_swap_request_received_template():
+    """Test swap request received template."""
+    schedule = {
+        "id": 6,
+        "tour_name": "Coral Reef Tour",
+        "event_start_datetime": datetime(2026, 3, 20, 10, 0),
+        "event_end_datetime": datetime(2026, 3, 20, 12, 0),
+        "language_code": "EN",
+        "ticket_count": 8,
+    }
+
+    subject, text, html, portal, detail = notification_templates.swap_request_received_template(
+        schedule, "Maria Silva", "John Doe"
+    )
+
+    assert "Swap Request" in subject
+    assert "Coral Reef Tour" in subject
+    assert "Maria Silva" in text
+    assert "John Doe" in text
+    assert "Maria Silva" in portal
+    assert detail["requesting_guide"] == "Maria Silva"
+    assert detail["candidate_guide"] == "John Doe"
+    assert detail["tour_name"] == "Coral Reef Tour"
+    assert detail["ticket_count"] == 8
+
+
+def test_swap_request_rejected_template():
+    """Test swap request rejected template."""
+    schedule = {
+        "id": 7,
+        "tour_name": "Deep Sea Adventure",
+        "event_start_datetime": datetime(2026, 3, 25, 14, 0),
+        "event_end_datetime": datetime(2026, 3, 25, 16, 0),
+        "language_code": "ES",
+        "ticket_count": 12,
+    }
+
+    subject, text, html, portal, detail = notification_templates.swap_request_rejected_template(
+        schedule, "John Doe", "Maria Silva"
+    )
+
+    assert "Declined" in subject
+    assert "Deep Sea Adventure" in subject
+    assert "John Doe" in text
+    assert "Maria Silva" in text
+    assert "declined" in portal.lower()
+    assert detail["declined_by"] == "John Doe"
+    assert detail["requested_by"] == "Maria Silva"
+    assert detail["tour_name"] == "Deep Sea Adventure"
+
+
 # ===== Notification Service Tests =====
 
 
@@ -627,3 +678,181 @@ def test_dispatch_events_handles_exception():
 
     # Should not raise exception
     dispatch_events(conn, events)
+
+
+# ===== Swap Request Notification Service Tests =====
+
+
+def _mock_schedule():
+    return {
+        "id": 10,
+        "tour_name": "Ocean Tour",
+        "language_code": "EN",
+        "event_start_datetime": datetime(2026, 3, 15, 10, 0),
+        "event_end_datetime": datetime(2026, 3, 15, 12, 0),
+        "guide_name": "Original Guide",
+        "guide_email": "original@example.com",
+        "ticket_count": 5,
+        "tour_id": 1,
+        "status": "ASSIGNED",
+    }
+
+
+@patch("app.services.notification.send_email", return_value=True)
+@patch("app.services.notification.get_active_admins")
+@patch("app.services.notification.fetch_schedule_details")
+def test_notify_swap_request_received(mock_fetch, mock_admins, mock_email):
+    """Test notify_swap_request_received sends to candidate and admins."""
+    conn = MagicMock()
+    mock_fetch.return_value = _mock_schedule()
+    mock_admins.return_value = [{"id": 1, "email": "admin@example.com", "name": "Admin"}]
+
+    guide_row_candidate = MagicMock()
+    guide_row_candidate.__getitem__ = lambda self, k: {"name": "Candidate Guide", "email": "candidate@example.com"}[
+        {0: "name", 1: "email"}[k]
+    ]
+    guide_row_requester = MagicMock()
+    guide_row_requester.__getitem__ = lambda self, k: {"name": "Requester Guide", "email": "requester@example.com"}[
+        {0: "name", 1: "email"}[k]
+    ]
+
+    notif_counter = [0]
+
+    def mock_execute(sql, params=None):
+        result = MagicMock()
+        sql_str = str(sql)
+        if "FROM guides" in sql_str:
+            if params and params.get("id") == 7:
+                result.fetchone.return_value = guide_row_candidate
+            else:
+                result.fetchone.return_value = guide_row_requester
+        elif "FROM notification_preferences" in sql_str:
+            result.fetchone.return_value = None
+        elif "INSERT INTO notifications" in sql_str:
+            notif_counter[0] += 1
+            result.fetchone.return_value = (notif_counter[0],)
+        elif "FROM notifications" in sql_str:
+            if notif_counter[0] % 2 == 1:
+                result.fetchone.return_value = ("PORTAL", "PENDING")
+            else:
+                result.fetchone.return_value = ("EMAIL", "PENDING")
+        else:
+            result.fetchone.return_value = None
+        return result
+
+    conn.execute = mock_execute
+    conn.commit = MagicMock()
+
+    notification_service.notify_swap_request_received(conn, 10, 7, 5)
+
+    conn.commit.assert_called_once()
+
+
+@patch("app.services.notification.send_email", return_value=True)
+@patch("app.services.notification.get_active_admins")
+@patch("app.services.notification.fetch_schedule_details")
+def test_notify_swap_request_received_schedule_not_found(mock_fetch, mock_admins, mock_email):
+    """Test notify_swap_request_received returns early if schedule not found."""
+    conn = MagicMock()
+    mock_fetch.return_value = {}
+
+    notification_service.notify_swap_request_received(conn, 999, 7, 5)
+
+    mock_admins.assert_not_called()
+    conn.commit.assert_not_called()
+
+
+@patch("app.services.notification.send_email", return_value=True)
+@patch("app.services.notification.get_active_admins")
+@patch("app.services.notification.fetch_schedule_details")
+def test_notify_swap_request_rejected(mock_fetch, mock_admins, mock_email):
+    """Test notify_swap_request_rejected sends to requester and admins."""
+    conn = MagicMock()
+    mock_fetch.return_value = _mock_schedule()
+    mock_admins.return_value = [{"id": 1, "email": "admin@example.com", "name": "Admin"}]
+
+    guide_row_candidate = MagicMock()
+    guide_row_candidate.__getitem__ = lambda self, k: {"name": "Candidate Guide", "email": "candidate@example.com"}[
+        {0: "name", 1: "email"}[k]
+    ]
+    guide_row_requester = MagicMock()
+    guide_row_requester.__getitem__ = lambda self, k: {"name": "Requester Guide", "email": "requester@example.com"}[
+        {0: "name", 1: "email"}[k]
+    ]
+
+    notif_counter = [0]
+
+    def mock_execute(sql, params=None):
+        result = MagicMock()
+        sql_str = str(sql)
+        if "FROM guides" in sql_str:
+            if params and params.get("id") == 7:
+                result.fetchone.return_value = guide_row_candidate
+            else:
+                result.fetchone.return_value = guide_row_requester
+        elif "FROM notification_preferences" in sql_str:
+            result.fetchone.return_value = None
+        elif "INSERT INTO notifications" in sql_str:
+            notif_counter[0] += 1
+            result.fetchone.return_value = (notif_counter[0],)
+        elif "FROM notifications" in sql_str:
+            if notif_counter[0] % 2 == 1:
+                result.fetchone.return_value = ("PORTAL", "PENDING")
+            else:
+                result.fetchone.return_value = ("EMAIL", "PENDING")
+        else:
+            result.fetchone.return_value = None
+        return result
+
+    conn.execute = mock_execute
+    conn.commit = MagicMock()
+
+    notification_service.notify_swap_request_rejected(conn, 10, 7, 5)
+
+    conn.commit.assert_called_once()
+
+
+@patch("app.services.notification.send_email", return_value=True)
+@patch("app.services.notification.get_active_admins")
+@patch("app.services.notification.fetch_schedule_details")
+def test_notify_swap_request_rejected_schedule_not_found(mock_fetch, mock_admins, mock_email):
+    """Test notify_swap_request_rejected returns early if schedule not found."""
+    conn = MagicMock()
+    mock_fetch.return_value = {}
+
+    notification_service.notify_swap_request_rejected(conn, 999, 7, 5)
+
+    mock_admins.assert_not_called()
+    conn.commit.assert_not_called()
+
+
+@patch("app.services.notification.get_active_admins")
+@patch("app.services.notification.fetch_schedule_details")
+def test_notify_swap_request_received_guide_not_found(mock_fetch, mock_admins):
+    """Test notify_swap_request_received returns early if guide not found."""
+    conn = MagicMock()
+    mock_fetch.return_value = _mock_schedule()
+
+    result = MagicMock()
+    result.fetchone.return_value = None
+    conn.execute.return_value = result
+
+    notification_service.notify_swap_request_received(conn, 10, 7, 5)
+
+    mock_admins.assert_not_called()
+
+
+@patch("app.services.notification.get_active_admins")
+@patch("app.services.notification.fetch_schedule_details")
+def test_notify_swap_request_rejected_guide_not_found(mock_fetch, mock_admins):
+    """Test notify_swap_request_rejected returns early if guide not found."""
+    conn = MagicMock()
+    mock_fetch.return_value = _mock_schedule()
+
+    result = MagicMock()
+    result.fetchone.return_value = None
+    conn.execute.return_value = result
+
+    notification_service.notify_swap_request_rejected(conn, 10, 7, 5)
+
+    mock_admins.assert_not_called()

@@ -428,3 +428,172 @@ View schedule: {FRONTEND_URL}/schedule/{schedule_id}
     }
 
     return subject, text, html, portal_message, detail
+
+
+def swap_request_received_template(
+    schedule: dict, requesting_guide_name: str, candidate_guide_name: str
+) -> tuple[str, str, str, str, dict]:
+    """Template for SWAP_REQUEST_RECEIVED event.
+
+    Returns: (subject, text_body, html_body, portal_message, notification_detail)
+    """
+    tour_name = schedule.get("tour_name", "Unknown Tour")
+    language = schedule.get("language_code", "").upper()
+    date = _format_date(schedule["event_start_datetime"])
+    time = _format_time(schedule["event_start_datetime"])
+    ticket_count = schedule.get("ticket_count", 0)
+    schedule_id = schedule["id"]
+
+    portal_message = (
+        f"Swap request: {requesting_guide_name} wants you to take over "
+        f"{tour_name} on {date} at {time} ({ticket_count} {language}-speaking guests)"
+    )
+
+    subject = f"Swap Request: {tour_name} on {date}"
+
+    text = f"""Hi {candidate_guide_name},
+
+{requesting_guide_name} has requested you to take over their tour assignment:
+
+Tour: {tour_name}
+Date: {date}
+Time: {time}
+Language: {language}
+Guests: {ticket_count}
+
+Please accept or reject this request in the portal.
+
+View request: {FRONTEND_URL}/guide/swap-requests
+
+This is an automated notification from the Oceanarium Scheduling System.
+"""
+
+    html = f"""
+<html>
+  <body style="font-family: Arial, sans-serif; color: #1C1C1C; line-height: 1.6;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #F59E0B;">Swap Request Received</h2>
+      <p>Hi {candidate_guide_name},</p>
+      <p><strong>{requesting_guide_name}</strong> has requested you to take over their tour assignment:</p>
+
+      <div style="background-color: #FFFBEB; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Tour:</strong> {tour_name}</p>
+        <p style="margin: 5px 0;"><strong>Date:</strong> {date}</p>
+        <p style="margin: 5px 0;"><strong>Time:</strong> {time}</p>
+        <p style="margin: 5px 0;"><strong>Language:</strong> {language}</p>
+        <p style="margin: 5px 0;"><strong>Guests:</strong> {ticket_count}</p>
+        <p style="margin: 5px 0;"><strong>Requested by:</strong> {requesting_guide_name}</p>
+      </div>
+
+      <p>Please review and respond to this request:</p>
+
+      <p>
+        <a href="{FRONTEND_URL}/guide/swap-requests"
+           style="display: inline-block; background-color: #F59E0B; color: white;
+                  padding: 12px 24px; text-decoration: none; border-radius: 5px;
+                  font-weight: bold;">
+          View Swap Request
+        </a>
+      </p>
+
+      <p style="color: #666; font-size: 14px; margin-top: 30px;">
+        This is an automated notification from the Oceanarium Scheduling System.
+      </p>
+    </div>
+  </body>
+</html>
+"""
+
+    detail = {
+        "title": "Swap Request Received",
+        "tour_name": tour_name,
+        "date": date,
+        "time": time,
+        "language": language,
+        "ticket_count": ticket_count,
+        "requesting_guide": requesting_guide_name,
+        "candidate_guide": candidate_guide_name,
+        "schedule_id": schedule_id,
+    }
+
+    return subject, text, html, portal_message, detail
+
+
+def swap_request_rejected_template(
+    schedule: dict, candidate_guide_name: str, requester_guide_name: str
+) -> tuple[str, str, str, str, dict]:
+    """Template for SWAP_REQUEST_REJECTED event.
+
+    Returns: (subject, text_body, html_body, portal_message, notification_detail)
+    """
+    tour_name = schedule.get("tour_name", "Unknown Tour")
+    date = _format_date(schedule["event_start_datetime"])
+    time = _format_time(schedule["event_start_datetime"])
+    schedule_id = schedule["id"]
+
+    portal_message = (
+        f"Swap declined: {candidate_guide_name} declined your swap request for {tour_name} on {date} at {time}"
+    )
+
+    subject = f"Swap Request Declined: {tour_name} on {date}"
+
+    text = f"""Hi {requester_guide_name},
+
+{candidate_guide_name} has declined your swap request for the following tour:
+
+Tour: {tour_name}
+Date: {date}
+Time: {time}
+
+You can request another guide or contact an admin for assistance.
+
+Find another guide: {FRONTEND_URL}/guide/swap-candidates?schedule_id={schedule_id}
+
+This is an automated notification from the Oceanarium Scheduling System.
+"""
+
+    html = f"""
+<html>
+  <body style="font-family: Arial, sans-serif; color: #1C1C1C; line-height: 1.6;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #6B7280;">Swap Request Declined</h2>
+      <p>Hi {requester_guide_name},</p>
+      <p><strong>{candidate_guide_name}</strong> has declined your swap request for the following tour:</p>
+
+      <div style="background-color: #F9FAFB; border-left: 4px solid #6B7280; padding: 15px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Tour:</strong> {tour_name}</p>
+        <p style="margin: 5px 0;"><strong>Date:</strong> {date}</p>
+        <p style="margin: 5px 0;"><strong>Time:</strong> {time}</p>
+        <p style="margin: 5px 0;"><strong>Declined by:</strong> {candidate_guide_name}</p>
+      </div>
+
+      <p>You can request another guide or contact an admin for assistance.</p>
+
+      <p>
+        <a href="{FRONTEND_URL}/guide/swap-candidates?schedule_id={schedule_id}"
+           style="display: inline-block; background-color: #0077B6; color: white;
+                  padding: 12px 24px; text-decoration: none; border-radius: 5px;
+                  font-weight: bold;">
+          Find Another Guide
+        </a>
+      </p>
+
+      <p style="color: #666; font-size: 14px; margin-top: 30px;">
+        This is an automated notification from the Oceanarium Scheduling System.
+      </p>
+    </div>
+  </body>
+</html>
+"""
+
+    detail = {
+        "title": "Swap Request Declined",
+        "tour_name": tour_name,
+        "date": date,
+        "time": time,
+        "declined_by": candidate_guide_name,
+        "requested_by": requester_guide_name,
+        "schedule_id": schedule_id,
+    }
+
+    return subject, text, html, portal_message, detail

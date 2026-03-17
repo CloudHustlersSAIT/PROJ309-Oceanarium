@@ -3,11 +3,11 @@
 | Field            | Value                  |
 |------------------|------------------------|
 | **ID**           | FDR-003                |
-| **Version**      | 4.0                    |
+| **Version**      | 5.0                    |
 | **Status**       | Active                 |
 | **Author**       | Evandro Maciel         |
 | **Created**      | 2026-03-03             |
-| **Last Updated** | 2026-03-14             |
+| **Last Updated** | 2026-03-17             |
 
 ---
 
@@ -180,6 +180,55 @@ Every scheduling change must be communicated to the relevant Admin and Guide thr
   - Every notification has a trackable lifecycle
   - Portal shows only PORTAL notifications, with embedded email delivery status
   - Failed notifications are visible to admins in the portal
+
+### FR-7: Notify on swap request received
+
+- **Description**: When a guide creates a swap request, notify the candidate guide (the one being asked to take over) and all admins.
+- **Trigger**: `POST /notifications/swap-request-received` API call, or called internally by `create_swap_request()` in the guide requests service
+- **Request Body**:
+  ```
+  schedule_id: int (required)
+  candidate_guide_id: int (required)
+  requesting_guide_id: int (required)
+  ```
+- **Recipients**: Candidate guide (PORTAL + EMAIL) + all active admins (PORTAL only)
+- **Channels**: Portal + Email for candidate guide; Portal only for admins
+- **Priority**: `high`
+- **Action Required**: `True` (candidate must accept or reject)
+- **Message Content**:
+  - Requesting guide name
+  - Tour name, date/time, language, guest count
+  - Actions: View Request, Accept, Reject
+- **Acceptance Criteria**:
+  - Candidate guide receives portal + email notification with `action_required = true`
+  - All active admins receive portal notification (informational)
+  - `notifications` row created with `event_type = 'SWAP_REQUEST_RECEIVED'`
+  - Notification failure does not break the swap request creation
+
+### FR-8: Notify on swap request rejected
+
+- **Description**: When a candidate guide rejects a swap request, notify the requesting guide (original assignee) and all admins.
+- **Trigger**: `POST /notifications/swap-request-rejected` API call, or called internally by `reject_swap_request()` in the guide requests service
+- **Request Body**:
+  ```
+  schedule_id: int (required)
+  candidate_guide_id: int (required)
+  requesting_guide_id: int (required)
+  ```
+- **Recipients**: Requesting guide / original assignee (PORTAL + EMAIL) + all active admins (PORTAL only)
+- **Channels**: Portal + Email for requesting guide; Portal only for admins
+- **Priority**: `normal`
+- **Action Required**: `False`
+- **Message Content**:
+  - Which guide declined
+  - Tour name, date/time
+  - Suggestion to request another guide or contact admin
+  - Actions: Find Another Guide, Contact Admin
+- **Acceptance Criteria**:
+  - Requesting guide receives portal + email notification
+  - All active admins receive portal notification (informational)
+  - `notifications` row created with `event_type = 'SWAP_REQUEST_REJECTED'`
+  - Notification failure does not break the swap request rejection
 
 ## 5. Data Model Impact
 
@@ -388,6 +437,70 @@ Trigger schedule change notifications (FR-3, FR-4).
 }
 ```
 
+#### `POST /notifications/swap-request-received`
+
+Trigger swap request received notification (FR-7).
+
+**Authentication:** Required (Admin or System)
+
+**Request Body:**
+```json
+{
+  "schedule_id": 123,
+  "candidate_guide_id": 7,
+  "requesting_guide_id": 5
+}
+```
+
+**Fields:**
+- `schedule_id` (int, required): Schedule ID
+- `candidate_guide_id` (int, required): Guide ID who receives the swap request
+- `requesting_guide_id` (int, required): Guide ID who initiated the swap request
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "event_type": "SWAP_REQUEST_RECEIVED",
+  "schedule_id": 123,
+  "candidate_guide_id": 7,
+  "requesting_guide_id": 5,
+  "message": "Notification sent for swap request received"
+}
+```
+
+#### `POST /notifications/swap-request-rejected`
+
+Trigger swap request rejected notification (FR-8).
+
+**Authentication:** Required (Admin or System)
+
+**Request Body:**
+```json
+{
+  "schedule_id": 123,
+  "candidate_guide_id": 7,
+  "requesting_guide_id": 5
+}
+```
+
+**Fields:**
+- `schedule_id` (int, required): Schedule ID
+- `candidate_guide_id` (int, required): Guide ID who rejected the swap request
+- `requesting_guide_id` (int, required): Guide ID who initiated the swap request
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "event_type": "SWAP_REQUEST_REJECTED",
+  "schedule_id": 123,
+  "candidate_guide_id": 7,
+  "requesting_guide_id": 5,
+  "message": "Notification sent for swap request rejected"
+}
+```
+
 ## 7. Error Handling
 
 | Scenario | Expected Behavior | HTTP Status |
@@ -480,3 +593,4 @@ await api.post('/notifications/guide-assigned', {
 | 2.0     | 2026-03-11 | Evandro Maciel | Implemented: Multi-channel notifications with Resend.com, user preferences, rich detail view, priority levels, action buttons, enhanced templates following 2026 best practices |
 | 3.0     | 2026-03-13 | Evandro Maciel | Architecture refactor: API-first notification triggering, decoupled from domain services, added POST endpoints for manual/programmatic notification triggering, updated trigger mechanism from events to explicit API calls |
 | 4.0     | 2026-03-14 | Evandro Maciel | Notification deduplication: added `group_id` UUID to correlate PORTAL/EMAIL rows, portal shows only PORTAL channel with embedded email status, removed dev-only test-trigger endpoints |
+| 5.0     | 2026-03-17 | Evandro Maciel | Swap request notifications: added FR-7 (SWAP_REQUEST_RECEIVED) and FR-8 (SWAP_REQUEST_REJECTED) with corresponding trigger endpoints, templates, and service functions |

@@ -46,6 +46,18 @@ class ScheduleChangedRequest(BaseModel):
     new_state: dict | None = Field(None, description="New state after change")
 
 
+class SwapRequestReceivedRequest(BaseModel):
+    schedule_id: int = Field(..., description="Schedule ID")
+    candidate_guide_id: int = Field(..., description="Guide ID who receives the swap request")
+    requesting_guide_id: int = Field(..., description="Guide ID who initiated the swap request")
+
+
+class SwapRequestRejectedRequest(BaseModel):
+    schedule_id: int = Field(..., description="Schedule ID")
+    candidate_guide_id: int = Field(..., description="Guide ID who rejected the swap request")
+    requesting_guide_id: int = Field(..., description="Guide ID who initiated the swap request")
+
+
 @router.get("")
 def read_notifications(
     status: str = Query(None),
@@ -727,4 +739,77 @@ def trigger_schedule_changed_notification(
         }
     except Exception as e:
         logger.error(f"❌ Failed to trigger schedule changed notification: {e}")
+        return handle_domain_exception(e)
+
+
+@router.post("/swap-request-received")
+def trigger_swap_request_received_notification(
+    body: SwapRequestReceivedRequest,
+    conn=Depends(get_db),
+    current_user=Depends(require_resolved_user),
+):
+    """Trigger swap request received notification (FR-7).
+
+    Sends notifications to candidate guide (PORTAL + EMAIL) and admins (PORTAL).
+    Priority: high, Action Required: True
+    """
+    logger.info(
+        f"🔔 Triggering swap request received notification: schedule={body.schedule_id}, "
+        f"candidate={body.candidate_guide_id}, requester={body.requesting_guide_id}"
+    )
+
+    try:
+        notification_service.notify_swap_request_received(
+            conn, body.schedule_id, body.candidate_guide_id, body.requesting_guide_id
+        )
+        conn.commit()
+
+        logger.info("✅ Swap request received notification triggered successfully")
+
+        return {
+            "success": True,
+            "event_type": "SWAP_REQUEST_RECEIVED",
+            "schedule_id": body.schedule_id,
+            "candidate_guide_id": body.candidate_guide_id,
+            "requesting_guide_id": body.requesting_guide_id,
+            "message": "Notification sent for swap request received",
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to trigger swap request received notification: {e}")
+        return handle_domain_exception(e)
+
+
+@router.post("/swap-request-rejected")
+def trigger_swap_request_rejected_notification(
+    body: SwapRequestRejectedRequest,
+    conn=Depends(get_db),
+    current_user=Depends(require_resolved_user),
+):
+    """Trigger swap request rejected notification (FR-8).
+
+    Sends notifications to requesting guide (PORTAL + EMAIL) and admins (PORTAL).
+    """
+    logger.info(
+        f"🔔 Triggering swap request rejected notification: schedule={body.schedule_id}, "
+        f"candidate={body.candidate_guide_id}, requester={body.requesting_guide_id}"
+    )
+
+    try:
+        notification_service.notify_swap_request_rejected(
+            conn, body.schedule_id, body.candidate_guide_id, body.requesting_guide_id
+        )
+        conn.commit()
+
+        logger.info("✅ Swap request rejected notification triggered successfully")
+
+        return {
+            "success": True,
+            "event_type": "SWAP_REQUEST_REJECTED",
+            "schedule_id": body.schedule_id,
+            "candidate_guide_id": body.candidate_guide_id,
+            "requesting_guide_id": body.requesting_guide_id,
+            "message": "Notification sent for swap request rejected",
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to trigger swap request rejected notification: {e}")
         return handle_domain_exception(e)
