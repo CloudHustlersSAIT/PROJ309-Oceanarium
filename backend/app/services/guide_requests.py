@@ -76,6 +76,18 @@ def create_swap_request(conn, schedule_id: int, guide_id: int, requesting_guide_
     )
 
     row = result.fetchone()
+
+    try:
+        notification_service.notify_swap_request_received(
+            conn,
+            schedule_id,
+            guide_id,
+            schedule_row["guide_id"],
+            commit=False,
+        )
+    except Exception:
+        logger.exception("Failed to send swap request received notification for schedule %s", schedule_id)
+
     conn.commit()
 
     return {"swap_request_id": row[0]} if row is not None else None
@@ -213,12 +225,14 @@ def reject_swap_request(conn, swap_request_id: int, caller_guide_id: int):
     fetch_sql = text(
         """
         SELECT
-            schedule_id,
-            guide_id
-        FROM tour_assignment_logs
-        WHERE id = :swap_request_id
-          AND action = 'SWAP_REQUEST'
-          AND assignment_type = 'SWAP'
+            tal.schedule_id,
+            tal.guide_id,
+            s.guide_id AS original_guide_id
+        FROM tour_assignment_logs tal
+        JOIN schedule s ON s.id = tal.schedule_id
+        WHERE tal.id = :swap_request_id
+          AND tal.action = 'SWAP_REQUEST'
+          AND tal.assignment_type = 'SWAP'
         """
     )
 
@@ -231,6 +245,7 @@ def reject_swap_request(conn, swap_request_id: int, caller_guide_id: int):
 
     schedule_id = row["schedule_id"]
     guide_id = row["guide_id"]
+    original_guide_id = row["original_guide_id"]
 
     insert_sql = text(
         """
@@ -241,6 +256,17 @@ def reject_swap_request(conn, swap_request_id: int, caller_guide_id: int):
         """
     )
     conn.execute(insert_sql, {"schedule_id": schedule_id, "guide_id": guide_id})
+
+    try:
+        notification_service.notify_swap_request_rejected(
+            conn,
+            schedule_id,
+            guide_id,
+            original_guide_id,
+            commit=False,
+        )
+    except Exception:
+        logger.exception("Failed to send swap request rejected notification for schedule %s", schedule_id)
 
     conn.commit()
 

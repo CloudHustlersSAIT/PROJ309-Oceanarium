@@ -553,3 +553,80 @@ async def test_get_notifications_with_invalid_actions_json(client):
         assert result["notifications"][0]["primary_action"] is None
     finally:
         app.dependency_overrides.pop(require_resolved_user, None)
+
+
+# ===== Swap Request Notification Trigger Tests =====
+
+
+@pytest.mark.asyncio
+async def test_trigger_swap_request_received_success(client):
+    """Test POST /notifications/swap-request-received triggers notification successfully."""
+    from app.dependencies.auth import require_resolved_user
+    from app.main import app
+
+    def mock_auth():
+        return {"user_id": 1, "role": "admin"}
+
+    app.dependency_overrides[require_resolved_user] = mock_auth
+
+    try:
+        with patch("app.routes.notification.notification_service") as mock_svc:
+            mock_svc.notify_swap_request_received.return_value = None
+
+            response = await client.post(
+                "/notifications/swap-request-received",
+                json={
+                    "schedule_id": 1,
+                    "candidate_guide_id": 7,
+                    "requesting_guide_id": 5,
+                },
+            )
+
+        assert response.status_code == 200
+        result = response.json()
+        assert result["success"]
+        assert result["event_type"] == "SWAP_REQUEST_RECEIVED"
+        assert result["schedule_id"] == 1
+        assert result["candidate_guide_id"] == 7
+        assert result["requesting_guide_id"] == 5
+
+        mock_svc.notify_swap_request_received.assert_called_once()
+    finally:
+        app.dependency_overrides.pop(require_resolved_user, None)
+
+
+@pytest.mark.asyncio
+async def test_trigger_swap_request_rejected_success(client):
+    """Test POST /notifications/swap-request-rejected triggers notification successfully."""
+    from app.dependencies.auth import require_resolved_user
+    from app.main import app
+
+    def mock_auth():
+        return {"user_id": 1, "role": "admin"}
+
+    app.dependency_overrides[require_resolved_user] = mock_auth
+
+    try:
+        with patch("app.routes.notification.notification_service") as mock_svc:
+            mock_svc.notify_swap_request_rejected.return_value = None
+
+            response = await client.post(
+                "/notifications/swap-request-rejected",
+                json={
+                    "schedule_id": 1,
+                    "candidate_guide_id": 7,
+                    "requesting_guide_id": 5,
+                },
+            )
+
+        assert response.status_code == 200
+        result = response.json()
+        assert result["success"]
+        assert result["event_type"] == "SWAP_REQUEST_REJECTED"
+        assert result["schedule_id"] == 1
+        assert result["candidate_guide_id"] == 7
+        assert result["requesting_guide_id"] == 5
+
+        mock_svc.notify_swap_request_rejected.assert_called_once()
+    finally:
+        app.dependency_overrides.pop(require_resolved_user, None)
