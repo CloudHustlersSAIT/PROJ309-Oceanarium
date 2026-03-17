@@ -39,6 +39,8 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script_stop: true
+          timeout: 60s
+          command_timeout: 10m
           script: |
             cd ~/app
             git pull origin main
