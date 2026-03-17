@@ -5,27 +5,17 @@ import CalendarToolbar from '../components/calendar/CalendarToolbar.vue'
 import CalendarGrid from '../components/calendar/CalendarGrid.vue'
 import CancelButton from '../components/CancelButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import ManualAssignPopup from '../components/ManualAssignPopup.vue'
 import SaveButton from '../components/SaveButton.vue'
 import { useCalendarStore } from '../stores/calendar'
-import {
-  autoAssignGuide,
-  cancelGuideFromSchedule,
-  createSchedule,
-  getEligibleGuides,
-  getGuideLanguages,
-  getTours,
-  manualAssignGuide,
-} from '../services/api'
+import { autoAssignGuide, cancelGuideFromSchedule, createSchedule, getTours } from '../services/api'
 import { downloadCsv } from '../utils/calendar'
-import {
-  formatLocalTimeLowerAmPm,
-} from '../utils/reservation'
+import { formatLocalTimeLowerAmPm } from '../utils/reservation'
 
 const calendar = useCalendarStore()
 const showCreatePopup = ref(false)
 const showConfirmCreatePopup = ref(false)
 const showConfirmCancelGuidePopup = ref(false)
-const manualAssignRequestToken = ref(0)
 const showTourDetailsPopup = ref(false)
 const showDayEventsPopup = ref(false)
 const formError = ref('')
@@ -36,15 +26,7 @@ const toursError = ref('')
 const availableTours = ref([])
 const assignmentNotice = ref({ type: '', lines: [] })
 const showManualAssignPopup = ref(false)
-const manualAssignLoadingCandidates = ref(false)
-const manualAssignSubmitting = ref(false)
 const cancellingGuideAssignment = ref(false)
-const eligibleGuides = ref([])
-const eligibleGuideReasons = ref([])
-const manualAssignGuideId = ref('')
-const manualAssignReason = ref('')
-const manualAssignError = ref('')
-const guideLanguageCache = ref({})
 const autoAssignWeekLoading = ref(false)
 
 const LANGUAGE_CODE_OPTIONS = [
@@ -69,12 +51,13 @@ const selectedCreateTour = computed(() => {
   return availableTours.value.find((tour) => Number(tour?.id) === selectedId) || null
 })
 
-const canSaveCreatedEvent = computed(() =>
-  Boolean(createForm.value.tourId)
-  && Boolean(createForm.value.languageCode)
-  && Boolean(createForm.value.eventDate)
-  && Boolean(createForm.value.startTime)
-  && Boolean(createForm.value.endTime),
+const canSaveCreatedEvent = computed(
+  () =>
+    Boolean(createForm.value.tourId) &&
+    Boolean(createForm.value.languageCode) &&
+    Boolean(createForm.value.eventDate) &&
+    Boolean(createForm.value.startTime) &&
+    Boolean(createForm.value.endTime),
 )
 
 const selectedDate = computed(() => new Date(calendar.selectedDate))
@@ -126,21 +109,26 @@ const selectedTourDetails = computed(() => {
     guide_id: selected.guideId ?? '-',
     guide_name: selected.resourceName || 'Unassigned Guide',
     date: hasValidStart ? start.toLocaleDateString('en-CA') : '-',
-    time_range: hasValidStart && hasValidEnd
-      ? `${formatLocalTimeLowerAmPm(start)} - ${formatLocalTimeLowerAmPm(end)}`
-      : '-',
+    time_range:
+      hasValidStart && hasValidEnd
+        ? `${formatLocalTimeLowerAmPm(start)} - ${formatLocalTimeLowerAmPm(end)}`
+        : '-',
   }
 })
 
 const isSelectedStatusCancelled = computed(() => {
-  const status = String(selectedTourDetails.value?.status || '').trim().toLowerCase()
+  const status = String(selectedTourDetails.value?.status || '')
+    .trim()
+    .toLowerCase()
   return status === 'cancelled' || status === 'canceled'
 })
 
 const selectedWeekScheduleEvents = computed(() =>
   calendar.eventsInRange.filter((event) => {
     if (String(event.source || '').toLowerCase() !== 'schedule') return false
-    const status = String(event.status || '').trim().toLowerCase()
+    const status = String(event.status || '')
+      .trim()
+      .toLowerCase()
     return status === 'unassigned' || status === 'unassignable'
   }),
 )
@@ -153,11 +141,6 @@ const selectedScheduleId = computed(() => {
   const scheduleId = Number(selected.sourceId)
   if (!Number.isInteger(scheduleId) || scheduleId <= 0) return null
   return scheduleId
-})
-
-const canSubmitManualAssign = computed(() => {
-  const guideId = Number(manualAssignGuideId.value)
-  return Number.isInteger(guideId) && guideId > 0 && !manualAssignSubmitting.value
 })
 
 const selectedDeletableEventIds = computed(() =>
@@ -243,7 +226,6 @@ function handlePrimaryCreateClick() {
 
 function handleSelectEvent(event) {
   assignmentNotice.value = { type: '', lines: [] }
-  manualAssignError.value = ''
   calendar.selectEvent(event)
   if (!isDetailsPopupAllowedSource(event?.source)) {
     showTourDetailsPopup.value = false
@@ -273,81 +255,13 @@ function formatReasonCode(reasonCode) {
     .join(' ')
 }
 
-function mapGuideLanguageResponse(response) {
-  const languages = Array.isArray(response?.languages) ? response.languages : []
-  const labels = languages
-    .map((item) => String(item?.name || item?.code || '').trim())
-    .filter(Boolean)
-
-  return labels.length > 0 ? labels.join(', ') : 'Not mapped'
-}
-
-function withCachedGuideLanguages(guideRows) {
-  const rows = Array.isArray(guideRows) ? guideRows : []
-  return rows.map((guide) => {
-    const guideId = Number(guide?.id)
-    const cachedLanguage = guideLanguageCache.value[String(guideId)]
-    return {
-      ...guide,
-      languageLabel: cachedLanguage || guide.languageLabel || 'Loading...',
-    }
-  })
-}
-
-async function enrichEligibleGuideLanguages(requestToken, scheduleId) {
-  if (!showManualAssignPopup.value || eligibleGuides.value.length === 0) return
-  if (manualAssignRequestToken.value !== requestToken) return
-  if (selectedScheduleId.value !== scheduleId) return
-
-  const uniqueGuideIds = Array.from(
-    new Set(
-      eligibleGuides.value
-        .map((guide) => Number(guide?.id))
-        .filter((guideId) => Number.isInteger(guideId) && guideId > 0),
-    ),
-  )
-
-  const missingGuideIds = uniqueGuideIds.filter((guideId) => !guideLanguageCache.value[String(guideId)])
-
-  if (missingGuideIds.length > 0) {
-    const results = await Promise.allSettled(
-      missingGuideIds.map((guideId) => getGuideLanguages(guideId)),
-    )
-
-    const nextCache = { ...guideLanguageCache.value }
-    for (let index = 0; index < missingGuideIds.length; index += 1) {
-      const guideId = missingGuideIds[index]
-      const result = results[index]
-      if (result.status === 'fulfilled') {
-        nextCache[String(guideId)] = mapGuideLanguageResponse(result.value)
-      } else {
-        nextCache[String(guideId)] = 'Not mapped'
-      }
-    }
-
-    guideLanguageCache.value = nextCache
-  }
-
-  if (!showManualAssignPopup.value) {
-    return
-  }
-
-  if (manualAssignRequestToken.value !== requestToken) {
-    return
-  }
-
-  if (selectedScheduleId.value !== scheduleId) {
-    return
-  }
-
-  eligibleGuides.value = withCachedGuideLanguages(eligibleGuides.value)
-}
-
 async function refreshCalendarSelection(scheduleId) {
   await calendar.loadEvents()
 
   const refreshed = calendar.events.find(
-    (event) => String(event.source || '').toLowerCase() === 'schedule' && Number(event.sourceId) === scheduleId,
+    (event) =>
+      String(event.source || '').toLowerCase() === 'schedule' &&
+      Number(event.sourceId) === scheduleId,
   )
 
   if (refreshed) {
@@ -360,107 +274,19 @@ async function refreshCalendarSelection(scheduleId) {
   showTourDetailsPopup.value = false
 }
 
-function closeManualAssignPopup() {
+async function handleManualAssignSuccess({ scheduleId, guideId, guideName, warnings }) {
   showManualAssignPopup.value = false
-  manualAssignRequestToken.value += 1
-  manualAssignGuideId.value = ''
-  manualAssignReason.value = ''
-  manualAssignError.value = ''
-  eligibleGuides.value = []
-  eligibleGuideReasons.value = []
-}
 
-async function openManualAssignPopup() {
-  const scheduleId = selectedScheduleId.value
-  if (!scheduleId) {
-    setAssignmentNotice('error', ['Select a schedule event before manual assignment.'])
-    return
-  }
+  const warningLines = Array.isArray(warnings)
+    ? warnings.map((warning) => `Warning: ${warning}`)
+    : []
 
-  const requestToken = manualAssignRequestToken.value + 1
-  manualAssignRequestToken.value = requestToken
+  setAssignmentNotice('success', [
+    `Guide assigned manually: ${guideName} (ID ${guideId}).`,
+    ...warningLines,
+  ])
 
-  showManualAssignPopup.value = true
-  manualAssignGuideId.value = ''
-  manualAssignReason.value = ''
-  manualAssignError.value = ''
-  eligibleGuides.value = []
-  eligibleGuideReasons.value = []
-  manualAssignLoadingCandidates.value = true
-
-  try {
-    const eligibleResponse = await getEligibleGuides(scheduleId)
-
-    if (manualAssignRequestToken.value !== requestToken || !showManualAssignPopup.value) {
-      return
-    }
-
-    if (selectedScheduleId.value !== scheduleId) {
-      return
-    }
-
-    eligibleGuides.value = Array.isArray(eligibleResponse?.eligible_guides)
-      ? eligibleResponse.eligible_guides.map((guide) => ({ ...guide, languageLabel: 'Loading...' }))
-      : []
-
-    eligibleGuideReasons.value = Array.isArray(eligibleResponse?.reasons) ? eligibleResponse.reasons : []
-
-    if (eligibleGuides.value.length === 1) {
-      manualAssignGuideId.value = String(eligibleGuides.value[0].id)
-    }
-  } catch (error) {
-    if (manualAssignRequestToken.value === requestToken) {
-      manualAssignError.value = error?.message || 'Failed to load eligible guides.'
-    }
-  } finally {
-    if (manualAssignRequestToken.value === requestToken) {
-      manualAssignLoadingCandidates.value = false
-    }
-  }
-
-  // Language labels are enriched in background to avoid blocking modal rendering.
-  void enrichEligibleGuideLanguages(requestToken, scheduleId)
-}
-
-async function submitManualAssign() {
-  const scheduleId = selectedScheduleId.value
-  if (!scheduleId) {
-    manualAssignError.value = 'No schedule selected for manual assignment.'
-    return
-  }
-
-  const guideId = Number(manualAssignGuideId.value)
-  if (!Number.isInteger(guideId) || guideId <= 0) {
-    manualAssignError.value = 'Select a guide before confirming manual assignment.'
-    return
-  }
-
-  manualAssignSubmitting.value = true
-  manualAssignError.value = ''
-
-  try {
-    const response = await manualAssignGuide(
-      scheduleId,
-      guideId,
-      manualAssignReason.value,
-    )
-
-    const warningLines = Array.isArray(response?.warnings)
-      ? response.warnings.filter(Boolean).map((warning) => `Warning: ${warning}`)
-      : []
-
-    setAssignmentNotice('success', [
-      `Guide assigned manually: ${response.guide_name} (ID ${response.guide_id}).`,
-      ...warningLines,
-    ])
-
-    closeManualAssignPopup()
-    await refreshCalendarSelection(scheduleId)
-  } catch (error) {
-    manualAssignError.value = error?.message || 'Failed to assign selected guide manually.'
-  } finally {
-    manualAssignSubmitting.value = false
-  }
+  await refreshCalendarSelection(scheduleId)
 }
 
 function requestCancelGuideAssignment() {
@@ -605,11 +431,6 @@ function handleGlobalKeydown(event) {
     closeDayEventsPopup()
     return
   }
-  if (showManualAssignPopup.value) {
-    event.preventDefault()
-    closeManualAssignPopup()
-    return
-  }
   if (showTourDetailsPopup.value) {
     event.preventDefault()
     closeTourDetailsPopup()
@@ -625,7 +446,9 @@ function saveCreatedEvent() {
   formError.value = ''
 
   const tourId = Number(createForm.value.tourId)
-  const languageCode = String(createForm.value.languageCode || '').trim().toLowerCase()
+  const languageCode = String(createForm.value.languageCode || '')
+    .trim()
+    .toLowerCase()
   const eventDate = String(createForm.value.eventDate || '').trim()
   const startTime = String(createForm.value.startTime || '').trim()
   const endTime = String(createForm.value.endTime || '').trim()
@@ -728,7 +551,9 @@ function handleDeleteSelectedEvent() {
     return
   }
 
-  const confirmed = window.confirm(`Delete ${selectedDeletableEventIds.value.length} selected event(s)?`)
+  const confirmed = window.confirm(
+    `Delete ${selectedDeletableEventIds.value.length} selected event(s)?`,
+  )
   if (!confirmed) return
 
   const selectedIds = [...selectedDeletableEventIds.value]
@@ -845,7 +670,9 @@ onBeforeUnmount(() => {
         class="absolute left-1/2 top-1/2 w-[94%] max-w-160 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Events on {{ selectedDayLabel }}</h3>
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">
+            Events on {{ selectedDayLabel }}
+          </h3>
           <button
             class="text-xl leading-none text-red-300 hover:text-red-500 dark:text-slate-500 dark:hover:text-slate-200"
             aria-label="Close day events popup"
@@ -869,13 +696,17 @@ onBeforeUnmount(() => {
             class="rounded border border-[#ACBAC4] px-3 py-2 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:hover:bg-white/5"
           >
             <button class="w-full text-left" @click="handleSelectEvent(event)">
-              <div class="text-sm font-semibold text-gray-800 dark:text-slate-100">{{ event.title }}</div>
+              <div class="text-sm font-semibold text-gray-800 dark:text-slate-100">
+                {{ event.title }}
+              </div>
               <div class="mt-0.5 text-xs text-gray-600 dark:text-slate-400">
                 {{ formatLocalTimeLowerAmPm(event.start) }}
                 -
                 {{ formatLocalTimeLowerAmPm(event.end) }}
               </div>
-              <div class="mt-0.5 text-xs text-gray-500 dark:text-slate-500">{{ event.resourceName }}</div>
+              <div class="mt-0.5 text-xs text-gray-500 dark:text-slate-500">
+                {{ event.resourceName }}
+              </div>
             </button>
           </li>
         </ul>
@@ -900,7 +731,9 @@ onBeforeUnmount(() => {
         class="absolute left-1/2 top-1/2 w-[92%] max-w-130 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Reservation Details</h3>
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">
+            Reservation Details
+          </h3>
           <button
             class="text-xl leading-none text-red-300 hover:text-red-500 dark:text-slate-500 dark:hover:text-slate-200"
             aria-label="Close tour details popup"
@@ -912,58 +745,135 @@ onBeforeUnmount(() => {
 
         <div class="space-y-4 text-sm text-gray-700 dark:text-slate-300">
           <div
-            v-if="String(selectedTourDetails.status || '').trim().toLowerCase() !== 'unassignable'"
+            v-if="
+              String(selectedTourDetails.status || '')
+                .trim()
+                .toLowerCase() !== 'unassignable'
+            "
             class="rounded border px-2 py-1"
             :class="reservationDetailsStatusClass(selectedTourDetails.status)"
           >
             <span class="font-semibold">Status:</span> {{ selectedTourDetails.status }}
           </div>
 
-          <div class="grid grid-cols-1 gap-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231] sm:grid-cols-2">
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Schedule ID</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.schedule_id }}</p>
+          <div
+            class="grid grid-cols-1 gap-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231] sm:grid-cols-2"
+          >
+            <div
+              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+            >
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
+              >
+                Schedule ID
+              </p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
+                {{ selectedTourDetails.schedule_id }}
+              </p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Tour ID</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.tour_id }}</p>
+            <div
+              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+            >
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
+              >
+                Tour ID
+              </p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
+                {{ selectedTourDetails.tour_id }}
+              </p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333] sm:col-span-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Tour</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.tour_title }}</p>
+            <div
+              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333] sm:col-span-2"
+            >
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
+              >
+                Tour
+              </p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
+                {{ selectedTourDetails.tour_title }}
+              </p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Date</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.date }}</p>
+            <div
+              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+            >
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
+              >
+                Date
+              </p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
+                {{ selectedTourDetails.date }}
+              </p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Time</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.time_range }}</p>
+            <div
+              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+            >
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
+              >
+                Time
+              </p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
+                {{ selectedTourDetails.time_range }}
+              </p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Language</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.language }}</p>
+            <div
+              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+            >
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
+              >
+                Language
+              </p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
+                {{ selectedTourDetails.language }}
+              </p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Total People</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.reservation_count }}</p>
+            <div
+              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+            >
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
+              >
+                Total People
+              </p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
+                {{ selectedTourDetails.reservation_count }}
+              </p>
             </div>
-            <div class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333] sm:col-span-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Guide</p>
-              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ selectedTourDetails.guide_name }}</p>
+            <div
+              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333] sm:col-span-2"
+            >
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
+              >
+                Guide
+              </p>
+              <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-slate-100">
+                {{ selectedTourDetails.guide_name }}
+              </p>
             </div>
           </div>
         </div>
 
-        <div v-if="selectedScheduleId && !isSelectedStatusCancelled" class="mt-4 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231]">
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Guide Assignment</p>
+        <div
+          v-if="selectedScheduleId && !isSelectedStatusCancelled"
+          class="mt-4 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
+        >
+          <p
+            class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
+          >
+            Guide Assignment
+          </p>
 
           <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-1">
             <button
               type="button"
               class="rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
-              :disabled="manualAssignSubmitting || cancellingGuideAssignment"
-              @click="openManualAssignPopup"
+              :disabled="showManualAssignPopup || cancellingGuideAssignment"
+              @click="showManualAssignPopup = true"
             >
               Manual Assign
             </button>
@@ -971,7 +881,7 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300 dark:hover:bg-red-950/60"
-              :disabled="manualAssignSubmitting || cancellingGuideAssignment"
+              :disabled="showManualAssignPopup || cancellingGuideAssignment"
               @click="requestCancelGuideAssignment"
             >
               {{ cancellingGuideAssignment ? 'Cancelling...' : 'Cancel Guide' }}
@@ -981,96 +891,12 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div
-      v-if="showManualAssignPopup"
-      class="fixed inset-0 z-50 bg-black/40"
-      @click.self="closeManualAssignPopup"
-    >
-      <div
-        class="absolute left-1/2 top-1/2 w-[92%] max-w-140 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
-      >
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Manual Assign Guide</h3>
-          <button
-            type="button"
-            class="text-xl leading-none text-red-300 hover:text-red-500 dark:text-slate-500 dark:hover:text-slate-200"
-            aria-label="Close manual assign popup"
-            @click="closeManualAssignPopup"
-          >
-            ×
-          </button>
-        </div>
-
-        <p class="mt-1 text-xs text-gray-500 dark:text-slate-500">Schedule ID: {{ selectedScheduleId }}</p>
-
-        <div
-          v-if="manualAssignError"
-          class="mt-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300"
-        >
-          {{ manualAssignError }}
-        </div>
-
-        <div v-if="manualAssignLoadingCandidates" class="mt-4 text-sm text-gray-600 dark:text-slate-400">
-          Loading eligible guides...
-        </div>
-
-        <div v-else class="mt-4 space-y-3">
-          <div
-            v-if="eligibleGuideReasons.length > 0"
-            class="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-          >
-            <p class="font-semibold">No fully eligible guides found.</p>
-            <p v-for="reason in eligibleGuideReasons" :key="reason">Reason: {{ formatReasonCode(reason) }}</p>
-          </div>
-
-          <div class="max-h-56 space-y-2 overflow-y-auto pr-1">
-            <label
-              v-for="guide in eligibleGuides"
-              :key="guide.id"
-              class="flex cursor-pointer items-start gap-3 rounded border border-[#ACBAC4] px-3 py-2 hover:bg-gray-50 dark:border-white/10 dark:bg-[#1C2333] dark:hover:bg-white/5"
-            >
-              <input
-                v-model="manualAssignGuideId"
-                type="radio"
-                name="manual-assign-guide"
-                :value="String(guide.id)"
-                class="mt-0.5"
-              />
-              <div class="text-sm text-gray-700 dark:text-slate-300">
-                <p class="font-semibold">{{ guide.first_name }} {{ guide.last_name }} (ID {{ guide.id }})</p>
-                <p class="text-xs text-gray-500 dark:text-slate-500">
-                  Rating: {{ guide.guide_rating ?? 'N/A' }} · Same-day assignments: {{ guide.same_day_assignments }} · Languages: {{ guide.languageLabel }}
-                </p>
-              </div>
-            </label>
-            <p v-if="eligibleGuides.length === 0" class="text-sm text-gray-600 dark:text-slate-400">
-              No eligible guide candidates returned by backend preview.
-            </p>
-          </div>
-
-          <div>
-            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500">Reason (optional)</label>
-            <textarea
-              v-model="manualAssignReason"
-              rows="3"
-              class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500"
-              placeholder="Example: Customer requested specific guide"
-            />
-          </div>
-        </div>
-
-        <div class="mt-5 flex items-center justify-end gap-2">
-          <CancelButton @cancel="closeManualAssignPopup" />
-          <SaveButton
-            label="Assign"
-            loading-label="Assigning..."
-            :loading="manualAssignSubmitting"
-            :disabled="!canSubmitManualAssign"
-            @save="submitManualAssign"
-          />
-        </div>
-      </div>
-    </div>
+    <ManualAssignPopup
+      :schedule-id="selectedScheduleId"
+      :visible="showManualAssignPopup"
+      @close="showManualAssignPopup = false"
+      @assigned="handleManualAssignSuccess"
+    />
 
     <div
       v-if="showCreatePopup"
@@ -1099,9 +925,13 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="mt-5 space-y-4 text-sm">
-          <div class="space-y-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231]">
+          <div
+            class="space-y-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
+          >
             <div>
-              <div class="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-200">{{ monthLabel }}</div>
+              <div class="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-200">
+                {{ monthLabel }}
+              </div>
               <div class="flex gap-2">
                 <button
                   class="flex-1 rounded border border-[#ACBAC4] bg-white px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-200 dark:hover:bg-white/5"
@@ -1117,7 +947,6 @@ onBeforeUnmount(() => {
                 </button>
               </div>
             </div>
-
           </div>
 
           <div>
@@ -1154,13 +983,21 @@ onBeforeUnmount(() => {
               :disabled="toursLoading || availableTours.length === 0"
             >
               <option value="">Select a tour</option>
-              <option v-for="tour in availableTours" :key="`tour-${tour.id}`" :value="String(tour.id)">
+              <option
+                v-for="tour in availableTours"
+                :key="`tour-${tour.id}`"
+                :value="String(tour.id)"
+              >
                 {{ buildTourOptionLabel(tour) }}
               </option>
             </select>
-            <p v-if="toursLoading" class="mt-1 text-xs text-gray-500 dark:text-slate-500">Loading tours...</p>
+            <p v-if="toursLoading" class="mt-1 text-xs text-gray-500 dark:text-slate-500">
+              Loading tours...
+            </p>
             <p v-else-if="toursError" class="mt-1 text-xs text-red-300">{{ toursError }}</p>
-            <p v-else-if="!availableTours.length" class="mt-1 text-xs text-amber-300">No tours available.</p>
+            <p v-else-if="!availableTours.length" class="mt-1 text-xs text-amber-300">
+              No tours available.
+            </p>
           </div>
 
           <div>
@@ -1207,7 +1044,10 @@ onBeforeUnmount(() => {
             v-if="selectedCreateTour"
             class="rounded border border-[#ACBAC4] bg-gray-50 px-3 py-2 text-xs text-gray-700 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-200"
           >
-            <div><span class="font-semibold">Tour:</span> {{ selectedCreateTour.name || `Tour ${selectedCreateTour.id}` }}</div>
+            <div>
+              <span class="font-semibold">Tour:</span>
+              {{ selectedCreateTour.name || `Tour ${selectedCreateTour.id}` }}
+            </div>
             <div><span class="font-semibold">Language:</span> {{ createForm.languageCode }}</div>
           </div>
         </div>
@@ -1242,6 +1082,5 @@ onBeforeUnmount(() => {
       @cancel="showConfirmCancelGuidePopup = false"
       @confirm="handleCancelGuideAssignment"
     />
-
   </div>
 </template>
