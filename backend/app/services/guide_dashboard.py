@@ -25,6 +25,7 @@ def get_dashboard(conn, guide_id: int):
         FROM schedule
         WHERE guide_id = :guide_id
         AND event_start_datetime >= DATE_TRUNC('week', NOW())
+        AND event_start_datetime < DATE_TRUNC('week', NOW()) + INTERVAL '7 days'
     """)
 
     tours_week = conn.execute(week_count_sql, {"guide_id": guide_id}).scalar()
