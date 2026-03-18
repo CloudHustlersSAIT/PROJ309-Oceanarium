@@ -1,5 +1,7 @@
 <template>
-  <header class="sticky top-0 z-20 border-b border-black/10 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#0F1117]/90 md:hidden">
+  <header
+    class="sticky top-0 z-20 border-b border-black/10 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#0F1117]/90 md:hidden"
+  >
     <div
       class="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-3 overflow-hidden px-4 py-3.5 sm:px-6 lg:px-8"
     >
@@ -10,7 +12,9 @@
           class="h-9 w-auto shrink-0 sm:h-10"
         />
         <div class="min-w-0 leading-tight">
-          <p class="truncate text-base font-bold text-[#1C1C1C] dark:text-slate-100">Oceanarium Portal</p>
+          <p class="truncate text-base font-bold text-[#1C1C1C] dark:text-slate-100">
+            Oceanarium Portal
+          </p>
           <p class="truncate text-sm text-black/65 dark:text-slate-400">Guide</p>
         </div>
       </div>
@@ -117,9 +121,13 @@
               </RouterLink>
             </nav>
 
-            <div class="mt-auto rounded-xl border border-black/10 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/[0.03]">
+            <div
+              class="mt-auto rounded-xl border border-black/10 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/[0.03]"
+            >
               <p class="text-sm text-black/60 dark:text-slate-400">Signed in as</p>
-              <p class="text-base font-semibold break-all text-[#1C1C1C] dark:text-slate-100">{{ userEmail }}</p>
+              <p class="text-base font-semibold break-all text-[#1C1C1C] dark:text-slate-100">
+                {{ userEmail }}
+              </p>
 
               <button
                 class="mt-3 w-full rounded-xl bg-[#0077B6] px-4 py-2.5 text-base font-bold text-white hover:bg-[#0097E7] transition"
@@ -136,46 +144,20 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/contexts/authContext'
+import { useNotificationStore } from '@/stores/notification'
 import { firebaseDisabled } from '@/utils/firebase'
 
 const route = useRoute()
 const router = useRouter()
 const { user, logout } = useAuth()
-const unreadCount = ref(0)
+const notificationStore = useNotificationStore()
+const unreadCount = computed(() => notificationStore.unreadCount)
 const isMenuOpen = ref(false)
 
 const userEmail = firebaseDisabled ? 'guest@local' : user?.value?.email || 'Guide'
-
-function loadUnreadCountFromStorage() {
-  const raw = localStorage.getItem('guideUnreadNotifications')
-  const parsed = Number(raw)
-  unreadCount.value = Number.isFinite(parsed) && parsed > 0 ? parsed : 0
-}
-
-function onUnreadUpdated(event) {
-  const parsed = Number(event?.detail)
-  unreadCount.value = Number.isFinite(parsed) && parsed > 0 ? parsed : 0
-}
-
-function onStorage(event) {
-  if (event.key === 'guideUnreadNotifications') {
-    loadUnreadCountFromStorage()
-  }
-}
-
-onMounted(() => {
-  loadUnreadCountFromStorage()
-  window.addEventListener('guide-unread-updated', onUnreadUpdated)
-  window.addEventListener('storage', onStorage)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('guide-unread-updated', onUnreadUpdated)
-  window.removeEventListener('storage', onStorage)
-})
 
 watch(
   () => route.path,
@@ -203,8 +185,6 @@ function closeMenu() {
 async function handleLogout() {
   closeMenu()
   localStorage.removeItem('role')
-  localStorage.removeItem('guideUnreadNotifications')
-  unreadCount.value = 0
 
   if (!firebaseDisabled) {
     await logout()

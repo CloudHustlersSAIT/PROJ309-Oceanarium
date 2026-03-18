@@ -88,6 +88,17 @@ def create_swap_request(conn, schedule_id: int, guide_id: int, requesting_guide_
     except Exception:
         logger.exception("Failed to send swap request received notification for schedule %s", schedule_id)
 
+    try:
+        notification_service.notify_swap_request_sent(
+            conn,
+            schedule_id,
+            schedule_row["guide_id"],
+            guide_id,
+            commit=False,
+        )
+    except Exception:
+        logger.exception("Failed to send swap request sent notification for schedule %s", schedule_id)
+
     conn.commit()
 
     return {"swap_request_id": row[0]} if row is not None else None

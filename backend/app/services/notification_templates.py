@@ -597,3 +597,93 @@ This is an automated notification from the Oceanarium Scheduling System.
     }
 
     return subject, text, html, portal_message, detail
+
+
+def swap_request_sent_template(
+    schedule: dict, requesting_guide_name: str, candidate_guide_name: str
+) -> tuple[str, str, str, str, dict]:
+    """Template for SWAP_REQUEST_SENT event.
+
+    Returns: (subject, text_body, html_body, portal_message, notification_detail)
+    """
+    tour_name = schedule.get("tour_name", "Unknown Tour")
+    language = schedule.get("language_code", "").upper()
+    date = _format_date(schedule["event_start_datetime"])
+    time = _format_time(schedule["event_start_datetime"])
+    ticket_count = schedule.get("ticket_count", 0)
+    schedule_id = schedule["id"]
+
+    portal_message = (
+        f"Your swap request for {tour_name} on {date} has been sent to "
+        f"{candidate_guide_name}. You'll be notified when they respond."
+    )
+
+    subject = f"Swap Request Sent: {tour_name} on {date}"
+
+    text = f"""Hi {requesting_guide_name},
+
+Your swap request has been submitted successfully:
+
+Tour: {tour_name}
+Date: {date}
+Time: {time}
+Language: {language}
+Guests: {ticket_count}
+Sent to: {candidate_guide_name}
+
+You'll be notified when {candidate_guide_name} responds to your request.
+
+View your swap requests: {FRONTEND_URL}/guide/swap-requests
+
+This is an automated notification from the Oceanarium Scheduling System.
+"""
+
+    html = f"""
+<html>
+  <body style="font-family: Arial, sans-serif; color: #1C1C1C; line-height: 1.6;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #0077B6;">Swap Request Sent</h2>
+      <p>Hi {requesting_guide_name},</p>
+      <p>Your swap request has been submitted successfully:</p>
+
+      <div style="background-color: #EAF6FD; border-left: 4px solid #0077B6; padding: 15px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Tour:</strong> {tour_name}</p>
+        <p style="margin: 5px 0;"><strong>Date:</strong> {date}</p>
+        <p style="margin: 5px 0;"><strong>Time:</strong> {time}</p>
+        <p style="margin: 5px 0;"><strong>Language:</strong> {language}</p>
+        <p style="margin: 5px 0;"><strong>Guests:</strong> {ticket_count}</p>
+        <p style="margin: 5px 0;"><strong>Sent to:</strong> {candidate_guide_name}</p>
+      </div>
+
+      <p>You'll be notified when {candidate_guide_name} responds to your request.</p>
+
+      <p>
+        <a href="{FRONTEND_URL}/guide/swap-requests"
+           style="display: inline-block; background-color: #0077B6; color: white;
+                  padding: 12px 24px; text-decoration: none; border-radius: 5px;
+                  font-weight: bold;">
+          View Swap Requests
+        </a>
+      </p>
+
+      <p style="color: #666; font-size: 14px; margin-top: 30px;">
+        This is an automated notification from the Oceanarium Scheduling System.
+      </p>
+    </div>
+  </body>
+</html>
+"""
+
+    detail = {
+        "title": "Swap Request Sent",
+        "tour_name": tour_name,
+        "date": date,
+        "time": time,
+        "language": language,
+        "ticket_count": ticket_count,
+        "requesting_guide": requesting_guide_name,
+        "candidate_guide": candidate_guide_name,
+        "schedule_id": schedule_id,
+    }
+
+    return subject, text, html, portal_message, detail

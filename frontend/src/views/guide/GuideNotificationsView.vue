@@ -26,23 +26,37 @@
       </div>
 
       <div class="mt-5 grid gap-4 md:grid-cols-3">
-        <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
+        <div
+          class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]"
+        >
           <p class="text-sm text-black/60 dark:text-slate-400">Unread</p>
-          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ unreadCount }}</p>
+          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">
+            {{ unreadCount }}
+          </p>
         </div>
-        <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
+        <div
+          class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]"
+        >
           <p class="text-sm text-black/60 dark:text-slate-400">Urgent</p>
-          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ urgentCount }}</p>
+          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">
+            {{ urgentCount }}
+          </p>
         </div>
-        <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
+        <div
+          class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]"
+        >
           <p class="text-sm text-black/60 dark:text-slate-400">Action Required</p>
-          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ actionRequiredCount }}</p>
+          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">
+            {{ actionRequiredCount }}
+          </p>
         </div>
       </div>
 
       <div class="mt-5 grid gap-3 lg:grid-cols-4">
         <label class="block">
-          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Channel</span>
+          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100"
+            >Channel</span
+          >
           <select
             v-model="filters.channel"
             class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
@@ -54,7 +68,9 @@
         </label>
 
         <label class="block">
-          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Priority</span>
+          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100"
+            >Priority</span
+          >
           <select
             v-model="filters.priority"
             class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
@@ -68,7 +84,9 @@
         </label>
 
         <label class="block">
-          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Event Type</span>
+          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100"
+            >Event Type</span
+          >
           <select
             v-model="filters.eventType"
             class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
@@ -80,8 +98,14 @@
           </select>
         </label>
 
-        <label class="flex items-end gap-3 rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] px-4 py-3 dark:border-white/10 dark:bg-[#1A2231]">
-          <input v-model="filters.unreadOnly" type="checkbox" class="h-4 w-4 rounded border-[#7DB8CC] text-[#0077B6]" />
+        <label
+          class="flex items-end gap-3 rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] px-4 py-3 dark:border-white/10 dark:bg-[#1A2231]"
+        >
+          <input
+            v-model="filters.unreadOnly"
+            type="checkbox"
+            class="h-4 w-4 rounded border-[#7DB8CC] text-[#0077B6]"
+          />
           <span class="text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Unread only</span>
         </label>
       </div>
@@ -138,9 +162,13 @@
         </template>
       </div>
 
-      <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-4 dark:border-white/10">
+      <div
+        class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-4 dark:border-white/10"
+      >
         <p class="text-sm text-black/60 dark:text-slate-400">
-          Showing {{ pagination.offset + 1 }}-{{ Math.min(pagination.offset + notifications.length, pagination.offset + pagination.limit) }}
+          Showing {{ pagination.offset + 1 }}-{{
+            Math.min(pagination.offset + notifications.length, pagination.offset + pagination.limit)
+          }}
           of {{ pagination.total }}
         </p>
 
@@ -168,11 +196,17 @@
       class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
       @click.self="closeDetail"
     >
-      <div class="w-full max-w-2xl rounded-[28px] border border-[#A9CDD9] bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40">
+      <div
+        class="w-full max-w-2xl rounded-[28px] border border-[#A9CDD9] bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
+      >
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-xl font-semibold text-[#1C1C1C] dark:text-slate-100">Notification Details</h2>
-            <p class="mt-1 text-sm text-black/55 dark:text-slate-400">{{ selectedNotification?.createdAtLabel || '' }}</p>
+            <h2 class="text-xl font-semibold text-[#1C1C1C] dark:text-slate-100">
+              Notification Details
+            </h2>
+            <p class="mt-1 text-sm text-black/55 dark:text-slate-400">
+              {{ selectedNotification?.createdAtLabel || '' }}
+            </p>
           </div>
 
           <button
@@ -184,36 +218,65 @@
           </button>
         </div>
 
-        <div v-if="detailLoading" class="mt-5 text-sm text-black/60 dark:text-slate-400">Loading details...</div>
-        <div v-else-if="detailError" class="mt-5 text-sm font-medium text-[#B91C1C]">{{ detailError }}</div>
+        <div v-if="detailLoading" class="mt-5 text-sm text-black/60 dark:text-slate-400">
+          Loading details...
+        </div>
+        <div v-else-if="detailError" class="mt-5 text-sm font-medium text-[#B91C1C]">
+          {{ detailError }}
+        </div>
         <div v-else-if="selectedNotification" class="mt-5 space-y-4">
-          <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
+          <div
+            class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]"
+          >
             <p class="text-sm text-black/60 dark:text-slate-400">Message</p>
-            <p class="mt-2 text-base font-semibold text-[#1C1C1C] dark:text-slate-100">{{ selectedNotification.message }}</p>
+            <p class="mt-2 text-base font-semibold text-[#1C1C1C] dark:text-slate-100">
+              {{ selectedNotification.message }}
+            </p>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
+            <div
+              class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]"
+            >
               <p class="text-sm text-black/60 dark:text-slate-400">Event Type</p>
-              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">{{ formatEventType(selectedNotification.eventType) }}</p>
+              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">
+                {{ formatEventType(selectedNotification.eventType) }}
+              </p>
             </div>
-            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
+            <div
+              class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]"
+            >
               <p class="text-sm text-black/60 dark:text-slate-400">Priority</p>
-              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">{{ selectedNotification.priorityLabel }}</p>
+              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">
+                {{ selectedNotification.priorityLabel }}
+              </p>
             </div>
-            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
+            <div
+              class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]"
+            >
               <p class="text-sm text-black/60 dark:text-slate-400">Channel</p>
-              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">{{ selectedNotification.channelLabel }}</p>
+              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">
+                {{ selectedNotification.channelLabel }}
+              </p>
             </div>
-            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
+            <div
+              class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]"
+            >
               <p class="text-sm text-black/60 dark:text-slate-400">Schedule</p>
-              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">{{ selectedNotification.tourName || 'Not linked' }}</p>
+              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">
+                {{ selectedNotification.tourName || 'Not linked' }}
+              </p>
             </div>
           </div>
 
-          <div v-if="selectedNotification.detailText" class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
+          <div
+            v-if="selectedNotification.detailText"
+            class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]"
+          >
             <p class="text-sm text-black/60 dark:text-slate-400">Details</p>
-            <p class="mt-2 whitespace-pre-wrap text-sm text-[#1C1C1C] dark:text-slate-200">{{ selectedNotification.detailText }}</p>
+            <p class="mt-2 whitespace-pre-wrap text-sm text-[#1C1C1C] dark:text-slate-200">
+              {{ selectedNotification.detailText }}
+            </p>
           </div>
         </div>
       </div>
@@ -230,6 +293,9 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '@/services/api'
+import { useNotificationStore } from '@/stores/notification'
+
+const notificationStore = useNotificationStore()
 
 const loading = ref(false)
 const error = ref('')
@@ -311,7 +377,9 @@ function normalizeNotification(notification) {
     channelLabel: formatLabel(channel, 'Unknown'),
     priorityLabel: formatLabel(priority, 'Normal'),
     tourName,
-    meta: [formatEventType(eventType), tourName, formatLabel(priority, '')].filter(Boolean).join(' - '),
+    meta: [formatEventType(eventType), tourName, formatLabel(priority, '')]
+      .filter(Boolean)
+      .join(' - '),
   }
 }
 
@@ -341,18 +409,11 @@ const unreadCount = computed(() => Number(summary.value?.unread_count ?? 0))
 const urgentCount = computed(() => Number(summary.value?.urgent_count ?? 0))
 const actionRequiredCount = computed(() => Number(summary.value?.action_required_count ?? 0))
 const eventTypeOptions = computed(() => {
-  const values = new Set(notifications.value.map((notification) => notification.eventType).filter(Boolean))
+  const values = new Set(
+    notifications.value.map((notification) => notification.eventType).filter(Boolean),
+  )
   return Array.from(values).sort((left, right) => left.localeCompare(right))
 })
-
-watch(
-  unreadCount,
-  (count) => {
-    localStorage.setItem('guideUnreadNotifications', String(count))
-    window.dispatchEvent(new CustomEvent('guide-unread-updated', { detail: count }))
-  },
-  { immediate: true },
-)
 
 async function loadNotifications() {
   loading.value = true
@@ -382,6 +443,8 @@ async function loadNotifications() {
       urgent_count: Number(response?.summary?.urgent_count ?? 0),
       action_required_count: Number(response?.summary?.action_required_count ?? 0),
     }
+
+    notificationStore.loadSummary()
   } catch (loadError) {
     notifications.value = []
     error.value = loadError?.message || 'Failed to load notifications.'
@@ -453,7 +516,12 @@ function notificationCardClass(notification) {
 }
 
 watch(
-  () => [filters.value.channel, filters.value.priority, filters.value.eventType, filters.value.unreadOnly],
+  () => [
+    filters.value.channel,
+    filters.value.priority,
+    filters.value.eventType,
+    filters.value.unreadOnly,
+  ],
   () => {
     pagination.value.offset = 0
     loadNotifications()

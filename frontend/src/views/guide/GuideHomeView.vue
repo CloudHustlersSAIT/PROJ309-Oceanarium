@@ -2,12 +2,16 @@
   <div class="app-page-wrap pt-1">
     <section class="app-surface-card app-section-padding">
       <div class="flex flex-col gap-1">
-        <h1 class="app-title">Welcome, Guide</h1>
+        <h1 class="app-title">Welcome, {{ guideName }}</h1>
         <p class="app-subtitle">Here's your next scheduled tour.</p>
       </div>
 
-      <div class="mt-4 min-h-[112px] rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4 dark:border-sky-800/60 dark:bg-sky-950/50">
-        <div v-if="loading" class="text-sm text-black/60 dark:text-slate-400">Loading dashboard...</div>
+      <div
+        class="mt-4 min-h-[112px] rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4 dark:border-sky-800/60 dark:bg-sky-950/50"
+      >
+        <div v-if="loading" class="text-sm text-black/60 dark:text-slate-400">
+          Loading dashboard...
+        </div>
         <div v-else-if="error" class="text-sm font-medium text-[#B91C1C]">{{ error }}</div>
         <div v-else class="flex flex-wrap items-center justify-between gap-2">
           <div class="space-y-0.5">
@@ -58,13 +62,17 @@
     <section class="grid gap-4 md:grid-cols-3">
       <div class="app-surface-card p-5">
         <p class="app-subtitle">This Week</p>
-        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ stats.weekTours }}</p>
+        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">
+          {{ stats.weekTours }}
+        </p>
         <p class="app-subtitle">tours assigned</p>
       </div>
 
       <div class="app-surface-card p-5">
         <p class="app-subtitle">Pending Requests</p>
-        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ stats.pendingRequests }}</p>
+        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">
+          {{ stats.pendingRequests }}
+        </p>
         <p class="app-subtitle">need action</p>
 
         <div v-if="stats.pendingRequests > 0" class="mt-3">
@@ -78,7 +86,9 @@
 
       <div class="app-surface-card p-5">
         <p class="app-subtitle">Avg Rating</p>
-        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ stats.avgRating }}</p>
+        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">
+          {{ stats.avgRating }}
+        </p>
         <p class="app-subtitle">last 30 days</p>
 
         <div class="mt-3">
@@ -103,8 +113,12 @@
       </div>
 
       <div class="mt-4 space-y-3">
-        <div v-if="loading" class="text-sm text-black/60 dark:text-slate-400">Loading today's schedule...</div>
-        <div v-else-if="!todayEvents.length" class="text-sm text-black/60 dark:text-slate-400">No tours scheduled for today.</div>
+        <div v-if="loading" class="text-sm text-black/60 dark:text-slate-400">
+          Loading today's schedule...
+        </div>
+        <div v-else-if="!todayEvents.length" class="text-sm text-black/60 dark:text-slate-400">
+          No tours scheduled for today.
+        </div>
 
         <div
           v-for="e in todayEvents"
@@ -146,6 +160,13 @@ const dashboard = ref(null)
 
 const currentGuideId = computed(() => Number(profile.value?.guide_id ?? 0) || null)
 
+const guideName = computed(() => {
+  const first = profile.value?.first_name
+  const last = profile.value?.last_name
+  if (first || last) return [first, last].filter(Boolean).join(' ')
+  return 'Guide'
+})
+
 function tabClass(path) {
   const active = route.path === path
   return active
@@ -177,7 +198,9 @@ function formatTimeLabel(startValue, endValue) {
 }
 
 function formatLanguage(code) {
-  const normalized = String(code || '').trim().toLowerCase()
+  const normalized = String(code || '')
+    .trim()
+    .toLowerCase()
   const labels = { en: 'English', fr: 'French', es: 'Spanish', pt: 'Portuguese', zh: 'Chinese' }
   return labels[normalized] || String(code || '-').toUpperCase()
 }

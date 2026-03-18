@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="min-h-screen bg-[#F5F7FA] text-[#1C1C1C] dark:bg-[#0F1117] dark:text-slate-100">
     <div class="w-full md:flex">
       <GuideSidebar />
@@ -10,5 +10,13 @@
 </template>
 
 <script setup>
-import GuideSidebar from "@/components/guide/GuideSidebar.vue";
+import { onMounted } from 'vue'
+import GuideSidebar from '@/components/guide/GuideSidebar.vue'
+import { useNotificationPoller } from '@/composables/useNotificationPoller'
+
+const { startPolling } = useNotificationPoller({ role: 'guide' })
+
+onMounted(() => {
+  startPolling()
+})
 </script>

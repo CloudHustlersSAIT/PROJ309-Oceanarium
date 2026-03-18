@@ -16,6 +16,7 @@ from .notification_templates import (
     schedule_unassignable_admin_template,
     swap_request_received_template,
     swap_request_rejected_template,
+    swap_request_sent_template,
 )
 
 logger = logging.getLogger(__name__)
@@ -710,6 +711,73 @@ def notify_swap_request_rejected(
                 detail_json=detail,
             )
             for notif_id in notif_ids:
+                send_pending_notification(conn, notif_id)
+
+    if commit:
+        conn.commit()
+
+
+def notify_swap_request_sent(
+    conn,
+    schedule_id: int,
+    requesting_guide_id: int,
+    candidate_guide_id: int,
+    *,
+    commit: bool = True,
+) -> None:
+    """Send confirmation notification when a swap request is created.
+
+    - Requesting guide receives: PORTAL + EMAIL (if preferences allow)
+    - No admin notification (admins already notified via notify_swap_request_received)
+    """
+    schedule = fetch_schedule_details(conn, schedule_id)
+    if not schedule:
+        return
+
+    requester = _fetch_guide_info(conn, requesting_guide_id)
+    candidate = _fetch_guide_info(conn, candidate_guide_id)
+    if not requester or not candidate:
+        return
+
+    requester_prefs = get_notification_preferences(conn, guide_id=requesting_guide_id, event_type="SWAP_REQUEST_SENT")
+
+    subject, text_body, html_body, portal_message, detail = swap_request_sent_template(
+        schedule, requester["name"], candidate["name"]
+    )
+
+    actions = [
+        {"label": "View Swap Requests", "url": "/guide/swap-requests", "primary": True, "urgent": False},
+    ]
+
+    requester_channels = []
+    if requester_prefs["portal_enabled"]:
+        requester_channels.append("PORTAL")
+    if requester_prefs["email_enabled"] and requester["email"]:
+        requester_channels.append("EMAIL")
+
+    if requester_channels:
+        notif_ids = create_notification(
+            conn,
+            event_type="SWAP_REQUEST_SENT",
+            schedule_id=schedule_id,
+            guide_id=requesting_guide_id,
+            user_id=None,
+            message=portal_message,
+            channels=requester_channels,
+            priority="normal",
+            action_required=False,
+            detail_json=detail,
+            actions_json=actions,
+        )
+
+        for notif_id in notif_ids:
+            row = conn.execute(
+                text("SELECT channel FROM notifications WHERE id = :id"),
+                {"id": notif_id},
+            ).fetchone()
+            if row and row[0] == "EMAIL" and requester["email"]:
+                send_pending_notification(conn, notif_id, requester["email"], subject, text_body, html_body)
+            elif row and row[0] == "PORTAL":
                 send_pending_notification(conn, notif_id)
 
     if commit:

@@ -58,6 +58,12 @@ class SwapRequestRejectedRequest(BaseModel):
     requesting_guide_id: int = Field(..., description="Guide ID who initiated the swap request")
 
 
+class SwapRequestSentRequest(BaseModel):
+    schedule_id: int = Field(..., description="Schedule ID")
+    requesting_guide_id: int = Field(..., description="Guide ID who initiated the swap request")
+    candidate_guide_id: int = Field(..., description="Guide ID who receives the swap request")
+
+
 @router.get("")
 def read_notifications(
     status: str = Query(None),
@@ -812,4 +818,41 @@ def trigger_swap_request_rejected_notification(
         }
     except Exception as e:
         logger.error(f"❌ Failed to trigger swap request rejected notification: {e}")
+        return handle_domain_exception(e)
+
+
+@router.post("/swap-request-sent")
+def trigger_swap_request_sent_notification(
+    body: SwapRequestSentRequest,
+    conn=Depends(get_db),
+    current_user=Depends(require_resolved_user),
+):
+    """Trigger swap request sent confirmation notification.
+
+    Sends confirmation to requesting guide (PORTAL + EMAIL).
+    Priority: normal, Action Required: False
+    """
+    logger.info(
+        f"🔔 Triggering swap request sent notification: schedule={body.schedule_id}, "
+        f"requester={body.requesting_guide_id}, candidate={body.candidate_guide_id}"
+    )
+
+    try:
+        notification_service.notify_swap_request_sent(
+            conn, body.schedule_id, body.requesting_guide_id, body.candidate_guide_id
+        )
+        conn.commit()
+
+        logger.info("✅ Swap request sent notification triggered successfully")
+
+        return {
+            "success": True,
+            "event_type": "SWAP_REQUEST_SENT",
+            "schedule_id": body.schedule_id,
+            "requesting_guide_id": body.requesting_guide_id,
+            "candidate_guide_id": body.candidate_guide_id,
+            "message": "Notification sent for swap request sent",
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to trigger swap request sent notification: {e}")
         return handle_domain_exception(e)

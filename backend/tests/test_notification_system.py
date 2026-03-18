@@ -224,6 +224,33 @@ def test_swap_request_rejected_template():
     assert detail["tour_name"] == "Deep Sea Adventure"
 
 
+def test_swap_request_sent_template():
+    """Test swap request sent template."""
+    schedule = {
+        "id": 8,
+        "tour_name": "Penguin Encounter",
+        "event_start_datetime": datetime(2026, 4, 1, 9, 0),
+        "event_end_datetime": datetime(2026, 4, 1, 11, 0),
+        "language_code": "EN",
+        "ticket_count": 6,
+    }
+
+    subject, text, html, portal, detail = notification_templates.swap_request_sent_template(
+        schedule, "Maria Silva", "John Doe"
+    )
+
+    assert "Swap Request Sent" in subject
+    assert "Penguin Encounter" in subject
+    assert "Maria Silva" in text
+    assert "John Doe" in text
+    assert "John Doe" in portal
+    assert "sent" in portal.lower()
+    assert detail["requesting_guide"] == "Maria Silva"
+    assert detail["candidate_guide"] == "John Doe"
+    assert detail["tour_name"] == "Penguin Encounter"
+    assert detail["ticket_count"] == 6
+
+
 # ===== Notification Service Tests =====
 
 
@@ -856,3 +883,81 @@ def test_notify_swap_request_rejected_guide_not_found(mock_fetch, mock_admins):
     notification_service.notify_swap_request_rejected(conn, 10, 7, 5)
 
     mock_admins.assert_not_called()
+
+
+# ===== Swap Request Sent Notification Service Tests =====
+
+
+@patch("app.services.notification.send_email", return_value=True)
+@patch("app.services.notification.fetch_schedule_details")
+def test_notify_swap_request_sent(mock_fetch, mock_email):
+    """Test notify_swap_request_sent sends to requester only (no admins)."""
+    conn = MagicMock()
+    mock_fetch.return_value = _mock_schedule()
+
+    guide_row_requester = MagicMock()
+    guide_row_requester.__getitem__ = lambda self, k: {"name": "Requester Guide", "email": "requester@example.com"}[
+        {0: "name", 1: "email"}[k]
+    ]
+    guide_row_candidate = MagicMock()
+    guide_row_candidate.__getitem__ = lambda self, k: {"name": "Candidate Guide", "email": "candidate@example.com"}[
+        {0: "name", 1: "email"}[k]
+    ]
+
+    notif_counter = [0]
+
+    def mock_execute(sql, params=None):
+        result = MagicMock()
+        sql_str = str(sql)
+        if "FROM guides" in sql_str:
+            if params and params.get("id") == 5:
+                result.fetchone.return_value = guide_row_requester
+            else:
+                result.fetchone.return_value = guide_row_candidate
+        elif "FROM notification_preferences" in sql_str:
+            result.fetchone.return_value = None
+        elif "INSERT INTO notifications" in sql_str:
+            notif_counter[0] += 1
+            result.fetchone.return_value = (notif_counter[0],)
+        elif "FROM notifications" in sql_str:
+            if notif_counter[0] % 2 == 1:
+                result.fetchone.return_value = ("PORTAL", "PENDING")
+            else:
+                result.fetchone.return_value = ("EMAIL", "PENDING")
+        else:
+            result.fetchone.return_value = None
+        return result
+
+    conn.execute = mock_execute
+    conn.commit = MagicMock()
+
+    notification_service.notify_swap_request_sent(conn, 10, 5, 7)
+
+    conn.commit.assert_called_once()
+
+
+@patch("app.services.notification.send_email", return_value=True)
+@patch("app.services.notification.fetch_schedule_details")
+def test_notify_swap_request_sent_schedule_not_found(mock_fetch, mock_email):
+    """Test notify_swap_request_sent returns early if schedule not found."""
+    conn = MagicMock()
+    mock_fetch.return_value = {}
+
+    notification_service.notify_swap_request_sent(conn, 999, 5, 7)
+
+    conn.commit.assert_not_called()
+
+
+@patch("app.services.notification.fetch_schedule_details")
+def test_notify_swap_request_sent_guide_not_found(mock_fetch):
+    """Test notify_swap_request_sent returns early if guide not found."""
+    conn = MagicMock()
+    mock_fetch.return_value = _mock_schedule()
+
+    result = MagicMock()
+    result.fetchone.return_value = None
+    conn.execute.return_value = result
+
+    notification_service.notify_swap_request_sent(conn, 10, 5, 7)
+
+    conn.commit.assert_not_called()

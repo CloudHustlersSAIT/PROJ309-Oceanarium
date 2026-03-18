@@ -200,3 +200,36 @@ class TestGuideRequestsService:
         assert result["schedule_id"] == 42
         assert result["guide_id"] == 7
         mock_conn.commit.assert_called_once()
+
+    @patch("app.services.guide_requests.notification_service")
+    def test_create_swap_request_sends_sent_notification(self, mock_notif, mock_conn):
+        mock_conn.execute.side_effect = [
+            _schedule_lookup_result(schedule_id=42, guide_id=5),
+            _insert_returning_result(row_id=99),
+        ]
+
+        result = create_swap_request(mock_conn, schedule_id=42, guide_id=7, requesting_guide_id=5)
+
+        assert result["swap_request_id"] == 99
+        mock_conn.commit.assert_called_once()
+
+        mock_notif.notify_swap_request_sent.assert_called_once_with(
+            mock_conn,
+            42,
+            5,
+            7,
+            commit=False,
+        )
+
+    @patch("app.services.guide_requests.notification_service")
+    def test_create_swap_request_sent_notification_failure_does_not_break(self, mock_notif, mock_conn):
+        mock_conn.execute.side_effect = [
+            _schedule_lookup_result(schedule_id=42, guide_id=5),
+            _insert_returning_result(row_id=99),
+        ]
+        mock_notif.notify_swap_request_sent.side_effect = RuntimeError("email down")
+
+        result = create_swap_request(mock_conn, schedule_id=42, guide_id=7, requesting_guide_id=5)
+
+        assert result["swap_request_id"] == 99
+        mock_conn.commit.assert_called_once()
