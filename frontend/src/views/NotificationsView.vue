@@ -5,8 +5,10 @@ import AppSidebar from '../components/AppSidebar.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ManualAssignPopup from '../components/ManualAssignPopup.vue'
 import { useNotificationStore } from '../stores/notification'
+import { useToast } from '../composables/useToast'
 
 const store = useNotificationStore()
+const { addToast } = useToast()
 
 const EVENT_TYPE_CHIPS = [
   { key: null, label: 'All Types' },
@@ -182,7 +184,10 @@ function cancelDelete() {
 function handleDeleteForever() {
   if (deleteConfirmId.value !== null) {
     store.notifications = store.notifications.filter((n) => n.id !== deleteConfirmId.value)
-    store.showFeedback('Notification removed.')
+    addToast('The notification has been removed.', {
+      type: 'success',
+      title: 'Notification Deleted',
+    })
     deleteConfirmId.value = null
   }
 }
@@ -195,7 +200,10 @@ function openAssignPopup(notification) {
 
 function onGuideAssigned({ scheduleId, guideName, guideId }) {
   showAssignPopup.value = false
-  store.showFeedback(`Guide assigned: ${guideName} (ID ${guideId}) to Schedule #${scheduleId}.`)
+  addToast(`Guide ${guideName} (ID ${guideId}) assigned to Schedule #${scheduleId}.`, {
+    type: 'success',
+    title: 'Guide Assigned',
+  })
   const notification = store.notifications.find((n) => n.scheduleId === scheduleId && !n.read)
   if (notification) store.markRead(notification.id)
 }
@@ -543,23 +551,6 @@ onUnmounted(() => {
             </li>
           </ul>
         </section>
-
-        <!-- Feedback Toast -->
-        <Transition
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="translate-y-2 opacity-0"
-          enter-to-class="translate-y-0 opacity-100"
-          leave-active-class="transition duration-150 ease-in"
-          leave-from-class="translate-y-0 opacity-100"
-          leave-to-class="translate-y-2 opacity-0"
-        >
-          <p
-            v-if="store.feedbackMessage"
-            class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-medium text-emerald-700 shadow-lg dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300"
-          >
-            {{ store.feedbackMessage }}
-          </p>
-        </Transition>
 
         <!-- Confirm Delete Dialog -->
         <ConfirmDialog

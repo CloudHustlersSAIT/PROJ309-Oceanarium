@@ -51,6 +51,19 @@ describe('useToast', () => {
     expect(toasts.value[0].message).toBe('Keep me')
   })
 
+  it('stores title when provided', () => {
+    const { addToast, toasts } = useToast()
+    addToast('Description text', { type: 'success', title: 'My Title' })
+    expect(toasts.value[0].title).toBe('My Title')
+    expect(toasts.value[0].message).toBe('Description text')
+  })
+
+  it('defaults title to empty string', () => {
+    const { addToast, toasts } = useToast()
+    addToast('No title toast')
+    expect(toasts.value[0].title).toBe('')
+  })
+
   it('caps at 5 toasts, removing the oldest', () => {
     const { addToast, toasts } = useToast()
     for (let i = 0; i < 6; i++) {

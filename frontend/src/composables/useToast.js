@@ -11,7 +11,7 @@ let _nextId = 0
 const toasts = ref([])
 const _timers = new Map()
 
-function addToast(message, { type = 'info', duration = 5000 } = {}) {
+function addToast(message, { type = 'info', duration = 5000, title = '' } = {}) {
   const id = ++_nextId
 
   if (toasts.value.length >= MAX_TOASTS) {
@@ -19,7 +19,7 @@ function addToast(message, { type = 'info', duration = 5000 } = {}) {
     removeToast(oldest.id)
   }
 
-  toasts.value.push({ id, message, type, duration })
+  toasts.value.push({ id, message, type, duration, title })
 
   if (duration > 0) {
     const timer = setTimeout(() => removeToast(id), duration)

@@ -6,6 +6,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from '../services/api'
+import { useToast } from '../composables/useToast'
 
 const EVENT_TYPE_LABELS = {
   GUIDE_ASSIGNED: 'Guide Assigned',
@@ -130,9 +131,8 @@ export const useNotificationStore = defineStore('notification', () => {
   })
   const loading = ref(false)
   const error = ref('')
-  const feedbackMessage = ref('')
 
-  let feedbackTimer = null
+  const { addToast } = useToast()
 
   const unreadCount = computed(() => summary.value.unread || 0)
 
@@ -164,14 +164,6 @@ export const useNotificationStore = defineStore('notification', () => {
       return true
     })
   })
-
-  function showFeedback(msg) {
-    feedbackMessage.value = msg
-    if (feedbackTimer) clearTimeout(feedbackTimer)
-    feedbackTimer = setTimeout(() => {
-      feedbackMessage.value = ''
-    }, 3000)
-  }
 
   async function loadNotifications() {
     loading.value = true
@@ -240,8 +232,9 @@ export const useNotificationStore = defineStore('notification', () => {
 
     try {
       await markAllNotificationsRead(target)
-      showFeedback(
+      addToast(
         `${affected.length} notification${affected.length === 1 ? '' : 's'} marked as read.`,
+        { type: 'success', title: 'Notifications Updated' },
       )
     } catch {
       affected.forEach((n) => {
@@ -282,7 +275,6 @@ export const useNotificationStore = defineStore('notification', () => {
     filters,
     loading,
     error,
-    feedbackMessage,
     unreadCount,
     filteredNotifications,
     hasActiveFilters,
@@ -292,7 +284,6 @@ export const useNotificationStore = defineStore('notification', () => {
     markAllRead,
     setFilter,
     clearFilters,
-    showFeedback,
     init,
   }
 })

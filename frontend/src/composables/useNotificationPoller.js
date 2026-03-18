@@ -35,8 +35,10 @@ export function useNotificationPoller() {
       if (lastUnread !== null && currentUnread > lastUnread) {
         const diff = currentUnread - lastUnread
         addToast(
-          diff === 1 ? 'You have a new notification' : `You have ${diff} new notifications`,
-          { type: 'info', duration: 5000 },
+          diff === 1
+            ? 'Check your notifications for details.'
+            : `You have ${diff} new unread notifications.`,
+          { type: 'info', title: 'New Notification', duration: 5000 },
         )
       }
 

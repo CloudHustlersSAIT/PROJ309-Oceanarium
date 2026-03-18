@@ -32,6 +32,27 @@ describe('AppToast', () => {
     expect(toasts.value).toHaveLength(0)
   })
 
+  it('renders title as bold heading when provided', () => {
+    const { addToast } = useToast()
+    addToast('Description body', { type: 'success', title: 'Bold Title', duration: 0 })
+
+    const wrapper = mount(AppToast)
+    const titleEl = wrapper.find('p.font-bold')
+    expect(titleEl.exists()).toBe(true)
+    expect(titleEl.text()).toBe('Bold Title')
+    expect(wrapper.text()).toContain('Description body')
+  })
+
+  it('does not render title element when title is empty', () => {
+    const { addToast } = useToast()
+    addToast('Message only', { type: 'info', duration: 0 })
+
+    const wrapper = mount(AppToast)
+    const titleEl = wrapper.find('p.font-bold')
+    expect(titleEl.exists()).toBe(false)
+    expect(wrapper.text()).toContain('Message only')
+  })
+
   it('applies correct classes for info type', () => {
     const { addToast } = useToast()
     addToast('Info toast', { type: 'info', duration: 0 })

@@ -1,10 +1,14 @@
 <template>
   <div class="space-y-6">
-    <section class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+    <section
+      class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30"
+    >
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 class="text-2xl font-semibold text-[#1C1C1C] dark:text-slate-100">My Profile</h1>
-          <p class="text-sm text-black/60 dark:text-slate-400">View and update your guide languages and availability.</p>
+          <p class="text-sm text-black/60 dark:text-slate-400">
+            View and update your guide languages and availability.
+          </p>
         </div>
 
         <div class="flex items-center gap-2">
@@ -23,7 +27,9 @@
     </section>
 
     <section class="grid gap-4 md:grid-cols-3">
-      <div class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm md:col-span-1 dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+      <div
+        class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm md:col-span-1 dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30"
+      >
         <div class="flex items-center gap-3">
           <div
             class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#CAF0F8] ring-1 ring-[#00B4D8]/40"
@@ -41,22 +47,30 @@
         </div>
 
         <div class="mt-5 space-y-3">
-          <div class="rounded-xl border border-black/10 p-4 dark:border-white/10 dark:bg-white/[0.02]">
+          <div
+            class="rounded-xl border border-black/10 p-4 dark:border-white/10 dark:bg-white/[0.02]"
+          >
             <p class="text-sm text-black dark:text-slate-300">Email</p>
             <p class="break-all text-base font-semibold text-[#1C1C1C] dark:text-slate-100">
               {{ displayEmail }}
             </p>
           </div>
 
-          <div class="rounded-xl border border-black/10 p-4 dark:border-white/10 dark:bg-white/[0.02]">
+          <div
+            class="rounded-xl border border-black/10 p-4 dark:border-white/10 dark:bg-white/[0.02]"
+          >
             <p class="text-sm text-black dark:text-slate-300">Guide ID</p>
             <p class="text-base font-semibold text-[#1C1C1C] dark:text-slate-100">
               {{ currentGuideId || 'Unavailable' }}
             </p>
           </div>
 
-          <div class="rounded-xl border border-black/10 p-4 dark:border-white/10 dark:bg-white/[0.02]">
-            <label class="block text-sm text-black dark:text-slate-300" for="guide-phone">Phone Number</label>
+          <div
+            class="rounded-xl border border-black/10 p-4 dark:border-white/10 dark:bg-white/[0.02]"
+          >
+            <label class="block text-sm text-black dark:text-slate-300" for="guide-phone"
+              >Phone Number</label
+            >
             <input
               id="guide-phone"
               :value="phoneNumber"
@@ -85,7 +99,9 @@
         </div>
       </div>
 
-      <div class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm md:col-span-2 dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+      <div
+        class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm md:col-span-2 dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30"
+      >
         <div
           v-if="!currentGuideId"
           class="rounded-xl border border-[#E63946]/25 bg-[#FFF5F5] p-4 text-sm font-medium text-[#B91C1C]"
@@ -95,7 +111,9 @@
 
         <template v-else>
           <h2 class="text-lg font-semibold text-[#1C1C1C] dark:text-slate-100">Preferences</h2>
-          <p class="text-sm text-black/60 dark:text-slate-400">These settings help admins schedule you better.</p>
+          <p class="text-sm text-black/60 dark:text-slate-400">
+            These settings help admins schedule you better.
+          </p>
 
           <div v-if="loading" class="mt-5 text-sm text-black/60">Loading profile...</div>
           <div
@@ -106,13 +124,21 @@
           </div>
 
           <div v-else class="mt-5 space-y-6">
-            <div class="rounded-2xl border border-black/10 p-5 dark:border-white/10 dark:bg-white/[0.02]">
+            <div
+              class="rounded-2xl border border-black/10 p-5 dark:border-white/10 dark:bg-white/[0.02]"
+            >
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 class="text-base font-semibold text-[#1C1C1C] dark:text-slate-100">Languages</h3>
-                  <p class="text-sm text-black/60 dark:text-slate-400">Choose the languages you can support during tours.</p>
+                  <h3 class="text-base font-semibold text-[#1C1C1C] dark:text-slate-100">
+                    Languages
+                  </h3>
+                  <p class="text-sm text-black/60 dark:text-slate-400">
+                    Choose the languages you can support during tours.
+                  </p>
                 </div>
-                <span class="inline-flex items-center rounded-full bg-[#CAF0F8] px-3 py-1 text-xs font-semibold text-[#0077B6]">
+                <span
+                  class="inline-flex items-center rounded-full bg-[#CAF0F8] px-3 py-1 text-xs font-semibold text-[#0077B6]"
+                >
                   {{ selectedLanguageIds.length }} selected
                 </span>
               </div>
@@ -129,14 +155,19 @@
                   {{ language.name }} ({{ String(language.code || '').toUpperCase() }})
                 </button>
               </div>
-
             </div>
 
-            <div class="rounded-2xl border border-black/10 p-5 dark:border-white/10 dark:bg-white/[0.02]">
+            <div
+              class="rounded-2xl border border-black/10 p-5 dark:border-white/10 dark:bg-white/[0.02]"
+            >
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 class="text-base font-semibold text-[#1C1C1C] dark:text-slate-100">Availability</h3>
-                  <p class="text-sm text-black/60 dark:text-slate-400">Maintain the time windows when you are usually available.</p>
+                  <h3 class="text-base font-semibold text-[#1C1C1C] dark:text-slate-100">
+                    Availability
+                  </h3>
+                  <p class="text-sm text-black/60 dark:text-slate-400">
+                    Maintain the time windows when you are usually available.
+                  </p>
                 </div>
               </div>
 
@@ -148,7 +179,9 @@
                 >
                   <div class="grid gap-3 md:grid-cols-[1.1fr_1fr_1fr] md:items-end">
                     <div class="space-y-2">
-                      <label class="block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Day</label>
+                      <label class="block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100"
+                        >Day</label
+                      >
                       <div
                         class="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-[#1C1C1C] dark:border-white/10 dark:bg-[#1C2333] dark:text-slate-100"
                       >
@@ -157,7 +190,9 @@
                     </div>
 
                     <div class="space-y-2">
-                      <label class="block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Start</label>
+                      <label class="block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100"
+                        >Start</label
+                      >
                       <input
                         v-model="slot.start"
                         type="time"
@@ -166,7 +201,9 @@
                     </div>
 
                     <div class="space-y-2">
-                      <label class="block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">End</label>
+                      <label class="block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100"
+                        >End</label
+                      >
                       <input
                         v-model="slot.end"
                         type="time"
@@ -176,7 +213,6 @@
                   </div>
                 </div>
               </div>
-
             </div>
 
             <div class="flex items-center gap-3 pt-2">
@@ -190,14 +226,6 @@
                 @click="saveProfile"
               />
             </div>
-
-            <p
-              v-if="toast"
-              class="text-sm font-semibold"
-              :class="toastType === 'success' ? 'text-[#2A9D8F]' : 'text-[#E63946]'"
-            >
-              {{ toast }}
-            </p>
           </div>
         </template>
       </div>
@@ -208,6 +236,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { useAuth } from '@/contexts/authContext'
+import { useToast } from '@/composables/useToast'
 import CancelButton from '@/components/CancelButton.vue'
 import SaveButton from '@/components/SaveButton.vue'
 import {
@@ -221,6 +250,7 @@ import {
 } from '@/services/api'
 
 const { user, profile, ensureAuthReady } = useAuth()
+const { addToast } = useToast()
 
 const currentGuideId = computed(() => Number(profile.value?.guide_id ?? 0) || null)
 const displayEmail = computed(() => profile.value?.email || user.value?.email || 'unknown')
@@ -261,8 +291,6 @@ const savedState = ref({
 const loading = ref(true)
 const loadError = ref('')
 const saving = ref(false)
-const toast = ref('')
-const toastType = ref('success')
 
 function chipClass(arr, value) {
   const active = arr.includes(value)
@@ -280,7 +308,9 @@ function toggleChip(arr, value) {
 function mergeSlots(slots = []) {
   const byDay = new Map(
     slots.map((slot) => [
-      String(slot.day || '').trim().toLowerCase(),
+      String(slot.day || '')
+        .trim()
+        .toLowerCase(),
       {
         start: String(slot.start || '').trim(),
         end: String(slot.end || '').trim(),
@@ -306,22 +336,15 @@ function normalizeErrorMessage(error, fallbackMessage) {
   if (message.includes('503') || lowered.includes('database unavailable')) {
     return 'Service unavailable. Please try again later.'
   }
-  if (message.includes('404') || lowered.includes('guide not found') || lowered.includes('profile not found')) {
+  if (
+    message.includes('404') ||
+    lowered.includes('guide not found') ||
+    lowered.includes('profile not found')
+  ) {
     return 'Profile not found.'
   }
   return message || fallbackMessage
 }
-
-function setToast(message, type = 'success') {
-  toast.value = message
-  toastType.value = type
-  window.clearTimeout(setToast.timeoutId)
-  setToast.timeoutId = window.setTimeout(() => {
-    toast.value = ''
-  }, 2500)
-}
-
-setToast.timeoutId = null
 
 function syncSavedState(languageIds, availabilityState) {
   savedState.value = {
@@ -360,19 +383,27 @@ function onPhoneInput(event) {
       : ''
 
   if (hadInvalidCharacters) {
-    window.alert('Only numbers can be entered in the phone number field.')
+    addToast('Only numbers can be entered in the phone number field.', {
+      type: 'warning',
+      title: 'Invalid Input',
+    })
   } else if (exceededMaxLength) {
-    window.alert('Phone number cannot be longer than 10 digits.')
+    addToast('Phone number cannot be longer than 10 digits.', {
+      type: 'warning',
+      title: 'Invalid Input',
+    })
   }
 }
 
 function resetToDefaults() {
   applySavedState()
-  setToast('Reset to last saved settings.')
+  addToast('Your profile has been reset to the last saved settings.', {
+    type: 'info',
+    title: 'Settings Reset',
+  })
 }
 
 async function loadProfile() {
-  toast.value = ''
   loadError.value = ''
 
   if (!currentGuideId.value) {
@@ -383,12 +414,13 @@ async function loadProfile() {
   loading.value = true
 
   try {
-    const [guidesResponse, availabilityResponse, guideLanguagesResponse, languagesResponse] = await Promise.all([
-      getGuides(),
-      getGuideAvailability(currentGuideId.value),
-      getGuideLanguages(currentGuideId.value),
-      getLanguages(),
-    ])
+    const [guidesResponse, availabilityResponse, guideLanguagesResponse, languagesResponse] =
+      await Promise.all([
+        getGuides(),
+        getGuideAvailability(currentGuideId.value),
+        getGuideLanguages(currentGuideId.value),
+        getLanguages(),
+      ])
 
     const currentGuide = (Array.isArray(guidesResponse) ? guidesResponse : []).find(
       (guide) => Number(guide?.id) === currentGuideId.value,
@@ -425,9 +457,14 @@ async function saveProfile() {
       }))
       .filter((slot) => slot.start || slot.end)
 
-    const invalidSlot = normalizedSlots.find((slot) => !slot.start || !slot.end || slot.end <= slot.start)
+    const invalidSlot = normalizedSlots.find(
+      (slot) => !slot.start || !slot.end || slot.end <= slot.start,
+    )
     if (invalidSlot) {
-      setToast('Each filled day needs a start time and an end time after the start.', 'error')
+      addToast('Each filled day needs a start time and an end time after the start.', {
+        type: 'error',
+        title: 'Invalid Availability',
+      })
       return
     }
 
@@ -446,9 +483,15 @@ async function saveProfile() {
       slots: normalizedSlots,
     })
     availability.slots = mergeSlots(normalizedSlots)
-    setToast('Profile saved successfully.')
+    addToast('Your profile and availability preferences have been saved.', {
+      type: 'success',
+      title: 'Profile Saved',
+    })
   } catch (error) {
-    setToast(normalizeErrorMessage(error, 'Failed to save profile.'), 'error')
+    addToast(normalizeErrorMessage(error, 'Failed to save profile.'), {
+      type: 'error',
+      title: 'Save Failed',
+    })
   } finally {
     saving.value = false
   }

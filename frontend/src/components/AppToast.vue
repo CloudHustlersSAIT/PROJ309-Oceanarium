@@ -11,7 +11,7 @@
       <div
         v-for="toast in toasts"
         :key="toast.id"
-        class="pointer-events-auto flex w-80 items-start gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm"
+        class="pointer-events-auto flex w-96 items-start gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm"
         :class="cardClasses[toast.type]"
       >
         <svg
@@ -46,7 +46,15 @@
           />
         </svg>
 
-        <p class="flex-1 text-sm font-medium leading-snug">{{ toast.message }}</p>
+        <div class="flex-1 min-w-0">
+          <p v-if="toast.title" class="text-sm font-bold leading-snug">{{ toast.title }}</p>
+          <p
+            class="text-sm leading-snug"
+            :class="toast.title ? 'mt-0.5 opacity-90' : 'font-medium'"
+          >
+            {{ toast.message }}
+          </p>
+        </div>
 
         <button
           type="button"
