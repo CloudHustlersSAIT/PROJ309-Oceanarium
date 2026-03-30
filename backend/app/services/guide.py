@@ -1,5 +1,6 @@
 from sqlalchemy import text
 
+from .content_moderation import assert_text_is_safe
 from .exceptions import ValidationError
 
 VALID_DAYS_OF_WEEK = {
@@ -311,6 +312,9 @@ def create_guide(
     if normalized_phone is not None and normalized_phone and not normalized_phone.isdigit():
         raise ValidationError("phone must contain digits only")
 
+    assert_text_is_safe(normalized_first_name, "first_name")
+    assert_text_is_safe(normalized_last_name, "last_name")
+
     result = conn.execute(
         text(
             """
@@ -363,11 +367,13 @@ def update_guide(conn, guide_id: int, fields: dict):
         normalized_fields["first_name"] = normalized_fields["first_name"].strip()
         if not normalized_fields["first_name"]:
             raise ValidationError("first_name cannot be empty")
+        assert_text_is_safe(normalized_fields["first_name"], "first_name")
 
     if "last_name" in normalized_fields:
         normalized_fields["last_name"] = normalized_fields["last_name"].strip()
         if not normalized_fields["last_name"]:
             raise ValidationError("last_name cannot be empty")
+        assert_text_is_safe(normalized_fields["last_name"], "last_name")
 
     if "phone" in normalized_fields:
         phone_value = normalized_fields["phone"]

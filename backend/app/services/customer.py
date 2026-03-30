@@ -1,5 +1,6 @@
 from sqlalchemy import text
 
+from .content_moderation import assert_text_is_safe
 from .exceptions import ConflictError, ValidationError
 
 
@@ -74,6 +75,9 @@ def create_customer(
     if not normalized_email:
         raise ValidationError("email is required")
 
+    assert_text_is_safe(normalized_first_name, "first_name")
+    assert_text_is_safe(normalized_last_name, "last_name")
+
     final_clorian_client_id = (clorian_client_id or "").strip()
     if not final_clorian_client_id:
         final_clorian_client_id = _generate_next_manual_client_id(conn)
@@ -117,8 +121,27 @@ def update_customer(conn, customer_id: str, fields: dict):
     if not fields:
         return None
 
-    set_clause = ", ".join(f"{key} = :{key}" for key in fields)
-    params = {"customer_id": customer_id, **fields}
+    normalized_fields = fields.copy()
+
+    if "first_name" in normalized_fields:
+        normalized_fields["first_name"] = str(normalized_fields["first_name"]).strip()
+        if not normalized_fields["first_name"]:
+            raise ValidationError("first_name cannot be empty")
+        assert_text_is_safe(normalized_fields["first_name"], "first_name")
+
+    if "last_name" in normalized_fields:
+        normalized_fields["last_name"] = str(normalized_fields["last_name"]).strip()
+        if not normalized_fields["last_name"]:
+            raise ValidationError("last_name cannot be empty")
+        assert_text_is_safe(normalized_fields["last_name"], "last_name")
+
+    if "email" in normalized_fields:
+        normalized_fields["email"] = str(normalized_fields["email"]).strip()
+        if not normalized_fields["email"]:
+            raise ValidationError("email cannot be empty")
+
+    set_clause = ", ".join(f"{key} = :{key}" for key in normalized_fields)
+    params = {"customer_id": customer_id, **normalized_fields}
 
     result = conn.execute(
         text(f"""
