@@ -259,6 +259,15 @@ class TestAutoAssignGuide:
 
 
 class TestManualAssignGuide:
+    def test_rejects_unsafe_reason(self, mock_conn):
+        with patch("app.services.guide_assignment.assert_text_is_safe") as mock_safe:
+            mock_safe.side_effect = ValidationError("reason contains unsafe content")
+
+            with pytest.raises(ValidationError, match="unsafe"):
+                manual_assign_guide(mock_conn, 1, 3, "admin", reason="bad text")
+
+        mock_conn.execute.assert_not_called()
+
     def test_happy_path_assigns_guide(self, mock_conn):
         schedule_row = _schedule_row(guide_id=None)
         guide_row = MagicMock(id=3, first_name="Ana", last_name="Costa", is_active=True)
@@ -468,6 +477,19 @@ class TestManualAssignAndNotify:
             result = manual_assign_and_notify(conn, 1, 3, "admin")
 
         assert result["guide_id"] == 3
+
+    def test_forwards_reason_to_manual_assign(self):
+        with (
+            patch("app.services.guide_assignment.manual_assign_guide") as mock_assign,
+            patch("app.services.guide_assignment.notification_service") as mock_notif,
+        ):
+            mock_assign.return_value = {"guide_id": 3, "warnings": []}
+            conn = MagicMock()
+
+            manual_assign_and_notify(conn, 1, 3, "admin", reason="Requested by customer")
+
+        mock_assign.assert_called_once_with(conn, 1, 3, assigned_by="admin", reason="Requested by customer")
+        mock_notif.notify_guide_assignment.assert_called_once_with(conn, 1, 3, "MANUAL")
 
 
 class TestAutoAssignAllUnassigned:

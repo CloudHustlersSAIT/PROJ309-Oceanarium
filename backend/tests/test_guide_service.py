@@ -22,6 +22,28 @@ def _guide_row(guide_id: int, first_name: str = "Maria", last_name: str = "Silva
 
 
 class TestCreateGuide:
+    def test_moderates_name_fields(self, mock_conn):
+        insert_result = MagicMock()
+        insert_result.fetchone.return_value = MagicMock(id=7)
+
+        mock_conn.execute.side_effect = [
+            insert_result,
+            MagicMock(),
+            MagicMock(fetchall=MagicMock(return_value=[])),
+            MagicMock(fetchall=MagicMock(return_value=[])),
+            MagicMock(fetchall=MagicMock(return_value=[])),
+            MagicMock(fetchall=MagicMock(return_value=[])),
+            MagicMock(fetchall=MagicMock(return_value=[])),
+        ]
+
+        with (
+            patch("app.services.guide.assert_text_is_safe") as mock_safe,
+            patch("app.services.guide._fetch_guide_profile", return_value={"id": 7}),
+        ):
+            create_guide(mock_conn, "Maria", "Silva", "maria@test.com")
+
+        assert mock_safe.call_count == 2
+
     def test_create_guide_with_relations(self, mock_conn):
         insert_result = MagicMock()
         insert_result.fetchone.return_value = MagicMock(id=7)
@@ -140,6 +162,20 @@ class TestUpdateGuide:
         result = update_guide(mock_conn, 999, {"first_name": "Ana"})
 
         assert result is None
+
+    def test_update_guide_moderates_name_fields(self, mock_conn):
+        mock_conn.execute.side_effect = [
+            MagicMock(fetchone=MagicMock(return_value=MagicMock())),
+            MagicMock(),
+        ]
+
+        with (
+            patch("app.services.guide.assert_text_is_safe") as mock_safe,
+            patch("app.services.guide._fetch_guide_profile", return_value={"id": 3}),
+        ):
+            update_guide(mock_conn, 3, {"first_name": "Ana", "last_name": "Costa"})
+
+        assert mock_safe.call_count == 2
 
 
 class TestSoftDeleteGuide:
