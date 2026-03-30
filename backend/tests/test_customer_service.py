@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -20,6 +20,21 @@ class TestListCustomers:
 
 
 class TestCreateCustomer:
+    def test_moderates_name_fields(self, mock_conn):
+        existing_result = MagicMock()
+        existing_result.fetchone.return_value = None
+
+        insert_result = MagicMock()
+        insert_result.keys.return_value = ["clorian_client_id", "first_name", "last_name", "email"]
+        insert_result.fetchone.return_value = ("CLI-1", "Ana", "Costa", "ana@test.com")
+
+        mock_conn.execute.side_effect = [existing_result, insert_result]
+
+        with patch("app.services.customer.assert_text_is_safe") as mock_safe:
+            create_customer(mock_conn, "Ana", "Costa", "ana@test.com", "CLI-1")
+
+        assert mock_safe.call_count == 2
+
     def test_raises_when_first_name_missing(self, mock_conn):
         with pytest.raises(ValidationError, match="first_name"):
             create_customer(mock_conn, "   ", "Costa", "ana@test.com")
@@ -92,3 +107,14 @@ class TestUpdateCustomer:
 
         assert result["first_name"] == "Ana"
         mock_conn.commit.assert_called_once()
+
+    def test_update_moderates_name_fields(self, mock_conn):
+        update_result = MagicMock()
+        update_result.keys.return_value = ["clorian_client_id", "first_name", "last_name", "email"]
+        update_result.fetchone.return_value = ("MANUAL-000001", "Ana", "Costa", "ana@test.com")
+        mock_conn.execute.return_value = update_result
+
+        with patch("app.services.customer.assert_text_is_safe") as mock_safe:
+            update_customer(mock_conn, "MANUAL-000001", {"first_name": "Ana", "last_name": "Costa"})
+
+        assert mock_safe.call_count == 2

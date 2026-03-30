@@ -5,6 +5,7 @@ import logging
 from sqlalchemy import text
 
 from . import notification as notification_service
+from .content_moderation import assert_text_is_safe
 from .exceptions import NotFoundError, UnassignableError, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -321,6 +322,7 @@ def manual_assign_guide(
     schedule_id: int,
     guide_id: int,
     assigned_by: str,
+    reason: str | None = None,
     *,
     commit: bool = True,
 ) -> dict:
@@ -328,6 +330,8 @@ def manual_assign_guide(
 
     Constraint violations produce warnings but do not block the assignment.
     """
+    assert_text_is_safe(reason, "reason")
+
     schedule = _fetch_schedule(conn, schedule_id)
 
     guide = conn.execute(
@@ -418,9 +422,10 @@ def manual_assign_and_notify(
     schedule_id: int,
     guide_id: int,
     assigned_by: str,
+    reason: str | None = None,
 ) -> dict:
     """Manually assign a guide and fire the assignment notification."""
-    result = manual_assign_guide(conn, schedule_id, guide_id, assigned_by=assigned_by)
+    result = manual_assign_guide(conn, schedule_id, guide_id, assigned_by=assigned_by, reason=reason)
 
     try:
         notification_service.notify_guide_assignment(conn, schedule_id, guide_id, "MANUAL")

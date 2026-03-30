@@ -48,6 +48,14 @@ RESEND_API_KEY=re_your_api_key_here  # Get from https://resend.com/api-keys
 EMAIL_FROM=onboarding@resend.dev      # Use this for testing; verify your domain for production
 EMAIL_FROM_NAME=Oceanarium Scheduling System
 FRONTEND_URL=http://localhost:5173
+
+# Azure Content Safety (optional)
+CONTENT_SAFETY_ENABLED=false
+AZURE_CONTENT_SAFETY_ENDPOINT=https://YOUR_RESOURCE_NAME.cognitiveservices.azure.com
+AZURE_CONTENT_SAFETY_KEY=YOUR_CONTENT_SAFETY_KEY
+AZURE_CONTENT_SAFETY_API_VERSION=2023-10-01
+CONTENT_SAFETY_BLOCK_SEVERITY=2
+CONTENT_SAFETY_FAIL_CLOSED=false
 ```
 
 Then install the required libraries

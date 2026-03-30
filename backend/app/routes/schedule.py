@@ -93,6 +93,7 @@ def manual_assign(schedule_id: int, payload: ManualAssignRequest, conn=Depends(g
             schedule_id,
             payload.guide_id,
             assigned_by="admin",
+            reason=payload.reason,
         )
     except Exception as e:
         return handle_domain_exception(e)

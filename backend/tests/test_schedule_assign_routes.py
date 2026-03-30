@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 
@@ -100,6 +100,32 @@ async def test_manual_assign_with_warnings(client):
     data = response.json()
     assert len(data["warnings"]) == 1
     assert "language" in data["warnings"][0].lower()
+
+
+@pytest.mark.asyncio
+async def test_manual_assign_forwards_reason(client):
+    with patch("app.routes.schedule.guide_assignment_service") as mock_svc:
+        mock_svc.manual_assign_and_notify.return_value = {
+            "schedule_id": 1,
+            "guide_id": 3,
+            "guide_name": "Ana Costa",
+            "assignment_type": "MANUAL",
+            "warnings": [],
+        }
+
+        response = await client.put(
+            "/schedules/1/assign",
+            json={"guide_id": 3, "reason": "Customer requested this guide"},
+        )
+
+    assert response.status_code == 200
+    mock_svc.manual_assign_and_notify.assert_called_once_with(
+        ANY,
+        1,
+        3,
+        assigned_by="admin",
+        reason="Customer requested this guide",
+    )
 
 
 @pytest.mark.asyncio
