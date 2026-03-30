@@ -98,9 +98,9 @@ def analyze_text(text: str) -> dict:
             response = client.post(_build_url(endpoint), headers=headers, json=request_body)
             response.raise_for_status()
             data = response.json()
-    except Exception:
+    except Exception as err:
         if _is_fail_closed():
-            raise ValidationError("Unable to validate content safety at this time")
+            raise ValidationError("Unable to validate content safety at this time") from err
         return {"enabled": True, "blocked": False, "matched_categories": []}
 
     matched_categories: list[dict] = []

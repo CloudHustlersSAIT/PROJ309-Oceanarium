@@ -4,8 +4,8 @@ import logging
 
 from sqlalchemy import text
 
-from .content_moderation import assert_text_is_safe
 from . import notification as notification_service
+from .content_moderation import assert_text_is_safe
 from .exceptions import NotFoundError, UnassignableError, ValidationError
 
 logger = logging.getLogger(__name__)
