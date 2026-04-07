@@ -21,6 +21,7 @@ from .routes.guide_dashboard import router as guide_dashboard_router
 from .routes.guide_languages import router as guide_languages_router
 from .routes.guide_requests import router as guide_requests_router
 from .routes.health import router as health_router
+from .routes.insights import router as insights_router
 from .routes.issue import router as issue_router
 from .routes.language import router as language_router
 from .routes.mock import router as mock_router
@@ -69,6 +70,7 @@ app.include_router(auth_router)
 app.include_router(guide_dashboard_router)
 app.include_router(guide_availability_router)
 app.include_router(guide_languages_router)
+app.include_router(insights_router)
 
 origins = [
     "http://localhost:5173",

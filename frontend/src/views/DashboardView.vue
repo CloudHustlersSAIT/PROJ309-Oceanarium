@@ -2,13 +2,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import AppSidebar from '../components/AppSidebar.vue'
-import {
-  getBookings,
-  getGuides,
-  getSchedules,
-  getStats,
-  getTours,
-} from '../services/api'
+import DashboardInsightPanel from '../components/DashboardInsightPanel.vue'
+import { getBookings, getGuides, getSchedules, getStats, getTours } from '../services/api'
 
 const rangeOptions = [
   { value: 'all-time', label: 'All Time' },
@@ -41,7 +36,20 @@ const ALERT_THRESHOLDS = {
   guideCoverageTarget: 85,
 }
 
-const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const monthLabels = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
 
 const activeRangeLabel = computed(
   () => rangeOptions.find((option) => option.value === selectedRange.value)?.label || 'All Time',
@@ -114,7 +122,9 @@ function parseDate(value) {
 }
 
 function normalizeReservationStatus(status) {
-  return String(status || '').trim().toUpperCase()
+  return String(status || '')
+    .trim()
+    .toUpperCase()
 }
 
 function isCancelledReservation(status) {
@@ -172,7 +182,9 @@ function persistAlertReadState(state) {
 }
 
 const filteredReservations = computed(() =>
-  reservations.value.filter((item) => isWithinRange(item?.event_start_datetime, rangeBoundary.value)),
+  reservations.value.filter((item) =>
+    isWithinRange(item?.event_start_datetime, rangeBoundary.value),
+  ),
 )
 
 const filteredSchedules = computed(() =>
@@ -180,11 +192,15 @@ const filteredSchedules = computed(() =>
 )
 
 const previousReservations = computed(() =>
-  reservations.value.filter((item) => isWithinRange(item?.event_start_datetime, previousRangeBoundary.value)),
+  reservations.value.filter((item) =>
+    isWithinRange(item?.event_start_datetime, previousRangeBoundary.value),
+  ),
 )
 
 const previousSchedules = computed(() =>
-  schedules.value.filter((item) => isWithinRange(item?.event_start_datetime, previousRangeBoundary.value)),
+  schedules.value.filter((item) =>
+    isWithinRange(item?.event_start_datetime, previousRangeBoundary.value),
+  ),
 )
 
 const guideRatings = computed(() => {
@@ -218,15 +234,11 @@ const visitorsServed = computed(() =>
 )
 
 const currentWindowBookings = computed(
-  () =>
-    filteredReservations.value.filter((item) => !isCancelledReservation(item?.status))
-      .length,
+  () => filteredReservations.value.filter((item) => !isCancelledReservation(item?.status)).length,
 )
 
 const currentWindowCancellations = computed(
-  () =>
-    filteredReservations.value.filter((item) => isCancelledReservation(item?.status))
-      .length,
+  () => filteredReservations.value.filter((item) => isCancelledReservation(item?.status)).length,
 )
 
 const currentWindowCancellationRate = computed(() => {
@@ -261,7 +273,10 @@ const lowDemandTours = computed(() => {
   }
 
   return Array.from(byTour.entries())
-    .filter(([, value]) => value.totalSchedules >= 2 && value.zeroDemandSchedules / value.totalSchedules >= 0.5)
+    .filter(
+      ([, value]) =>
+        value.totalSchedules >= 2 && value.zeroDemandSchedules / value.totalSchedules >= 0.5,
+    )
     .map(([tourName]) => tourName)
 })
 
@@ -276,7 +291,10 @@ const operationalAlerts = computed(() => {
     })
   }
 
-  if (occupancyRate.value < ALERT_THRESHOLDS.lowOccupancyRate && filteredSchedules.value.length > 0) {
+  if (
+    occupancyRate.value < ALERT_THRESHOLDS.lowOccupancyRate &&
+    filteredSchedules.value.length > 0
+  ) {
     alerts.push({
       severity: 'warning',
       title: 'Low occupancy detected',
@@ -284,7 +302,10 @@ const operationalAlerts = computed(() => {
     })
   }
 
-  if (guideCoverageRate.value < ALERT_THRESHOLDS.guideCoverageTarget && filteredSchedules.value.length > 0) {
+  if (
+    guideCoverageRate.value < ALERT_THRESHOLDS.guideCoverageTarget &&
+    filteredSchedules.value.length > 0
+  ) {
     alerts.push({
       severity: 'warning',
       title: 'Guide coverage below target',
@@ -312,7 +333,9 @@ const operationalAlerts = computed(() => {
 })
 
 const visibleOperationalAlerts = computed(() =>
-  operationalAlerts.value.filter((alert) => alert.severity === 'critical' || alert.severity === 'healthy'),
+  operationalAlerts.value.filter(
+    (alert) => alert.severity === 'critical' || alert.severity === 'healthy',
+  ),
 )
 
 const alertCenterAlerts = computed(() =>
@@ -459,8 +482,18 @@ const lineChartData = computed(() => {
   const xOf = (i) => padLeft + (rows.length > 1 ? (i / (rows.length - 1)) * chartW : chartW / 2)
   const yOf = (v) => padTop + chartH - (Number(v || 0) / maxVal) * chartH
 
-  const bookingsPoints = rows.map((r, i) => ({ x: xOf(i), y: yOf(r.bookings), v: r.bookings, month: r.month }))
-  const cancellationsPoints = rows.map((r, i) => ({ x: xOf(i), y: yOf(r.cancellations), v: r.cancellations, month: r.month }))
+  const bookingsPoints = rows.map((r, i) => ({
+    x: xOf(i),
+    y: yOf(r.bookings),
+    v: r.bookings,
+    month: r.month,
+  }))
+  const cancellationsPoints = rows.map((r, i) => ({
+    x: xOf(i),
+    y: yOf(r.cancellations),
+    v: r.cancellations,
+    month: r.month,
+  }))
 
   const toPath = (pts) =>
     pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
@@ -540,7 +573,10 @@ const LANGUAGE_GRADIENT_DARK = '#1e3a8a'
 const LANGUAGE_GRADIENT_LIGHT = '#dbeafe'
 
 function interpolateHexColor(fromHex, toHex, ratio) {
-  const normalize = (hex) => String(hex || '').replace('#', '').trim()
+  const normalize = (hex) =>
+    String(hex || '')
+      .replace('#', '')
+      .trim()
   const from = normalize(fromHex)
   const to = normalize(toHex)
   if (!/^[0-9a-fA-F]{6}$/.test(from) || !/^[0-9a-fA-F]{6}$/.test(to)) {
@@ -568,9 +604,10 @@ const tourLanguageInfographic = computed(() => {
 
   const counters = new Map()
   for (const schedule of filteredSchedules.value) {
-    const code = String(schedule?.language_code || '')
-      .trim()
-      .toLowerCase() || 'unknown'
+    const code =
+      String(schedule?.language_code || '')
+        .trim()
+        .toLowerCase() || 'unknown'
     counters.set(code, (counters.get(code) || 0) + 1)
   }
 
@@ -642,7 +679,11 @@ const tourLanguageInfographic = computed(() => {
     const labelY = cy + 152 * Math.sin(mid)
 
     const toneRatio = compact.length <= 1 ? 0 : index / (compact.length - 1)
-    const fillColor = interpolateHexColor(LANGUAGE_GRADIENT_DARK, LANGUAGE_GRADIENT_LIGHT, toneRatio)
+    const fillColor = interpolateHexColor(
+      LANGUAGE_GRADIENT_DARK,
+      LANGUAGE_GRADIENT_LIGHT,
+      toneRatio,
+    )
 
     return {
       id: `segment-${item.code}-${index + 1}`,
@@ -683,9 +724,12 @@ function percentage(value, max) {
 }
 
 function alertClasses(severity) {
-  if (severity === 'critical') return 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/45 dark:text-rose-300'
-  if (severity === 'warning') return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
-  if (severity === 'watch') return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/45 dark:text-sky-300'
+  if (severity === 'critical')
+    return 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/45 dark:text-rose-300'
+  if (severity === 'warning')
+    return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+  if (severity === 'watch')
+    return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/45 dark:text-sky-300'
   return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
 }
 
@@ -795,9 +839,13 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
 })
 
-watch(alertReadState, (value) => {
-  persistAlertReadState(value)
-}, { deep: true })
+watch(
+  alertReadState,
+  (value) => {
+    persistAlertReadState(value)
+  },
+  { deep: true },
+)
 </script>
 
 <template>
@@ -810,7 +858,6 @@ watch(alertReadState, (value) => {
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 class="typo-page-title">Oceanarium Dashboard</h1>
-              
             </div>
 
             <div class="flex items-end gap-3">
@@ -830,7 +877,11 @@ watch(alertReadState, (value) => {
                     v-model="selectedRange"
                     class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
                   >
-                    <option v-for="option in rangeOptions" :key="option.value" :value="option.value">
+                    <option
+                      v-for="option in rangeOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
                       {{ option.label }}
                     </option>
                   </select>
@@ -876,7 +927,9 @@ watch(alertReadState, (value) => {
               </button>
             </div>
 
-            <p class="mt-1 typo-caption">Warning and watch alerts are grouped here to reduce dashboard noise.</p>
+            <p class="mt-1 typo-caption">
+              Warning and watch alerts are grouped here to reduce dashboard noise.
+            </p>
 
             <div class="mt-3 space-y-2">
               <article
@@ -887,7 +940,9 @@ watch(alertReadState, (value) => {
                 <div class="flex items-start justify-between gap-2">
                   <div>
                     <p class="typo-card-label">{{ alert.severity }}</p>
-                    <p class="typo-body font-semibold text-slate-800 dark:text-slate-100">{{ alert.title }}</p>
+                    <p class="typo-body font-semibold text-slate-800 dark:text-slate-100">
+                      {{ alert.title }}
+                    </p>
                     <p class="mt-1 typo-caption">{{ alert.detail }}</p>
                   </div>
                   <button
@@ -900,7 +955,9 @@ watch(alertReadState, (value) => {
                 </div>
               </article>
 
-              <p v-if="alertCenterAlerts.length === 0" class="typo-muted">No warning or watch alerts.</p>
+              <p v-if="alertCenterAlerts.length === 0" class="typo-muted">
+                No warning or watch alerts.
+              </p>
             </div>
 
             <div class="mt-3 flex justify-end">
@@ -919,20 +976,33 @@ watch(alertReadState, (value) => {
           </p>
         </header>
 
-        <p v-if="apiError" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 typo-body text-rose-700 dark:border-rose-800 dark:bg-rose-950/45 dark:text-rose-300">
+        <p
+          v-if="apiError"
+          class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 typo-body text-rose-700 dark:border-rose-800 dark:bg-rose-950/45 dark:text-rose-300"
+        >
           {{ apiError }}
         </p>
 
-        <div v-if="apiWarnings.length > 0" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40">
+        <div
+          v-if="apiWarnings.length > 0"
+          class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40"
+        >
           <p class="typo-card-label text-amber-700 dark:text-amber-300">Partial Data Notice</p>
           <ul class="mt-2 space-y-1">
-            <li v-for="warning in apiWarnings" :key="warning" class="typo-body text-amber-700 dark:text-amber-300">
+            <li
+              v-for="warning in apiWarnings"
+              :key="warning"
+              class="typo-body text-amber-700 dark:text-amber-300"
+            >
               {{ warning }}
             </li>
           </ul>
         </div>
 
-        <section v-if="visibleOperationalAlerts.length > 0" class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <section
+          v-if="visibleOperationalAlerts.length > 0"
+          class="grid grid-cols-1 gap-3 lg:grid-cols-3"
+        >
           <article
             v-for="alert in visibleOperationalAlerts"
             :key="`${alert.severity}-${alert.title}`"
@@ -941,7 +1011,12 @@ watch(alertReadState, (value) => {
           >
             <p class="typo-card-label">{{ alert.severity }}</p>
             <p class="mt-1 text-sm font-semibold">{{ alert.title }}</p>
-            <p class="mt-1 typo-caption" :class="alert.severity === 'healthy' ? 'text-emerald-700' : ''">{{ alert.detail }}</p>
+            <p
+              class="mt-1 typo-caption"
+              :class="alert.severity === 'healthy' ? 'text-emerald-700' : ''"
+            >
+              {{ alert.detail }}
+            </p>
           </article>
         </section>
 
@@ -968,14 +1043,24 @@ watch(alertReadState, (value) => {
                 :key="item.label"
                 class="grid grid-cols-[minmax(0,170px)_1fr_70px] items-start gap-3"
               >
-                <span class="typo-caption wrap-break-word leading-tight text-slate-700 dark:text-slate-300">{{ item.label }}</span>
+                <span
+                  class="typo-caption wrap-break-word leading-tight text-slate-700 dark:text-slate-300"
+                  >{{ item.label }}</span
+                >
                 <div class="h-3 overflow-hidden rounded bg-slate-100 dark:bg-white/8">
-                  <div class="h-full rounded bg-blue-600" :style="{ width: percentage(item.value, maxVisitorsPerTour) }" />
+                  <div
+                    class="h-full rounded bg-blue-600"
+                    :style="{ width: percentage(item.value, maxVisitorsPerTour) }"
+                  />
                 </div>
-                <span class="typo-caption text-right text-slate-700 dark:text-slate-300">{{ formatNumber(item.value) }}</span>
+                <span class="typo-caption text-right text-slate-700 dark:text-slate-300">{{
+                  formatNumber(item.value)
+                }}</span>
               </div>
 
-              <p v-if="visitorsPerTour.length === 0" class="typo-muted">No reservation data available.</p>
+              <p v-if="visitorsPerTour.length === 0" class="typo-muted">
+                No reservation data available.
+              </p>
             </div>
           </article>
 
@@ -991,9 +1076,14 @@ watch(alertReadState, (value) => {
               >
                 <span class="typo-caption">{{ item.label }}</span>
                 <div class="h-3 overflow-hidden rounded bg-slate-100 dark:bg-white/8">
-                  <div class="h-full rounded bg-sky-500" :style="{ width: percentage(item.value, maxToursPerYear) }" />
+                  <div
+                    class="h-full rounded bg-sky-500"
+                    :style="{ width: percentage(item.value, maxToursPerYear) }"
+                  />
                 </div>
-                <span class="typo-caption text-right text-slate-700 dark:text-slate-300">{{ formatNumber(item.value) }}</span>
+                <span class="typo-caption text-right text-slate-700 dark:text-slate-300">{{
+                  formatNumber(item.value)
+                }}</span>
               </div>
 
               <p v-if="toursPerYear.length === 0" class="typo-muted">No schedule data available.</p>
@@ -1008,7 +1098,9 @@ watch(alertReadState, (value) => {
             {{ activeRangeLabel.toLowerCase() }}.
           </p>
 
-          <div class="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]">
+          <div
+            class="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
+          >
             <p class="typo-caption">
               <span class="font-semibold text-slate-700 dark:text-slate-300">Bookings:</span>
               {{ currentWindowBookings }}
@@ -1018,7 +1110,9 @@ watch(alertReadState, (value) => {
               {{ currentWindowCancellations }}
             </p>
             <p class="typo-caption">
-              <span class="font-semibold text-slate-700 dark:text-slate-300">Cancellation Rate:</span>
+              <span class="font-semibold text-slate-700 dark:text-slate-300"
+                >Cancellation Rate:</span
+              >
               {{ currentWindowCancellationRate.toFixed(1) }}%
             </p>
           </div>
@@ -1050,7 +1144,9 @@ watch(alertReadState, (value) => {
                 text-anchor="end"
                 fill="#94a3b8"
                 style="font-size: 11px; font-family: inherit"
-              >{{ grid.label }}</text>
+              >
+                {{ grid.label }}
+              </text>
 
               <text
                 v-for="month in lineChartData.months"
@@ -1060,7 +1156,9 @@ watch(alertReadState, (value) => {
                 text-anchor="middle"
                 fill="#94a3b8"
                 style="font-size: 11px; font-family: inherit"
-              >{{ month.label }}</text>
+              >
+                {{ month.label }}
+              </text>
 
               <path
                 :d="lineChartData.bookingsPath"
@@ -1098,7 +1196,9 @@ watch(alertReadState, (value) => {
                 text-anchor="middle"
                 fill="#0284c7"
                 style="font-size: 10px; font-weight: 600; font-family: inherit"
-              >{{ pt.v }}</text>
+              >
+                {{ pt.v }}
+              </text>
 
               <circle
                 v-for="pt in lineChartData.cancellationsPoints"
@@ -1119,7 +1219,9 @@ watch(alertReadState, (value) => {
                 text-anchor="middle"
                 fill="#f97316"
                 style="font-size: 10px; font-weight: 600; font-family: inherit"
-              >{{ pt.v }}</text>
+              >
+                {{ pt.v }}
+              </text>
             </svg>
           </div>
 
@@ -1127,7 +1229,11 @@ watch(alertReadState, (value) => {
             <p class="typo-caption">
               Highest cancellation month:
               <span class="font-semibold text-slate-700 dark:text-slate-300">
-                {{ highestCancellationMonth ? `${highestCancellationMonth.month} (${highestCancellationMonth.cancellationRate.toFixed(1)}%)` : 'N/A' }}
+                {{
+                  highestCancellationMonth
+                    ? `${highestCancellationMonth.month} (${highestCancellationMonth.cancellationRate.toFixed(1)}%)`
+                    : 'N/A'
+                }}
               </span>
             </p>
             <div class="flex flex-wrap gap-6 typo-caption">
@@ -1152,7 +1258,9 @@ watch(alertReadState, (value) => {
                 :key="guide.name"
                 class="grid grid-cols-[1fr_auto_auto] items-center gap-2 py-1.5"
               >
-                <span class="typo-body text-slate-700 truncate dark:text-slate-300">{{ guide.name }}</span>
+                <span class="typo-body text-slate-700 truncate dark:text-slate-300">{{
+                  guide.name
+                }}</span>
                 <span class="typo-caption text-slate-500">{{ guide.tours }}t</span>
                 <span class="typo-caption font-medium text-amber-600">{{ guide.rating }} ★</span>
               </li>
@@ -1172,8 +1280,12 @@ watch(alertReadState, (value) => {
                 class="grid grid-cols-[20px_1fr_auto] items-center gap-2 py-1.5"
               >
                 <span class="typo-caption font-semibold text-slate-400">#{{ index + 1 }}</span>
-                <span class="typo-body text-slate-700 truncate dark:text-slate-300">{{ guide.name }}</span>
-                <span class="typo-caption font-semibold text-amber-600">{{ guide.rating.toFixed(1) }} ★</span>
+                <span class="typo-body text-slate-700 truncate dark:text-slate-300">{{
+                  guide.name
+                }}</span>
+                <span class="typo-caption font-semibold text-amber-600"
+                  >{{ guide.rating.toFixed(1) }} ★</span
+                >
               </li>
             </ul>
 
@@ -1183,7 +1295,10 @@ watch(alertReadState, (value) => {
           <article class="app-surface-card p-4">
             <h2 class="typo-section-title">Tour Volume by Language</h2>
 
-            <div v-if="tourLanguageInfographic.segments.length > 0" class="relative mx-auto mt-6 w-full max-w-105">
+            <div
+              v-if="tourLanguageInfographic.segments.length > 0"
+              class="relative mx-auto mt-6 w-full max-w-105"
+            >
               <svg
                 :viewBox="tourLanguageInfographic.viewBox"
                 class="h-auto w-full"
@@ -1192,7 +1307,13 @@ watch(alertReadState, (value) => {
               >
                 <defs>
                   <filter id="softDropShadow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.12" />
+                    <feDropShadow
+                      dx="0"
+                      dy="2"
+                      stdDeviation="2"
+                      flood-color="#0f172a"
+                      flood-opacity="0.12"
+                    />
                   </filter>
                 </defs>
 
@@ -1220,7 +1341,9 @@ watch(alertReadState, (value) => {
                   text-anchor="middle"
                   fill="#475569"
                   style="font-size: 11px; font-weight: 700; font-family: inherit"
-                >{{ tourLanguageInfographic.totalTours }} tours</text>
+                >
+                  {{ tourLanguageInfographic.totalTours }} tours
+                </text>
 
                 <line
                   v-for="segment in tourLanguageInfographic.segments"
@@ -1265,22 +1388,37 @@ watch(alertReadState, (value) => {
                   textAlign: segment.rightSide ? 'left' : 'right',
                 }"
               >
-                <p class="typo-caption font-semibold leading-tight text-slate-700 dark:text-slate-200">{{ segment.title }}</p>
-                <p class="typo-caption mt-0.5 leading-tight text-slate-400">{{ segment.subtitle }}</p>
+                <p
+                  class="typo-caption font-semibold leading-tight text-slate-700 dark:text-slate-200"
+                >
+                  {{ segment.title }}
+                </p>
+                <p class="typo-caption mt-0.5 leading-tight text-slate-400">
+                  {{ segment.subtitle }}
+                </p>
               </div>
             </div>
 
-            <p v-else class="mt-3 typo-muted">No language-coded schedule data for the selected window.</p>
+            <p v-else class="mt-3 typo-muted">
+              No language-coded schedule data for the selected window.
+            </p>
           </article>
-
         </section>
 
         <p v-if="isLoading" class="typo-muted px-1">Loading dashboard data...</p>
+
+        <DashboardInsightPanel />
       </section>
     </main>
 
-    <div v-if="showAlertDetail && selectedAlertDetail" class="fixed inset-0 z-40 bg-black/40" @click.self="closeAlertDetail">
-      <div class="absolute inset-x-0 top-20 mx-auto w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40">
+    <div
+      v-if="showAlertDetail && selectedAlertDetail"
+      class="fixed inset-0 z-40 bg-black/40"
+      @click.self="closeAlertDetail"
+    >
+      <div
+        class="absolute inset-x-0 top-20 mx-auto w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
+      >
         <div class="flex items-start justify-between gap-4">
           <div>
             <p class="typo-card-label">{{ selectedAlertDetail.severity }}</p>
@@ -1296,14 +1434,22 @@ watch(alertReadState, (value) => {
           </button>
         </div>
 
-        <p class="mt-3 typo-body text-slate-700 dark:text-slate-300">{{ selectedAlertDetail.detail }}</p>
+        <p class="mt-3 typo-body text-slate-700 dark:text-slate-300">
+          {{ selectedAlertDetail.detail }}
+        </p>
 
-        <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]">
+        <div
+          class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
+        >
           <p class="typo-card-label">Recommended Action</p>
-          <p class="mt-1 typo-body text-slate-700 dark:text-slate-300">{{ selectedAlertDetail.recommendation }}</p>
+          <p class="mt-1 typo-body text-slate-700 dark:text-slate-300">
+            {{ selectedAlertDetail.recommendation }}
+          </p>
         </div>
 
-        <p class="mt-4 typo-caption">Generated from current dashboard metrics and selected filter window.</p>
+        <p class="mt-4 typo-caption">
+          Generated from current dashboard metrics and selected filter window.
+        </p>
       </div>
     </div>
   </div>
