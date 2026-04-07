@@ -668,6 +668,7 @@ export async function postInsightQuery(question) {
 
   return fetchAPI('/insights/query', {
     method: 'POST',
+    requiresAuth: true,
     body: JSON.stringify({ question: question.trim() }),
   })
 }
