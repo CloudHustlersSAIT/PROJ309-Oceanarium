@@ -106,4 +106,67 @@
   .notification-card-unread {
     @apply rounded-xl border border-[#00B4D8]/35 bg-[#CAF0F8]/50 transition hover:bg-[#BFEAF5]/60 dark:border-sky-700/40 dark:bg-sky-950/45 dark:hover:bg-sky-950/60;
   }
+
+  /* Sky/primary outline button — Refresh, Reset, View details, nav label */
+  .app-btn-sky {
+    @apply h-10 rounded-lg px-3.5 text-sm font-bold transition
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white
+           dark:focus-visible:ring-sky-700/50 dark:focus-visible:ring-offset-[#161B27]
+           border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A]
+           hover:bg-[#D8EEFB]
+           disabled:cursor-not-allowed disabled:opacity-50
+           dark:border-sky-700/40 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-950/70;
+  }
+
+  /* Neutral/secondary outline button — Mark all as read, Prev, Next, Close */
+  .app-btn-ghost {
+    @apply h-10 rounded-lg px-3.5 text-sm font-bold transition
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white
+           dark:focus-visible:ring-sky-700/50 dark:focus-visible:ring-offset-[#161B27]
+           border border-black/15 text-[#1C1C1C]
+           hover:bg-black/5
+           disabled:cursor-not-allowed disabled:opacity-50
+           dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5;
+  }
+
+  /* Small metric/stat card — Unread, Urgent, Action Required */
+  .app-stat-card {
+    @apply rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4
+           dark:border-sky-800/40 dark:bg-[#1A2231];
+  }
+
+  /* Form field label inside a form */
+  .app-form-label {
+    @apply mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100;
+  }
+
+  /* Standard form select / text input */
+  .app-form-select {
+    @apply w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C]
+           outline-none transition
+           focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20
+           dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50;
+  }
+
+  /* Primary outline badge — Role, count chips, sky status pill */
+  .app-badge-sky {
+    @apply inline-flex items-center rounded-full bg-[#CAF0F8] px-3 py-1
+           text-xs font-semibold text-[#0077B6] ring-1 ring-[#00B4D8]/40;
+  }
+
+  /* Success/green badge - Status: Active */
+  .app-badge-success {
+    @apply inline-flex items-center rounded-full bg-[#2A9D8F]/10 px-3 py-1
+           text-xs font-semibold text-[#2A9D8F];
+  }
+
+  /* Inline error text */
+  .app-text-error {
+    @apply text-sm font-medium text-[#B91C1C];
+  }
+
+  /* Error block (border + bg) */
+  .app-error-block {
+    @apply rounded-xl border border-[#E63946]/25 bg-[#FFF5F5] p-4 text-sm font-medium text-[#B91C1C];
+  }
 }

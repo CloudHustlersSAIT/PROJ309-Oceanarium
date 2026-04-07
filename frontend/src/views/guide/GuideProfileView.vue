@@ -1,21 +1,17 @@
 <template>
-  <div class="space-y-6">
-    <section class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+  <div class="app-page-wrap">
+    <section class="app-surface-card app-section-padding">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-semibold text-[#1C1C1C] dark:text-slate-100">My Profile</h1>
-          <p class="text-sm text-black/60 dark:text-slate-400">View and update your guide languages and availability.</p>
+          <h1 class="app-title">My Profile</h1>
+          <p class="app-subtitle">View and update your guide languages and availability.</p>
         </div>
 
         <div class="flex items-center gap-2">
-          <span
-            class="inline-flex items-center rounded-full bg-[#CAF0F8] px-3 py-1 text-xs font-semibold text-[#0077B6] ring-1 ring-[#00B4D8]/40"
-          >
+          <span class="app-badge-sky">
             Role: Guide
           </span>
-          <span
-            class="inline-flex items-center rounded-full bg-[#2A9D8F]/10 px-3 py-1 text-xs font-semibold text-[#2A9D8F]"
-          >
+          <span class="app-badge-success">
             Status: Active
           </span>
         </div>
@@ -23,7 +19,7 @@
     </section>
 
     <section class="grid gap-4 md:grid-cols-3">
-      <div class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm md:col-span-1 dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+      <div class="app-surface-card app-section-padding md:col-span-1">
         <div class="flex items-center gap-3">
           <div
             class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#CAF0F8] ring-1 ring-[#00B4D8]/40"
@@ -33,8 +29,8 @@
             </span>
           </div>
           <div class="leading-tight">
-            <p class="text-sm text-black/60 dark:text-slate-400">Signed in as</p>
-            <p class="text-base font-semibold text-[#1C1C1C] dark:text-slate-100">
+            <p class="typo-muted">Signed in as</p>
+            <p class="app-body-title text-base">
               {{ displayName }}
             </p>
           </div>
@@ -42,33 +38,33 @@
 
         <div class="mt-5 space-y-3">
           <div class="rounded-xl border border-black/10 p-4 dark:border-white/10 dark:bg-white/[0.02]">
-            <p class="text-sm text-black dark:text-slate-300">Email</p>
-            <p class="break-all text-base font-semibold text-[#1C1C1C] dark:text-slate-100">
+            <p class="typo-muted">Email</p>
+            <p class="break-all app-body-title text-base">
               {{ displayEmail }}
             </p>
           </div>
 
           <div class="rounded-xl border border-black/10 p-4 dark:border-white/10 dark:bg-white/[0.02]">
-            <p class="text-sm text-black dark:text-slate-300">Guide ID</p>
-            <p class="text-base font-semibold text-[#1C1C1C] dark:text-slate-100">
+            <p class="typo-muted">Guide ID</p>
+            <p class="app-body-title text-base">
               {{ currentGuideId || 'Unavailable' }}
             </p>
           </div>
 
           <div class="rounded-xl border border-black/10 p-4 dark:border-white/10 dark:bg-white/[0.02]">
-            <label class="block text-sm text-black dark:text-slate-300" for="guide-phone">Phone Number</label>
+            <label class="app-form-label" for="guide-phone">Phone Number</label>
             <input
               id="guide-phone"
               :value="phoneNumber"
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              maxlength="10"
-              class="mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-base font-semibold text-[#1C1C1C] outline-none focus:border-[#0077B6] focus:ring-1 focus:ring-[#0077B6] dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
-              placeholder="e.g. 4035550123"
+              type="tel"
+              inputmode="tel"
+              pattern="[+0-9]*"
+              maxlength="16"
+              class="mt-2 app-form-select font-semibold text-base"
+              placeholder="e.g. +14035550123"
               @input="onPhoneInput"
             />
-            <p v-if="phoneInputError" class="mt-2 text-sm font-medium text-[#B91C1C]">
+            <p v-if="phoneInputError" class="mt-2 app-text-error">
               {{ phoneInputError }}
             </p>
           </div>
@@ -77,7 +73,7 @@
         <div class="mt-5">
           <button
             type="button"
-            class="w-full rounded-xl border border-[#0077B6] px-4 py-3 text-sm font-semibold text-[#0077B6] transition hover:bg-[#CAF0F8]"
+            class="w-full rounded-xl border border-[#0077B6] px-4 py-3 text-sm font-semibold text-[#0077B6] transition hover:bg-[#CAF0F8] dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-950/40"
             @click="resetToDefaults"
           >
             Reset to last saved
@@ -85,22 +81,22 @@
         </div>
       </div>
 
-      <div class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm md:col-span-2 dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+      <div class="app-surface-card app-section-padding md:col-span-2">
         <div
           v-if="!currentGuideId"
-          class="rounded-xl border border-[#E63946]/25 bg-[#FFF5F5] p-4 text-sm font-medium text-[#B91C1C]"
+          class="app-error-block"
         >
           Guide profile is not available.
         </div>
 
         <template v-else>
-          <h2 class="text-lg font-semibold text-[#1C1C1C] dark:text-slate-100">Preferences</h2>
-          <p class="text-sm text-black/60 dark:text-slate-400">These settings help admins schedule you better.</p>
+          <h2 class="app-body-title text-lg">Preferences</h2>
+          <p class="app-subtitle">These settings help admins schedule you better.</p>
 
           <div v-if="loading" class="mt-5 text-sm text-black/60">Loading profile...</div>
           <div
             v-else-if="loadError"
-            class="mt-5 rounded-xl border border-[#E63946]/25 bg-[#FFF5F5] p-4 text-sm font-medium text-[#B91C1C]"
+            class="mt-5 app-error-block"
           >
             {{ loadError }}
           </div>
@@ -109,10 +105,10 @@
             <div class="rounded-2xl border border-black/10 p-5 dark:border-white/10 dark:bg-white/[0.02]">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 class="text-base font-semibold text-[#1C1C1C] dark:text-slate-100">Languages</h3>
-                  <p class="text-sm text-black/60 dark:text-slate-400">Choose the languages you can support during tours.</p>
+                  <h3 class="app-body-title text-base">Languages</h3>
+                  <p class="typo-muted mt-0.5">Choose the languages you can support during tours.</p>
                 </div>
-                <span class="inline-flex items-center rounded-full bg-[#CAF0F8] px-3 py-1 text-xs font-semibold text-[#0077B6]">
+                <span class="app-badge-sky">
                   {{ selectedLanguageIds.length }} selected
                 </span>
               </div>
@@ -135,8 +131,8 @@
             <div class="rounded-2xl border border-black/10 p-5 dark:border-white/10 dark:bg-white/[0.02]">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 class="text-base font-semibold text-[#1C1C1C] dark:text-slate-100">Availability</h3>
-                  <p class="text-sm text-black/60 dark:text-slate-400">Maintain the time windows when you are usually available.</p>
+                  <h3 class="app-body-title text-base">Availability</h3>
+                  <p class="typo-muted mt-0.5">Maintain the time windows when you are usually available.</p>
                 </div>
               </div>
 
@@ -148,7 +144,7 @@
                 >
                   <div class="grid gap-3 md:grid-cols-[1.1fr_1fr_1fr] md:items-end">
                     <div class="space-y-2">
-                      <label class="block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Day</label>
+                      <label class="app-form-label">Day</label>
                       <div
                         class="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-[#1C1C1C] dark:border-white/10 dark:bg-[#1C2333] dark:text-slate-100"
                       >
@@ -157,7 +153,7 @@
                     </div>
 
                     <div class="space-y-2">
-                      <label class="block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Start</label>
+                      <label class="app-form-label">Start</label>
                       <input
                         v-model="slot.start"
                         type="time"
@@ -166,7 +162,7 @@
                     </div>
 
                     <div class="space-y-2">
-                      <label class="block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">End</label>
+                      <label class="app-form-label">End</label>
                       <input
                         v-model="slot.end"
                         type="time"
@@ -194,7 +190,7 @@
             <p
               v-if="toast"
               class="text-sm font-semibold"
-              :class="toastType === 'success' ? 'text-[#2A9D8F]' : 'text-[#E63946]'"
+              :class="toastType === 'success' ? 'text-[#2A9D8F]' : 'app-text-error'"
             >
               {{ toast }}
             </p>
@@ -214,7 +210,6 @@ import {
   getGuideAvailability,
   getGuideLanguages,
   getLanguages,
-  getGuides,
   updateGuide,
   updateGuideAvailability,
   updateGuideLanguages,
@@ -263,6 +258,9 @@ const loadError = ref('')
 const saving = ref(false)
 const toast = ref('')
 const toastType = ref('success')
+
+const PHONE_MAX_DIGITS = 15
+const PHONE_REGEX = /^\+?[1-9]\d{7,14}$/
 
 function chipClass(arr, value) {
   const active = arr.includes(value)
@@ -341,29 +339,42 @@ function syncSavedState(languageIds, availabilityState) {
 function applySavedState() {
   phoneNumber.value = savedState.value.phone || ''
   selectedLanguageIds.value = [...savedState.value.languageIds]
-  availability.timezone = ''
+  availability.timezone = savedState.value.availability.timezone || ''
   availability.slots = mergeSlots(savedState.value.availability.slots)
 }
 
-function onPhoneInput(event) {
-  const rawValue = String(event?.target?.value || '')
-  const digitsOnly = rawValue.replace(/\D/g, '')
-  const sanitizedValue = digitsOnly.slice(0, 10)
-  const hadInvalidCharacters = rawValue !== sanitizedValue
-  const exceededMaxLength = digitsOnly.length > 10
+function sanitizePhoneForInput(rawValue) {
+  const rawText = String(rawValue || '').trim()
+  const hasLeadingPlus = rawText.startsWith('+')
+  const containsPlusInMiddle = rawText.slice(1).includes('+')
+  const hasDisallowedCharacters = /[^0-9+\s().-]/.test(rawText)
+  const digitsOnly = rawText.replace(/\D/g, '')
+  const exceededMaxDigits = digitsOnly.length > PHONE_MAX_DIGITS
+  const trimmedDigits = digitsOnly.slice(0, PHONE_MAX_DIGITS)
+  const sanitizedPhone = hasLeadingPlus ? `+${trimmedDigits}` : trimmedDigits
 
-  phoneNumber.value = sanitizedValue
-  phoneInputError.value = hadInvalidCharacters
-    ? 'Only numbers can be entered in this field.'
-    : exceededMaxLength
-      ? 'Phone number cannot be longer than 10 digits.'
-      : ''
-
-  if (hadInvalidCharacters) {
-    window.alert('Only numbers can be entered in the phone number field.')
-  } else if (exceededMaxLength) {
-    window.alert('Phone number cannot be longer than 10 digits.')
+  return {
+    phone: sanitizedPhone === '+' ? '' : sanitizedPhone,
+    hadInvalidCharacters: containsPlusInMiddle || hasDisallowedCharacters,
+    exceededMaxDigits,
   }
+}
+
+function isValidPhoneNumber(phoneValue) {
+  const value = String(phoneValue || '').trim()
+  if (!value) return true
+  return PHONE_REGEX.test(value)
+}
+
+function onPhoneInput(event) {
+  const { phone, hadInvalidCharacters, exceededMaxDigits } = sanitizePhoneForInput(event?.target?.value)
+
+  phoneNumber.value = phone
+  phoneInputError.value = hadInvalidCharacters
+    ? 'Use digits with an optional leading + only.'
+    : exceededMaxDigits
+      ? 'Phone number cannot be longer than 15 digits.'
+      : ''
 }
 
 function resetToDefaults() {
@@ -383,24 +394,22 @@ async function loadProfile() {
   loading.value = true
 
   try {
-    const [guidesResponse, availabilityResponse, guideLanguagesResponse, languagesResponse] = await Promise.all([
-      getGuides(),
+    const fallbackPhone = sanitizePhoneForInput(profile.value?.phone || profile.value?.phone_number || '').phone
+    phoneNumber.value = fallbackPhone
+
+    const [availabilityResponse, guideLanguagesResponse, languagesResponse] = await Promise.all([
       getGuideAvailability(currentGuideId.value),
       getGuideLanguages(currentGuideId.value),
       getLanguages(),
     ])
 
-    const currentGuide = (Array.isArray(guidesResponse) ? guidesResponse : []).find(
-      (guide) => Number(guide?.id) === currentGuideId.value,
-    )
-    phoneNumber.value = String(currentGuide?.phone || '').replace(/\D/g, '')
     languageOptions.value = Array.isArray(languagesResponse) ? languagesResponse : []
     const languageIds = (guideLanguagesResponse?.languages || [])
       .map((language) => Number(language?.id))
       .filter((id) => Number.isInteger(id) && id > 0)
 
     const availabilityState = {
-      timezone: '',
+      timezone: String(availabilityResponse?.timezone || ''),
       slots: Array.isArray(availabilityResponse?.slots) ? availabilityResponse.slots : [],
     }
 
@@ -417,6 +426,14 @@ async function saveProfile() {
   saving.value = true
 
   try {
+    phoneInputError.value = ''
+
+    if (!isValidPhoneNumber(phoneNumber.value)) {
+      phoneInputError.value = 'Enter a valid phone number (example: +14035550123).'
+      setToast('Please correct the phone number format before saving.', 'error')
+      return
+    }
+
     const normalizedSlots = availability.slots
       .map((slot) => ({
         day: String(slot.day || '').trim(),
@@ -431,18 +448,26 @@ async function saveProfile() {
       return
     }
 
-    await Promise.all([
-      updateGuide(currentGuideId.value, {
-        phone: phoneNumber.value,
-      }),
+    const requests = [
       updateGuideLanguages(currentGuideId.value, { language_ids: selectedLanguageIds.value }),
       updateGuideAvailability(currentGuideId.value, {
+        timezone: availability.timezone || undefined,
         slots: normalizedSlots,
       }),
-    ])
+    ]
+
+    if (phoneNumber.value !== savedState.value.phone) {
+      requests.unshift(
+        updateGuide(currentGuideId.value, {
+          phone: phoneNumber.value,
+        }),
+      )
+    }
+
+    await Promise.all(requests)
 
     syncSavedState(selectedLanguageIds.value, {
-      timezone: '',
+      timezone: availability.timezone || '',
       slots: normalizedSlots,
     })
     availability.slots = mergeSlots(normalizedSlots)

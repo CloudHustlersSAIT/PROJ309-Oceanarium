@@ -9,7 +9,7 @@
 
         <div class="flex flex-wrap items-center gap-2">
           <button
-            class="app-action-btn border border-black/10 text-[#1C1C1C] hover:bg-[#CAF0F8]/50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+            class="app-btn-ghost"
             :disabled="loading"
             @click="prevWeek"
           >
@@ -17,13 +17,13 @@
           </button>
 
           <span
-            class="app-action-btn inline-flex items-center border border-[#0077B6]/20 bg-[#EAF6FD] text-[#005A8A] dark:border-sky-700/40 dark:bg-sky-950/50 dark:text-sky-200"
+            class="app-btn-sky inline-flex items-center"
           >
             {{ weekLabel }}
           </span>
 
           <button
-            class="app-action-btn border border-black/10 text-[#1C1C1C] hover:bg-[#CAF0F8]/50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+            class="app-btn-ghost"
             :disabled="loading"
             @click="nextWeek"
           >
@@ -33,8 +33,8 @@
       </div>
 
       <div class="mt-5 space-y-3">
-        <div v-if="loading" class="text-sm text-black/60 dark:text-slate-400">Loading schedule...</div>
-        <div v-else-if="error" class="text-sm font-medium text-[#B91C1C]">{{ error }}</div>
+        <div v-if="loading" class="typo-muted">Loading schedule...</div>
+        <div v-else-if="error" class="app-text-error">{{ error }}</div>
 
         <div v-for="event in events" :key="event.id" class="notification-card p-3.5 sm:p-4">
           <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
@@ -48,7 +48,7 @@
             </div>
 
             <span
-              class="px-3 py-1 text-xs rounded-full bg-[#00B4D8]/10 text-[#0077B6] font-semibold"
+              class="px-3 py-1 text-xs rounded-full app-badge-sky"
             >
               {{ event.status }}
             </span>

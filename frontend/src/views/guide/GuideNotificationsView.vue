@@ -9,14 +9,14 @@
 
         <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
           <button
-            class="app-action-btn border border-black/15 text-[#1C1C1C] hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
+            class="app-btn-ghost"
             :disabled="loading || unreadCount === 0"
             @click="markAllRead"
           >
             Mark all as read
           </button>
           <button
-            class="app-action-btn border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A] hover:bg-[#D8EEFB] disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-700/40 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-950/70"
+            class="app-btn-sky"
             :disabled="loading"
             @click="loadNotifications"
           >
@@ -26,26 +26,26 @@
       </div>
 
       <div class="mt-5 grid gap-4 md:grid-cols-3">
-        <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
-          <p class="text-sm text-black/60 dark:text-slate-400">Unread</p>
-          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ unreadCount }}</p>
+        <div class="app-stat-card">
+          <p class="typo-card-label">Unread</p>
+          <p class="typo-card-value">{{ unreadCount }}</p>
         </div>
-        <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
-          <p class="text-sm text-black/60 dark:text-slate-400">Urgent</p>
-          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ urgentCount }}</p>
+        <div class="app-stat-card">
+          <p class="typo-card-label">Urgent</p>
+          <p class="typo-card-value">{{ urgentCount }}</p>
         </div>
-        <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
-          <p class="text-sm text-black/60 dark:text-slate-400">Action Required</p>
-          <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ actionRequiredCount }}</p>
+        <div class="app-stat-card">
+          <p class="typo-card-label">Action Required</p>
+          <p class="typo-card-value">{{ actionRequiredCount }}</p>
         </div>
       </div>
 
       <div class="mt-5 grid gap-3 lg:grid-cols-4">
         <label class="block">
-          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Channel</span>
+          <span class="app-form-label">Channel</span>
           <select
             v-model="filters.channel"
-            class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+            class="app-form-select"
           >
             <option value="">All channels</option>
             <option value="PORTAL">Portal</option>
@@ -54,10 +54,10 @@
         </label>
 
         <label class="block">
-          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Priority</span>
+          <span class="app-form-label">Priority</span>
           <select
             v-model="filters.priority"
-            class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+            class="app-form-select"
           >
             <option value="">All priorities</option>
             <option value="urgent">Urgent</option>
@@ -68,10 +68,10 @@
         </label>
 
         <label class="block">
-          <span class="mb-2 block text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Event Type</span>
+          <span class="app-form-label">Event Type</span>
           <select
             v-model="filters.eventType"
-            class="w-full rounded-xl border border-[#7DB8CC] bg-white px-4 py-3 text-sm text-[#1C1C1C] outline-none transition focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+            class="app-form-select"
           >
             <option value="">All event types</option>
             <option v-for="option in eventTypeOptions" :key="option" :value="option">
@@ -80,15 +80,15 @@
           </select>
         </label>
 
-        <label class="flex items-end gap-3 rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] px-4 py-3 dark:border-white/10 dark:bg-[#1A2231]">
+        <label class="app-stat-card flex items-end gap-3 px-4 py-3">
           <input v-model="filters.unreadOnly" type="checkbox" class="h-4 w-4 rounded border-[#7DB8CC] text-[#0077B6]" />
-          <span class="text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">Unread only</span>
+          <span class="app-form-label mb-0">Unread only</span>
         </label>
       </div>
 
       <div class="mt-5 space-y-3">
-        <div v-if="loading" class="text-sm text-black/60">Loading notifications...</div>
-        <div v-else-if="error" class="text-sm font-medium text-[#B91C1C]">{{ error }}</div>
+        <div v-if="loading" class="typo-muted">Loading notifications...</div>
+        <div v-else-if="error" class="app-text-error">{{ error }}</div>
 
         <template v-else>
           <div
@@ -113,7 +113,7 @@
               <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
                 <button
                   type="button"
-                  class="app-action-btn border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A] hover:bg-[#D8EEFB] dark:border-sky-700/40 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-950/70"
+                  class="app-btn-sky"
                   :disabled="actionId === notification.id"
                   @click="viewDetails(notification.id)"
                 >
@@ -122,7 +122,7 @@
                 <button
                   v-if="!notification.read"
                   type="button"
-                  class="app-action-btn border border-[#0077B6]/35 bg-[#EAF6FD] text-[#005A8A] hover:bg-[#D8EEFB] dark:border-sky-700/40 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-950/70"
+                  class="app-btn-sky"
                   :disabled="actionId === notification.id"
                   @click="markSingleRead(notification.id)"
                 >
@@ -146,14 +146,14 @@
 
         <div class="flex items-center gap-2">
           <button
-            class="app-action-btn border border-black/15 text-[#1C1C1C] hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
+            class="app-btn-ghost"
             :disabled="loading || pagination.offset === 0"
             @click="prevPage"
           >
             Prev
           </button>
           <button
-            class="app-action-btn border border-black/15 text-[#1C1C1C] hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
+            class="app-btn-ghost"
             :disabled="loading || !pagination.hasMore"
             @click="nextPage"
           >
@@ -171,13 +171,13 @@
       <div class="w-full max-w-2xl rounded-[28px] border border-[#A9CDD9] bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-xl font-semibold text-[#1C1C1C] dark:text-slate-100">Notification Details</h2>
-            <p class="mt-1 text-sm text-black/55 dark:text-slate-400">{{ selectedNotification?.createdAtLabel || '' }}</p>
+            <h2 class="typo-modal-title">Notification Details</h2>
+            <p class="mt-1 typo-muted">{{ selectedNotification?.createdAtLabel || '' }}</p>
           </div>
 
           <button
             type="button"
-            class="app-action-btn border border-black/15 text-[#1C1C1C] hover:bg-black/5 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
+            class="app-btn-ghost"
             @click="closeDetail"
           >
             Close
@@ -185,35 +185,35 @@
         </div>
 
         <div v-if="detailLoading" class="mt-5 text-sm text-black/60 dark:text-slate-400">Loading details...</div>
-        <div v-else-if="detailError" class="mt-5 text-sm font-medium text-[#B91C1C]">{{ detailError }}</div>
+        <div v-else-if="detailError" class="mt-5 app-text-error">{{ detailError }}</div>
         <div v-else-if="selectedNotification" class="mt-5 space-y-4">
-          <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
-            <p class="text-sm text-black/60 dark:text-slate-400">Message</p>
-            <p class="mt-2 text-base font-semibold text-[#1C1C1C] dark:text-slate-100">{{ selectedNotification.message }}</p>
+          <div class="app-stat-card">
+            <p class="typo-card-label">Message</p>
+            <p class="mt-2 app-body-title text-base">{{ selectedNotification.message }}</p>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
-              <p class="text-sm text-black/60 dark:text-slate-400">Event Type</p>
-              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">{{ formatEventType(selectedNotification.eventType) }}</p>
+            <div class="app-stat-card">
+              <p class="typo-card-label">Event Type</p>
+              <p class="mt-2 app-body-title">{{ formatEventType(selectedNotification.eventType) }}</p>
             </div>
-            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
-              <p class="text-sm text-black/60 dark:text-slate-400">Priority</p>
-              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">{{ selectedNotification.priorityLabel }}</p>
+            <div class="app-stat-card">
+              <p class="typo-card-label">Priority</p>
+              <p class="mt-2 app-body-title">{{ selectedNotification.priorityLabel }}</p>
             </div>
-            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
-              <p class="text-sm text-black/60 dark:text-slate-400">Channel</p>
-              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">{{ selectedNotification.channelLabel }}</p>
+            <div class="app-stat-card">
+              <p class="typo-card-label">Channel</p>
+              <p class="mt-2 app-body-title">{{ selectedNotification.channelLabel }}</p>
             </div>
-            <div class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
-              <p class="text-sm text-black/60 dark:text-slate-400">Schedule</p>
-              <p class="mt-2 text-sm font-semibold text-[#1C1C1C] dark:text-slate-100">{{ selectedNotification.tourName || 'Not linked' }}</p>
+            <div class="app-stat-card">
+              <p class="typo-card-label">Schedule</p>
+              <p class="mt-2 app-body-title">{{ selectedNotification.tourName || 'Not linked' }}</p>
             </div>
           </div>
 
-          <div v-if="selectedNotification.detailText" class="rounded-2xl border border-[#A9CDD9] bg-[#F8FCFE] p-4 dark:border-sky-800/40 dark:bg-[#1A2231]">
-            <p class="text-sm text-black/60 dark:text-slate-400">Details</p>
-            <p class="mt-2 whitespace-pre-wrap text-sm text-[#1C1C1C] dark:text-slate-200">{{ selectedNotification.detailText }}</p>
+          <div v-if="selectedNotification.detailText" class="app-stat-card">
+            <p class="typo-card-label">Details</p>
+            <p class="mt-2 whitespace-pre-wrap typo-body">{{ selectedNotification.detailText }}</p>
           </div>
         </div>
       </div>
