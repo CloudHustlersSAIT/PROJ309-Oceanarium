@@ -194,7 +194,7 @@ function resetSettingsToDefault() {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-[#F8F9FB] overflow-x-hidden dark:bg-[#0F1117]">
+  <div class="flex min-h-screen bg-surface-page overflow-x-hidden">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
@@ -209,7 +209,7 @@ function resetSettingsToDefault() {
               </p>
             </div>
 
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 xl:max-w-sm dark:border-white/10 dark:bg-[#1C2333] dark:text-slate-300">
+            <div class="rounded-2xl border border-slate-200 bg-surface-input px-4 py-3 text-sm text-slate-700 xl:max-w-sm dark:border-white/10 dark:text-slate-300">
               <p class="font-semibold text-slate-900 dark:text-slate-100">Current Admin</p>
               <p class="mt-1 break-all">{{ adminEmail }}</p>
               <p class="mt-2 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-500">
@@ -250,7 +250,7 @@ function resetSettingsToDefault() {
                   <input
                     v-model="settingsForm.displayName"
                     type="text"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                   />
                 </label>
 
@@ -259,7 +259,7 @@ function resetSettingsToDefault() {
                   <input
                     v-model="settingsForm.email"
                     type="email"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                   />
                 </label>
 
@@ -267,7 +267,7 @@ function resetSettingsToDefault() {
                   <span class="mb-1 block typo-card-label">Language</span>
                   <select
                     v-model="settingsForm.language"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                   >
                     <option>English (US)</option>
                     <option>English (UK)</option>
@@ -280,7 +280,7 @@ function resetSettingsToDefault() {
                   <span class="mb-1 block typo-card-label">Timezone</span>
                   <select
                     v-model="settingsForm.timezone"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                   >
                     <option>America/Sao_Paulo</option>
                     <option>America/New_York</option>
@@ -310,7 +310,7 @@ function resetSettingsToDefault() {
                   <span class="mb-1 block typo-card-label">Reservation Approval</span>
                   <select
                     v-model="settingsForm.reservationApproval"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                   >
                     <option>Manual review</option>
                     <option>Automatic when schedule exists</option>
@@ -321,7 +321,7 @@ function resetSettingsToDefault() {
                   <span class="mb-1 block typo-card-label">Scheduling Lead Time</span>
                   <select
                     v-model="settingsForm.scheduleLeadTime"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                   >
                     <option>12 hours</option>
                     <option>24 hours</option>
@@ -333,7 +333,7 @@ function resetSettingsToDefault() {
                   <span class="mb-1 block typo-card-label">Conflict Policy</span>
                   <select
                     v-model="settingsForm.scheduleConflictPolicy"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                   >
                     <option>Warn and require confirmation</option>
                     <option>Block operation</option>
@@ -343,11 +343,11 @@ function resetSettingsToDefault() {
               </div>
 
               <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1C2333]">
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-surface-input px-4 py-3 dark:border-white/10">
                   <input
                     v-model="settingsForm.allowUnassignedSchedules"
                     type="checkbox"
-                    class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#0077B6] dark:border-white/20"
+                    class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand dark:border-white/20"
                   />
                   <span>
                     <span class="block text-sm font-semibold text-slate-900 dark:text-slate-100">Allow unassigned schedules</span>
@@ -355,11 +355,11 @@ function resetSettingsToDefault() {
                   </span>
                 </label>
 
-                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1C2333]">
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-surface-input px-4 py-3 dark:border-white/10">
                   <input
                     v-model="settingsForm.autoEscalateUnassignable"
                     type="checkbox"
-                    class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#0077B6] dark:border-white/20"
+                    class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand dark:border-white/20"
                   />
                   <span>
                     <span class="block text-sm font-semibold text-slate-900 dark:text-slate-100">Auto-escalate unassignable schedules</span>
@@ -385,32 +385,32 @@ function resetSettingsToDefault() {
               </div>
 
               <div class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1C2333]">
-                  <input v-model="settingsForm.notifyDailyDigest" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#0077B6] dark:border-white/20" />
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-surface-input px-4 py-3 dark:border-white/10">
+                  <input v-model="settingsForm.notifyDailyDigest" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand dark:border-white/20" />
                   <span>
                     <span class="block text-sm font-semibold text-slate-900 dark:text-slate-100">Daily digest</span>
                     <span class="mt-1 block typo-caption">Summary of reservations, assignments, and incidents.</span>
                   </span>
                 </label>
 
-                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1C2333]">
-                  <input v-model="settingsForm.notifyNewBookings" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#0077B6] dark:border-white/20" />
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-surface-input px-4 py-3 dark:border-white/10">
+                  <input v-model="settingsForm.notifyNewBookings" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand dark:border-white/20" />
                   <span>
                     <span class="block text-sm font-semibold text-slate-900 dark:text-slate-100">New booking alerts</span>
                     <span class="mt-1 block typo-caption">Alert when reservations require operational follow-up.</span>
                   </span>
                 </label>
 
-                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1C2333]">
-                  <input v-model="settingsForm.notifyOverbookingRisk" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#0077B6] dark:border-white/20" />
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-surface-input px-4 py-3 dark:border-white/10">
+                  <input v-model="settingsForm.notifyOverbookingRisk" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand dark:border-white/20" />
                   <span>
                     <span class="block text-sm font-semibold text-slate-900 dark:text-slate-100">Overbooking risk alerts</span>
                     <span class="mt-1 block typo-caption">Warn when reservations indicate capacity pressure.</span>
                   </span>
                 </label>
 
-                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1C2333]">
-                  <input v-model="settingsForm.notifyGuideAvailabilityRisk" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#0077B6] dark:border-white/20" />
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-surface-input px-4 py-3 dark:border-white/10">
+                  <input v-model="settingsForm.notifyGuideAvailabilityRisk" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand dark:border-white/20" />
                   <span>
                     <span class="block text-sm font-semibold text-slate-900 dark:text-slate-100">Guide availability risk alerts</span>
                     <span class="mt-1 block typo-caption">Alert when schedules are likely to become unassignable.</span>
@@ -437,8 +437,8 @@ function resetSettingsToDefault() {
               </div>
 
               <div class="mt-5 space-y-4">
-                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1C2333]">
-                  <input v-model="settingsForm.requireTwoFactor" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#0077B6] dark:border-white/20" />
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-surface-input px-4 py-3 dark:border-white/10">
+                  <input v-model="settingsForm.requireTwoFactor" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand dark:border-white/20" />
                   <span>
                     <span class="block text-sm font-semibold text-slate-900 dark:text-slate-100">Require two-factor authentication</span>
                     <span class="mt-1 block typo-caption">Recommended for all administrative sessions.</span>
@@ -449,7 +449,7 @@ function resetSettingsToDefault() {
                   <span class="mb-1 block typo-card-label">Session Timeout</span>
                   <select
                     v-model="settingsForm.sessionTimeout"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                   >
                     <option>15 minutes</option>
                     <option>30 minutes</option>
@@ -461,18 +461,18 @@ function resetSettingsToDefault() {
                   <span class="mb-1 block typo-card-label">Password Reset Policy</span>
                   <select
                     v-model="settingsForm.passwordResetPolicy"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                   >
                     <option>Email only</option>
                     <option>Email plus admin approval</option>
                   </select>
                 </label>
 
-                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1C2333]">
+                <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-surface-input px-4 py-3 dark:border-white/10">
                   <input
                     v-model="settingsForm.allowAdminDataExport"
                     type="checkbox"
-                    class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#0077B6] dark:border-white/20"
+                    class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand dark:border-white/20"
                   />
                   <span>
                     <span class="block text-sm font-semibold text-slate-900 dark:text-slate-100">Allow admin data exports</span>
@@ -492,7 +492,7 @@ function resetSettingsToDefault() {
                 <div
                   v-for="item in policySummary"
                   :key="item.label"
-                  class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1C2333]"
+                  class="rounded-xl border border-slate-200 bg-surface-input px-4 py-3 dark:border-white/10"
                 >
                   <dt class="typo-card-label">{{ item.label }}</dt>
                   <dd class="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">{{ item.value }}</dd>

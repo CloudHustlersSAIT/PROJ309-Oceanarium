@@ -41,7 +41,7 @@ const dateRange = computed(() => {
 </script>
 
 <template>
-  <section class="rounded-xl border border-blue-500 bg-white p-4 shadow-md dark:border-sky-700/40 dark:bg-[#161B27] dark:shadow-black/30">
+  <section class="rounded-xl border border-blue-500 bg-surface-card p-4 shadow-md dark:border-sky-700/40 dark:shadow-black/30">
     <div class="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_auto_1fr] xl:items-center">
       <div class="xl:justify-self-start">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-slate-100">Calendar</h1>
@@ -61,7 +61,7 @@ const dateRange = computed(() => {
           :class="
             currentView === 'month'
               ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-[#ACBAC4] dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300'
+              : 'bg-surface-input text-gray-700 border-line-neutral dark:border-white/15 dark:text-slate-300'
           "
           @click="emit('change-view', 'month')"
         >
@@ -72,7 +72,7 @@ const dateRange = computed(() => {
           :class="
             currentView === 'week'
               ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-[#ACBAC4] dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300'
+              : 'bg-surface-input text-gray-700 border-line-neutral dark:border-white/15 dark:text-slate-300'
           "
           @click="emit('change-view', 'week')"
         >
@@ -83,7 +83,7 @@ const dateRange = computed(() => {
           :class="
             currentView === 'day'
               ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-[#ACBAC4] dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300'
+              : 'bg-surface-input text-gray-700 border-line-neutral dark:border-white/15 dark:text-slate-300'
           "
           @click="emit('change-view', 'day')"
         >
@@ -93,7 +93,7 @@ const dateRange = computed(() => {
 
       <div class="flex items-center gap-2 flex-wrap xl:justify-end">
         <button
-          class="rounded border border-[#ACBAC4] bg-white px-3 py-1.5 text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
+          class="rounded border border-line-neutral bg-surface-input px-3 py-1.5 text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
           @click="emit('export')"
         >
           Export

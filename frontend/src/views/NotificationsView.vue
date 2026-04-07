@@ -47,7 +47,7 @@ const summaryCards = computed(() => [
       store.loadNotifications()
     },
     accent: store.summary.unread > 0,
-    accentClass: 'border-[#00B4D8] bg-[#CAF0F8]/40 dark:border-sky-700/40 dark:bg-sky-950/45',
+    accentClass: 'border-accent bg-accent-light/40 dark:border-sky-700/40 dark:bg-sky-950/45',
   },
   {
     label: 'Urgent',
@@ -119,7 +119,7 @@ function eventTypeBadgeClass(eventType) {
     return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/45 dark:text-sky-300'
   if (t.includes('change') || t.includes('move'))
     return 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/45 dark:text-teal-300'
-  return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-300'
+  return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-surface-elevated dark:text-slate-300'
 }
 
 function statusBadgeClass(status) {
@@ -130,7 +130,7 @@ function statusBadgeClass(status) {
     return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
   if (s === 'failed' || s === 'error')
     return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
-  return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-300'
+  return 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-surface-elevated dark:text-slate-300'
 }
 
 function priorityBorderClass(priority) {
@@ -140,7 +140,7 @@ function priorityBorderClass(priority) {
   if (p === 'urgent') return 'border-l-red-500'
   if (p === 'high') return 'border-l-amber-400'
   if (p === 'low') return 'border-l-slate-300'
-  return 'border-l-[#0077B6]'
+  return 'border-l-brand'
 }
 
 function iconGlyph(type) {
@@ -219,7 +219,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen overflow-x-hidden bg-[#F4F7FA] dark:bg-[#0F1117]">
+  <div class="flex min-h-screen overflow-x-hidden bg-surface-page">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
@@ -243,7 +243,7 @@ onUnmounted(() => {
               :class="
                 card.accent
                   ? card.accentClass
-                  : 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-[#1A2231]'
+                  : 'border-slate-200 bg-surface-elevated dark:border-white/10'
               "
               :disabled="!card.filterAction"
               :title="`Click to filter by ${card.label.toLowerCase()}`"
@@ -267,7 +267,7 @@ onUnmounted(() => {
                   :value="searchInputRef"
                   type="search"
                   placeholder="Search by message, event type, schedule, or status"
-                  class="typo-body w-full rounded-xl border border-slate-300 bg-white px-10 py-2.5 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
+                  class="typo-body w-full rounded-xl border border-slate-300 bg-surface-input px-10 py-2.5 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                   @input="onSearchInput"
                 />
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -289,7 +289,7 @@ onUnmounted(() => {
                 <label class="typo-card-label">Read State</label>
                 <select
                   :value="store.filters.readFilter"
-                  class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                  class="typo-body rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                   @change="setReadFilter($event.target.value)"
                 >
                   <option
@@ -305,7 +305,7 @@ onUnmounted(() => {
               <button
                 v-if="store.hasActiveFilters"
                 type="button"
-                class="mb-0.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-[#0077B6] transition hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40"
+                class="mb-0.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-brand transition hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40"
                 @click="clearFiltersAndReload"
               >
                 Clear filters
@@ -324,10 +324,10 @@ onUnmounted(() => {
               class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition"
               :class="
                 store.filters.eventType === chip.key
-                  ? 'border-[#0077B6] bg-[#0077B6] text-white'
+                  ? 'border-brand bg-brand text-white'
                   : chip.key === 'SCHEDULE_UNASSIGNABLE' && chipCount(chip.key) > 0
                     ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300 dark:hover:bg-red-950/60'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
+                    : 'border-slate-300 bg-surface-input text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5'
               "
               @click="selectEventType(chip.key)"
             >
@@ -354,7 +354,7 @@ onUnmounted(() => {
           </p>
           <button
             type="button"
-            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
+            class="rounded-lg border border-slate-300 bg-surface-input px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
             :disabled="store.unreadCount === 0"
             @click="handleMarkAllRead"
           >
@@ -372,7 +372,7 @@ onUnmounted(() => {
             <p class="typo-body text-red-700 dark:text-red-300">{{ store.error }}</p>
             <button
               type="button"
-              class="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:bg-[#1C2333] dark:text-red-300 dark:hover:bg-red-950/35"
+              class="shrink-0 rounded-lg border border-red-300 bg-surface-input px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/35"
               @click="store.loadNotifications()"
             >
               Retry
@@ -418,7 +418,7 @@ onUnmounted(() => {
             <button
               v-if="store.hasActiveFilters"
               type="button"
-              class="mt-3 text-sm font-medium text-[#0077B6] hover:underline"
+              class="mt-3 text-sm font-medium text-brand hover:underline"
               @click="clearFiltersAndReload"
             >
               Clear all filters
@@ -466,7 +466,7 @@ onUnmounted(() => {
                         </span>
                         <span
                           v-if="notification.scheduleId"
-                          class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold tracking-wide text-slate-600 dark:border-white/10 dark:bg-[#1C2333] dark:text-slate-300"
+                          class="rounded-full border border-slate-200 bg-surface-input px-2 py-0.5 text-[11px] font-semibold tracking-wide text-slate-600 dark:border-white/10 dark:text-slate-300"
                         >
                           Schedule #{{ notification.scheduleId }}
                         </span>
@@ -517,7 +517,7 @@ onUnmounted(() => {
                     <button
                       v-if="!notification.read"
                       type="button"
-                      class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
+                      class="rounded-lg border border-slate-300 bg-surface-input px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
                       @click="store.markRead(notification.id)"
                     >
                       Mark read
@@ -525,14 +525,14 @@ onUnmounted(() => {
                     <button
                       v-if="notification.primaryAction"
                       type="button"
-                      class="rounded-lg border border-[#0077B6] bg-[#0077B6] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#006399]"
+                      class="rounded-lg border border-brand bg-brand px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-deep"
                       @click="openAssignPopup(notification)"
                     >
                       {{ notification.primaryAction.label }}
                     </button>
                     <button
                       type="button"
-                      class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:bg-[#1C2333] dark:text-red-300 dark:hover:bg-red-950/35"
+                      class="rounded-lg border border-red-200 bg-surface-input px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/35"
                       @click="confirmDelete(notification.id)"
                     >
                       Delete

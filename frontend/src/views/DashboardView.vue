@@ -849,7 +849,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex min-h-screen overflow-x-hidden bg-[#F8FAFC] dark:bg-[#0F1117]">
+  <div class="flex min-h-screen overflow-x-hidden bg-surface-page">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 lg:p-8">
@@ -867,7 +867,7 @@ watch(
                   <input
                     v-model="selectedDate"
                     type="date"
-                    class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
+                    class="typo-body rounded-xl border border-slate-300 bg-surface-input px-3 py-2 dark:border-white/15 dark:text-slate-100"
                   />
                 </label>
 
@@ -875,7 +875,7 @@ watch(
                   <span class="typo-card-label">Range</span>
                   <select
                     v-model="selectedRange"
-                    class="typo-body rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
+                    class="typo-body rounded-xl border border-slate-300 bg-surface-input px-3 py-2 dark:border-white/15 dark:text-slate-100"
                   >
                     <option
                       v-for="option in rangeOptions"
@@ -890,7 +890,7 @@ watch(
 
               <button
                 type="button"
-                class="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
+                class="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-surface-input text-slate-700 transition hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
                 aria-label="Open alert center"
                 aria-controls="dashboard-alert-center"
                 :aria-expanded="showAlertCenter"
@@ -914,7 +914,7 @@ watch(
             id="dashboard-alert-center"
             role="region"
             aria-label="Dashboard alert center"
-            class="absolute right-6 top-22 z-20 w-full max-w-sm rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
+            class="absolute right-6 top-22 z-20 w-full max-w-sm rounded-xl border border-slate-200 bg-surface-card p-3 shadow-xl dark:border-white/10 dark:shadow-black/40"
           >
             <div class="flex items-center justify-between gap-3">
               <h3 class="typo-section-title text-base">Alert Center</h3>
@@ -935,7 +935,7 @@ watch(
               <article
                 v-for="alert in alertCenterAlerts"
                 :key="alert.id"
-                class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-[#1A2231]"
+                class="rounded-lg border border-slate-200 bg-surface-elevated px-3 py-2 dark:border-white/10"
               >
                 <div class="flex items-start justify-between gap-2">
                   <div>
@@ -947,7 +947,7 @@ watch(
                   </div>
                   <button
                     type="button"
-                    class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300"
+                    class="rounded-lg border border-slate-300 bg-surface-input px-2 py-1 text-xs font-medium text-slate-700 dark:border-white/15 dark:text-slate-300"
                     @click="openAlertDetail(alert)"
                   >
                     Details
@@ -963,7 +963,7 @@ watch(
             <div class="mt-3 flex justify-end">
               <button
                 type="button"
-                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300"
+                class="rounded-lg border border-slate-300 bg-surface-input px-3 py-1.5 text-xs font-medium text-slate-700 dark:border-white/15 dark:text-slate-300"
                 @click="markAllAlertsRead"
               >
                 Mark all as read
@@ -1099,7 +1099,7 @@ watch(
           </p>
 
           <div
-            class="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
+            class="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-surface-elevated p-3 dark:border-white/10"
           >
             <p class="typo-caption">
               <span class="font-semibold text-slate-700 dark:text-slate-300">Bookings:</span>
@@ -1380,7 +1380,7 @@ watch(
               <div
                 v-for="segment in tourLanguageInfographic.segments"
                 :key="`label-${segment.id}`"
-                class="absolute w-22 rounded-lg border border-slate-200 bg-white/95 px-2 py-1.5 shadow-sm dark:border-white/10 dark:bg-[#161B27]/95"
+                class="absolute w-22 rounded-lg border border-slate-200 bg-white/95 px-2 py-1.5 shadow-sm dark:border-white/10 dark:bg-sidebar-dark-from/95"
                 :style="{
                   left: `${(segment.labelX / 320) * 100}%`,
                   top: `${(segment.labelY / 320) * 100}%`,
@@ -1417,7 +1417,7 @@ watch(
       @click.self="closeAlertDetail"
     >
       <div
-        class="absolute inset-x-0 top-20 mx-auto w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
+        class="absolute inset-x-0 top-20 mx-auto w-full max-w-lg rounded-xl border border-slate-200 bg-surface-card p-5 shadow-2xl dark:border-white/10 dark:shadow-black/40"
       >
         <div class="flex items-start justify-between gap-4">
           <div>
@@ -1426,7 +1426,7 @@ watch(
           </div>
           <button
             type="button"
-            class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-600 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300"
+            class="rounded-lg border border-slate-300 bg-surface-input px-2 py-1 text-sm text-slate-600 dark:border-white/15 dark:text-slate-300"
             aria-label="Close alert details"
             @click="closeAlertDetail"
           >
@@ -1439,7 +1439,7 @@ watch(
         </p>
 
         <div
-          class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
+          class="mt-4 rounded-lg border border-slate-200 bg-surface-elevated p-3 dark:border-white/10"
         >
           <p class="typo-card-label">Recommended Action</p>
           <p class="mt-1 typo-body text-slate-700 dark:text-slate-300">

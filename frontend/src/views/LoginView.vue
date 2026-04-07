@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 overflow-hidden bg-white text-black dark:bg-[#0F1117] dark:text-slate-100">
+  <div class="fixed inset-0 overflow-hidden bg-surface-page text-black dark:text-slate-100">
     <div class="h-full grid grid-cols-1 md:grid-cols-[35%_1fr] lg:grid-cols-[30%_1fr]">
       <aside class="relative hidden md:block overflow-hidden">
         <video
@@ -26,7 +26,7 @@
 
       <main class="flex items-center justify-center px-4 py-3 md:py-4 overflow-hidden">
         <div class="w-full max-w-[620px]">
-          <div class="min-h-[620px] rounded-none border border-black/5 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40 sm:p-7">
+          <div class="min-h-[620px] rounded-none border border-black/5 bg-surface-card p-6 shadow-xl dark:border-white/10 dark:shadow-black/40 sm:p-7">
             <header class="mb-5">
               <img
                 src="/images/logo-text.svg"
@@ -64,7 +64,7 @@
                   v-model="email"
                   type="email"
                   required
-                  class="w-full rounded-2xl border border-black/15 bg-white px-4 py-2.5 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
+                  class="w-full rounded-2xl border border-black/15 bg-surface-input px-4 py-2.5 text-sm text-black placeholder:text-black/45 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                   placeholder="you@example.com"
                   autocomplete="email"
                 />
@@ -78,14 +78,14 @@
                     v-model="password"
                     :type="showPassword ? 'text' : 'password'"
                     required
-                    class="w-full rounded-2xl border border-black/15 bg-white px-4 py-2.5 pr-12 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-2xl border border-black/15 bg-surface-input px-4 py-2.5 pr-12 text-sm text-black placeholder:text-black/45 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                     placeholder="Password"
                     autocomplete="current-password"
                   />
 
                   <button
                     type="button"
-                    class="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-black/60 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 dark:text-slate-400 dark:hover:text-slate-100 dark:focus:ring-sky-800/50"
+                    class="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-black/60 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-brand/25 dark:text-slate-400 dark:hover:text-slate-100 dark:focus:ring-sky-800/50"
                     aria-label="Toggle password visibility"
                     @mousedown.prevent="showPassword = true"
                     @mouseup="showPassword = false"
@@ -136,7 +136,7 @@
               <div class="text-center">
                 <button
                   type="button"
-                  class="rounded-md px-1 text-sm font-medium text-[#0077B6] underline underline-offset-2 hover:text-[#005a8a] focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 dark:text-sky-300 dark:hover:text-sky-200 dark:focus:ring-sky-800/50"
+                  class="rounded-md px-1 text-sm font-medium text-brand underline underline-offset-2 hover:text-brand-deep focus:outline-none focus:ring-2 focus:ring-brand/25 dark:text-sky-300 dark:hover:text-sky-200 dark:focus:ring-sky-800/50"
                   @click="router.push('/forgot-password')"
                 >
                   Forgot password?
@@ -184,7 +184,7 @@ const showPassword = ref(false)
 const localError = ref(null)
 const submitting = ref(false)
 const primaryCtaClass =
-  'w-full rounded-2xl bg-[#0077B6] py-3.5 text-base font-bold text-white shadow-md hover:bg-[#0097E7] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30'
+  'w-full rounded-2xl bg-brand py-3.5 text-base font-bold text-white shadow-md hover:bg-brand-hover hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition focus:outline-none focus:ring-2 focus:ring-brand/30'
 
 watch(role, (newRole) => {
   if (newRole) {

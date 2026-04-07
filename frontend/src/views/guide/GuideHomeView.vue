@@ -1,14 +1,17 @@
 <template>
   <div class="app-page-wrap pt-1">
     <section class="app-surface-card app-section-padding">
-      <div class="flex flex-col gap-1">
-        <h1 class="app-title">Welcome, Guide</h1>
-        <p class="app-subtitle">Here's your next scheduled tour.</p>
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex flex-col gap-1">
+          <h1 class="app-title">Welcome, Guide</h1>
+          <p class="app-subtitle">Here's your next scheduled tour.</p>
+        </div>
+        <ThemeToggle icon-only />
       </div>
 
-      <div class="mt-4 min-h-[112px] rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4 dark:border-sky-800/60 dark:bg-sky-950/50">
+      <div class="mt-4 min-h-[112px] rounded-2xl border border-line-sky-light bg-accent-light p-4 dark:border-sky-800/60 dark:bg-sky-950/50">
         <div v-if="loading" class="text-sm text-black/60 dark:text-slate-400">Loading dashboard...</div>
-        <div v-else-if="error" class="text-sm font-medium text-[#B91C1C]">{{ error }}</div>
+        <div v-else-if="error" class="text-sm font-medium text-danger">{{ error }}</div>
         <div v-else class="flex flex-wrap items-center justify-between gap-2">
           <div class="space-y-0.5">
             <p class="app-body-title leading-tight">
@@ -21,7 +24,7 @@
           </div>
 
           <span
-            class="inline-flex items-center self-center rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-[#0077B6] ring-1 ring-[#00B4D8]/30 dark:bg-white/10 dark:text-sky-200 dark:ring-sky-700/40"
+            class="inline-flex items-center self-center rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-brand ring-1 ring-accent/30 dark:bg-white/10 dark:text-sky-200 dark:ring-sky-700/40"
           >
             Next Up
           </span>
@@ -58,18 +61,18 @@
     <section class="grid gap-4 md:grid-cols-3">
       <div class="app-surface-card p-5">
         <p class="app-subtitle">This Week</p>
-        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ stats.weekTours }}</p>
+        <p class="mt-2 text-3xl font-semibold text-ink dark:text-slate-100">{{ stats.weekTours }}</p>
         <p class="app-subtitle">tours assigned</p>
       </div>
 
       <div class="app-surface-card p-5">
         <p class="app-subtitle">Pending Requests</p>
-        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ stats.pendingRequests }}</p>
+        <p class="mt-2 text-3xl font-semibold text-ink dark:text-slate-100">{{ stats.pendingRequests }}</p>
         <p class="app-subtitle">need action</p>
 
         <div v-if="stats.pendingRequests > 0" class="mt-3">
           <span
-            class="inline-flex rounded-full bg-[#E63946]/10 px-3 py-1 text-xs font-semibold text-[#E63946]"
+            class="inline-flex rounded-full bg-danger-vivid/10 px-3 py-1 text-xs font-semibold text-danger-vivid"
           >
             Action Required
           </span>
@@ -78,12 +81,12 @@
 
       <div class="app-surface-card p-5">
         <p class="app-subtitle">Avg Rating</p>
-        <p class="mt-2 text-3xl font-semibold text-[#1C1C1C] dark:text-slate-100">{{ stats.avgRating }}</p>
+        <p class="mt-2 text-3xl font-semibold text-ink dark:text-slate-100">{{ stats.avgRating }}</p>
         <p class="app-subtitle">last 30 days</p>
 
         <div class="mt-3">
           <span
-            class="inline-flex rounded-full bg-[#2A9D8F]/10 px-3 py-1 text-xs font-semibold text-[#2A9D8F]"
+            class="inline-flex rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success"
           >
             Good Standing
           </span>
@@ -93,10 +96,10 @@
 
     <section class="app-surface-card app-section-padding">
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-[#1C1C1C] dark:text-slate-100">Today</h2>
+        <h2 class="text-lg font-semibold text-ink dark:text-slate-100">Today</h2>
         <RouterLink
           to="/guide/schedule"
-          class="text-sm font-semibold text-[#0077B6] hover:text-[#0097E7]"
+          class="text-sm font-semibold text-brand hover:text-brand-hover"
         >
           View full schedule ->
         </RouterLink>
@@ -109,10 +112,10 @@
         <div
           v-for="e in todayEvents"
           :key="e.id"
-          class="flex items-center justify-between gap-4 rounded-2xl border border-[#A9CDD9] bg-[#CAF0F8] p-4 dark:border-sky-800/60 dark:bg-sky-950/40"
+          class="flex items-center justify-between gap-4 rounded-2xl border border-line-sky-light bg-accent-light p-4 dark:border-sky-800/60 dark:bg-sky-950/40"
         >
           <div class="flex items-center gap-3">
-            <div class="h-3 w-3 shrink-0 rounded-full bg-[#00B4D8]"></div>
+            <div class="h-3 w-3 shrink-0 rounded-full bg-accent"></div>
             <div>
               <p class="app-body-title">{{ e.title }}</p>
               <p class="app-subtitle">{{ e.time }} • {{ e.language }}</p>
@@ -120,7 +123,7 @@
           </div>
 
           <span
-            class="inline-flex items-center rounded-full border border-[#7DB8CC] bg-white/70 px-3 py-1 text-sm font-semibold text-black dark:border-sky-700/50 dark:bg-white/10 dark:text-slate-200"
+            class="inline-flex items-center rounded-full border border-line-sky bg-white/70 px-3 py-1 text-sm font-semibold text-black dark:border-sky-700/50 dark:bg-white/10 dark:text-slate-200"
           >
             {{ e.status }}
           </span>
@@ -136,6 +139,7 @@ import { useRoute } from 'vue-router'
 
 import { useAuth } from '@/contexts/authContext'
 import { getGuideDashboard } from '@/services/api'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
 const { profile, ensureAuthReady } = useAuth()
@@ -149,8 +153,8 @@ const currentGuideId = computed(() => Number(profile.value?.guide_id ?? 0) || nu
 function tabClass(path) {
   const active = route.path === path
   return active
-    ? 'border border-[#0077B6] bg-[#0077B6] text-white shadow-[0_8px_18px_rgba(0,119,182,0.24)]'
-    : 'border border-[#0077B6] bg-[#0077B6] text-white shadow-[0_6px_14px_rgba(0,119,182,0.2)] hover:bg-[#0097E7] hover:border-[#0097E7] hover:shadow-[0_10px_20px_rgba(0,119,182,0.28)]'
+    ? 'border border-brand bg-brand text-white shadow-[0_8px_18px_rgba(0,119,182,0.24)]'
+    : 'border border-line-sky-light bg-transparent text-brand hover:bg-accent-light dark:border-sky-700/50 dark:bg-transparent dark:text-sky-300 dark:hover:bg-sky-950/60'
 }
 
 function formatDateLabel(value) {

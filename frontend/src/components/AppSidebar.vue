@@ -85,7 +85,7 @@ async function handleLogout() {
   <button
     type="button"
     aria-label="Open menu"
-    class="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-lg bg-[#0077B6] text-white shadow-lg transition hover:bg-[#0097e7] dark:border dark:border-white/10 dark:bg-[#1C2333] dark:hover:bg-[#273247] md:hidden"
+    class="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-lg bg-brand text-white shadow-lg transition hover:bg-brand-hover dark:border dark:border-white/10 dark:bg-surface-input dark:hover:bg-white/10 md:hidden"
     @click="openMobile"
   >
     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -108,7 +108,7 @@ async function handleLogout() {
 
   <!-- Sidebar: drawer on mobile (fixed, slide-in), normal on md+ -->
   <aside
-    class="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[85vw] min-h-dvh -translate-x-full transform flex-col overflow-y-auto bg-linear-to-b from-[#00B4D8] to-[#0047ab] p-4 text-white shadow-lg transition-transform duration-200 ease-out dark:from-[#161B27] dark:to-[#0F1117] md:h-screen md:max-h-screen md:max-w-none md:translate-x-0 md:overflow-hidden"
+    class="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[85vw] min-h-dvh -translate-x-full transform flex-col overflow-y-auto bg-linear-to-b from-accent to-brand-vivid p-4 text-white shadow-lg transition-transform duration-200 ease-out dark:from-sidebar-dark-from dark:to-sidebar-dark-to md:h-screen md:max-h-screen md:max-w-none md:translate-x-0 md:overflow-hidden"
     :class="{ 'translate-x-0': mobileOpen }"
   >
     <!-- Close button for mobile (visible only when drawer is open) -->
@@ -153,7 +153,7 @@ async function handleLogout() {
         <div class="flex items-center gap-3 mb-3 px-1">
           <!-- Avatar circle -->
           <div
-            class="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-lg font-semibold text-[#0077B6] shadow-md dark:bg-white/15 dark:text-white"
+            class="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-lg font-semibold text-brand shadow-md dark:bg-white/15 dark:text-white"
           >
             {{ avatarInitial }}
           </div>
@@ -169,7 +169,7 @@ async function handleLogout() {
         <!-- Logout button -->
         <button
           type="button"
-          class="w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-[#0077B6] shadow-sm transition hover:bg-[#CAF0F8] hover:text-[#0077B6] dark:border dark:border-white/10 dark:bg-[#1C2333] dark:text-slate-100 dark:hover:bg-[#273247]"
+          class="w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-brand shadow-sm transition hover:bg-accent-light hover:text-brand dark:border dark:border-white/10 dark:bg-surface-input dark:text-slate-100 dark:hover:bg-white/10"
           @click="handleLogout"
         >
           Log out

@@ -3,7 +3,7 @@
     <button
       type="button"
       aria-label="Open guide menu"
-      class="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg bg-[#0077B6] text-white shadow-lg transition hover:bg-[#0097E7] md:hidden"
+      class="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg bg-brand text-white shadow-lg transition hover:bg-brand-hover md:hidden"
       @click="openMobile"
     >
       <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -14,7 +14,7 @@
     <div v-show="mobileOpen" aria-hidden="true" class="fixed inset-0 z-40 bg-black/50 md:hidden" @click="closeMobile" />
 
     <aside
-      class="fixed inset-y-0 left-0 z-50 h-screen w-80 shrink-0 bg-gradient-to-b from-[#00B4D8] via-[#0F77C6] to-[#0E4EA8] text-white shadow-xl transform transition-transform duration-200 ease-out -translate-x-full md:sticky md:top-0 md:translate-x-0"
+      class="fixed inset-y-0 left-0 z-50 h-screen w-80 shrink-0 bg-gradient-to-b from-accent via-brand to-guide-blue text-white shadow-xl transform transition-transform duration-200 ease-out -translate-x-full md:sticky md:top-0 md:translate-x-0"
       :class="{ 'translate-x-0': mobileOpen }"
     >
       <div class="flex h-full flex-col p-4">
@@ -29,7 +29,7 @@
           </svg>
         </button>
 
-        <div class="mb-8 rounded-2xl bg-white px-6 py-4 shadow-lg dark:bg-[#16304A]/90 dark:shadow-black/30">
+        <div class="mb-8 rounded-2xl bg-white px-6 py-4 shadow-lg dark:bg-guide-dark/90 dark:shadow-black/30">
           <img :src="logoText" alt="Oceanarium" class="h-11 w-auto" />
         </div>
 
@@ -50,7 +50,7 @@
             </span>
             <span
               v-if="item.to === '/guide/notifications' && unreadCount > 0"
-              class="inline-flex min-w-[1.35rem] items-center justify-center rounded-full bg-[#E63946] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white"
+              class="inline-flex min-w-[1.35rem] items-center justify-center rounded-full bg-danger-vivid px-1.5 py-0.5 text-[11px] font-bold leading-none text-white"
             >
               {{ unreadCount > 99 ? "99+" : unreadCount }}
             </span>
@@ -59,7 +59,7 @@
 
         <div class="mt-auto border-t border-white/25 pt-4">
           <div class="mb-3 flex items-center gap-3 px-1">
-            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/85 text-lg font-bold text-[#0E4EA8] dark:bg-white/15 dark:text-white">
+            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/85 text-lg font-bold text-guide-blue dark:bg-white/15 dark:text-white">
               {{ avatarInitial }}
             </span>
             <div class="min-w-0">
@@ -69,7 +69,7 @@
           </div>
 
           <button
-            class="w-full rounded-xl bg-white px-4 py-2.5 text-lg font-bold text-[#0E4EA8] transition hover:bg-[#CAF0F8] dark:bg-white/12 dark:text-white dark:hover:bg-white/18"
+            class="w-full rounded-xl bg-white px-4 py-2.5 text-lg font-bold text-guide-blue transition hover:bg-accent-light dark:bg-white/12 dark:text-white dark:hover:bg-white/18"
             @click="handleLogout"
           >
             Log out

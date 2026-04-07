@@ -657,7 +657,7 @@ onUnmounted(() => {
 })</script>
 
 <template>
-  <div class="flex min-h-screen overflow-x-hidden bg-gray-100 dark:bg-[#0F1117]">
+  <div class="flex min-h-screen overflow-x-hidden bg-surface-page">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6">
@@ -669,14 +669,14 @@ onUnmounted(() => {
               v-model="searchText"
               type="text"
               placeholder="Search reservations"
-              class="w-full rounded-xl border border-gray-400 bg-white px-4 py-2.5 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500"
+              class="w-full rounded-xl border border-gray-400 bg-surface-input px-4 py-2.5 text-sm dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
           <PrimaryCreateButton @create="openCreatePopup" />
         </div>
       </div>
 
-      <section class="overflow-hidden rounded-lg border border-gray-300 bg-white dark:border-white/10 dark:bg-[#161B27]">
+      <section class="overflow-hidden rounded-lg border border-gray-300 bg-surface-card dark:border-white/10">
         <div v-if="loading" class="p-4 text-sm text-gray-500 dark:text-slate-400">Loading reservations...</div>
         <div v-else-if="error" class="p-4 text-sm text-red-600 dark:text-red-300">
           <div>{{ error }}</div>
@@ -696,7 +696,7 @@ onUnmounted(() => {
               <col class="w-[10%]" />
               <col class="w-[26%]" />
             </colgroup>
-            <thead class="border-b border-gray-200 bg-gray-50 text-gray-800 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-200">
+            <thead class="border-b border-gray-200 bg-surface-elevated text-gray-800 dark:border-white/10 dark:text-slate-200">
               <tr>
                 <th class="px-5 py-3 text-left typo-table-head">Reservation</th>
                 <th class="px-5 py-3 text-center typo-table-head">Date</th>
@@ -777,7 +777,7 @@ onUnmounted(() => {
                   :class="
                     currentPage === 1
                       ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
-                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
+                      : 'border-gray-300 bg-surface-input text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5'
                   "
                   :disabled="currentPage === 1"
                   @click="goToPage(currentPage - 1)"
@@ -801,8 +801,8 @@ onUnmounted(() => {
                     class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border px-3 text-sm font-medium transition"
                     :class="
                       currentPage === item
-                        ? 'border-[#0077B6] bg-[#0077B6] text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
+                        ? 'border-brand bg-brand text-white'
+                        : 'border-gray-300 bg-surface-input text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5'
                     "
                     :aria-current="currentPage === item ? 'page' : undefined"
                     :aria-label="`Go to page ${item}`"
@@ -818,7 +818,7 @@ onUnmounted(() => {
                   :class="
                     currentPage === totalPages
                       ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
-                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
+                      : 'border-gray-300 bg-surface-input text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5'
                   "
                   :disabled="currentPage === totalPages"
                   @click="goToPage(currentPage + 1)"
@@ -833,7 +833,7 @@ onUnmounted(() => {
       </section>
 
       <div v-if="showCreatePopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeCreatePopup">
-        <div class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
+        <div class="absolute right-0 top-0 h-full w-full max-w-[420px] bg-panel-dark text-white shadow-2xl p-5 overflow-y-auto">
           <div class="flex items-center justify-between mb-4">
             <div class="typo-modal-eyebrow">Create</div>
             <button class="text-gray-300 hover:text-white text-xl leading-none" aria-label="Close create popup" @click="closeCreatePopup">×</button>
@@ -851,7 +851,7 @@ onUnmounted(() => {
                 autocomplete="off"
                 list="customer-id-options"
                 placeholder="Enter existing customer numeric ID"
-                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+                class="w-full rounded border border-line-neutral bg-panel-input px-3 py-2 text-sm placeholder:text-gray-400"
                 @beforeinput="handleNumericBeforeInput"
                 @paste="
                   (event) =>
@@ -877,7 +877,7 @@ onUnmounted(() => {
               <label class="mb-1 flex items-center gap-1 text-sm text-gray-300">
                 <button
                   type="button"
-                  class="inline-flex items-center rounded p-0.5 text-gray-300 hover:bg-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-60"
+                  class="inline-flex items-center rounded p-0.5 text-gray-300 hover:bg-panel-input disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="schedulesLoading"
                   aria-label="Refresh schedules"
                   title="Refresh schedules"
@@ -903,7 +903,7 @@ onUnmounted(() => {
               </label>
               <select
                 v-model="form.selectedScheduleId"
-                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm"
+                class="w-full rounded border border-line-neutral bg-panel-input px-3 py-2 text-sm"
                 :disabled="schedulesLoading || availableSchedules.length === 0"
               >
                 <option value="">Select a schedule</option>
@@ -923,7 +923,7 @@ onUnmounted(() => {
               <p v-else class="mt-1 text-xs text-gray-400">Pick the event schedule for this reservation.</p>
             </div>
 
-            <div v-if="selectedCreateSchedule" class="rounded border border-[#ACBAC4] bg-[#2a2a2a] px-3 py-2 text-xs text-gray-200">
+            <div v-if="selectedCreateSchedule" class="rounded border border-line-neutral bg-panel-hover px-3 py-2 text-xs text-gray-200">
               <div><span class="font-medium">Tour:</span> {{ selectedCreateSchedule.tour_name || `Tour ${selectedCreateSchedule.tour_id}` }}</div>
               <div><span class="font-medium">Date & Time:</span> {{ formatScheduleDateTime(selectedCreateSchedule.event_start_datetime) }}</div>
               <div><span class="font-medium">Guide:</span> {{ selectedCreateSchedule.guide_name || 'Unassigned Guide' }}</div>
@@ -941,7 +941,7 @@ onUnmounted(() => {
                 pattern="[0-9]*"
                 autocomplete="off"
                 placeholder="00"
-                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+                class="w-full rounded border border-line-neutral bg-panel-input px-3 py-2 text-sm placeholder:text-gray-400"
                 @beforeinput="handleNumericBeforeInput"
                 @paste="
                   (event) =>
@@ -965,7 +965,7 @@ onUnmounted(() => {
                 pattern="[0-9]*"
                 autocomplete="off"
                 placeholder="00"
-                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+                class="w-full rounded border border-line-neutral bg-panel-input px-3 py-2 text-sm placeholder:text-gray-400"
                 @beforeinput="handleNumericBeforeInput"
                 @paste="
                   (event) =>
@@ -985,7 +985,7 @@ onUnmounted(() => {
                 :value="totalTicketCount"
                 type="text"
                 readonly
-                class="w-full rounded border border-[#ACBAC4] bg-[#252525] px-3 py-2 text-sm text-gray-300"
+                class="w-full rounded border border-line-neutral bg-panel-base px-3 py-2 text-sm text-gray-300"
               />
             </div>
 

@@ -81,7 +81,7 @@
         </label>
 
         <label class="app-stat-card flex items-end gap-3 px-4 py-3">
-          <input v-model="filters.unreadOnly" type="checkbox" class="h-4 w-4 rounded border-[#7DB8CC] text-[#0077B6]" />
+          <input v-model="filters.unreadOnly" type="checkbox" class="h-4 w-4 rounded border-line-sky text-brand" />
           <span class="app-form-label mb-0">Unread only</span>
         </label>
       </div>
@@ -168,7 +168,7 @@
       class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4"
       @click.self="closeDetail"
     >
-      <div class="w-full max-w-2xl rounded-[28px] border border-[#A9CDD9] bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40">
+      <div class="w-full max-w-2xl rounded-[28px] border border-line-sky-light bg-surface-card p-6 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:border-white/10 dark:shadow-black/40">
         <div class="flex items-start justify-between gap-4">
           <div>
             <h2 class="typo-modal-title">Notification Details</h2>

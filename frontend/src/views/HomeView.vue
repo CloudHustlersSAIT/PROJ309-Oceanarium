@@ -112,7 +112,7 @@ const nextBestAction = computed(() => {
     description: 'Operations are stable. Open Dashboard to review trend lines and guide allocation quality.',
     buttonLabel: 'Open Dashboard',
     routeName: 'dashboard',
-    tone: 'border-slate-300 bg-slate-50 text-slate-800 dark:border-white/15 dark:bg-[#1A2231] dark:text-slate-200',
+    tone: 'border-slate-300 bg-slate-50 text-slate-800 dark:border-white/15 dark:bg-surface-elevated dark:text-slate-200',
   }
 })
 
@@ -324,7 +324,7 @@ onMounted(loadHomeData)
 </script>
 
 <template>
-  <div class="flex min-h-screen overflow-x-hidden bg-[#F3F5F8] dark:bg-[#0F1117]">
+  <div class="flex min-h-screen overflow-x-hidden bg-surface-page">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 xl:p-8">
@@ -371,7 +371,7 @@ onMounted(loadHomeData)
 
       <section class="grid grid-cols-1 gap-5 lg:grid-cols-2 items-start">
         <article
-          class="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30"
+          class="h-full rounded-2xl border border-slate-200 bg-surface-card p-5 shadow-sm dark:border-white/10 dark:shadow-black/30"
         >
           <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Today's Schedule</h2>
           <p v-if="scheduleLoadWarning" class="mb-2 text-xs text-amber-700 dark:text-amber-300">
@@ -381,7 +381,7 @@ onMounted(loadHomeData)
             <li
               v-for="row in visibleScheduleRows"
               :key="row.id"
-              class="flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-[#1A2231] sm:flex-row sm:items-center sm:justify-between"
+              class="flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-surface-elevated px-3 py-2 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
                 <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -395,13 +395,13 @@ onMounted(loadHomeData)
             </li>
             <li
               v-if="scheduleSectionLoading"
-              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 dark:border-white/15 dark:bg-[#1A2231] dark:text-slate-400"
+              class="rounded-xl border border-dashed border-slate-300 bg-surface-elevated px-3 py-3 text-sm text-slate-600 dark:border-white/15 dark:text-slate-400"
             >
               Loading today's schedule...
             </li>
             <li
               v-else-if="!visibleScheduleRows.length"
-              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600 dark:border-white/15 dark:bg-[#1A2231] dark:text-slate-400"
+              class="rounded-xl border border-dashed border-slate-300 bg-surface-elevated px-3 py-3 text-sm text-slate-600 dark:border-white/15 dark:text-slate-400"
             >
               No schedules for today.
             </li>
@@ -416,7 +416,7 @@ onMounted(loadHomeData)
           </button>
         </article>
 
-        <article class="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+        <article class="h-full rounded-2xl border border-slate-200 bg-surface-card p-5 shadow-sm dark:border-white/10 dark:shadow-black/30">
           <h2 class="mb-2 text-xl font-semibold text-slate-800 dark:text-slate-100">Alerts</h2>
           <ul class="mt-2 space-y-2 text-sm text-slate-700 dark:text-slate-300">
             <li v-for="alert in alerts.slice(0, 4)" :key="alert" class="flex items-center gap-2">
@@ -444,7 +444,7 @@ onMounted(loadHomeData)
         @click.self="closeScheduleModal"
       >
         <section
-          class="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
+          class="w-full max-w-2xl rounded-2xl border border-slate-200 bg-surface-card p-5 shadow-xl dark:border-white/10 dark:shadow-black/40"
         >
           <div class="mb-3 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100">All Schedules for Today</h3>
@@ -461,7 +461,7 @@ onMounted(loadHomeData)
             <li
               v-for="row in allDayScheduleRows"
               :key="`modal-${row.id}`"
-              class="flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-[#1A2231] sm:flex-row sm:items-center sm:justify-between"
+              class="flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-surface-elevated px-3 py-2 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
                 <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">

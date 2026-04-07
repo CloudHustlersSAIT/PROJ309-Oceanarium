@@ -35,7 +35,7 @@ function sameDate(a, b) {
 </script>
 
 <template>
-  <div class="rounded-xl border border-blue-500 bg-white p-4 shadow-md dark:border-sky-700/40 dark:bg-[#161B27] dark:shadow-black/30">
+  <div class="rounded-xl border border-blue-500 bg-surface-card p-4 shadow-md dark:border-sky-700/40 dark:shadow-black/30">
     <h3 class="mb-3 text-sm font-semibold text-gray-700 dark:text-slate-100">{{ monthLabel }}</h3>
     <div class="grid grid-cols-7 gap-1 text-xs">
       <div

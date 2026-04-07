@@ -229,7 +229,7 @@ onBeforeUnmount(() => {
 <template>
   <div v-if="visible" class="fixed inset-0 z-50 bg-black/40" @click.self="handleClose">
     <div
-      class="absolute left-1/2 top-1/2 w-[92%] max-w-140 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
+      class="absolute left-1/2 top-1/2 w-[92%] max-w-140 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line-neutral bg-surface-card p-5 shadow-2xl dark:border-white/10 dark:shadow-black/40"
     >
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Manual Assign Guide</h3>
@@ -269,7 +269,7 @@ onBeforeUnmount(() => {
           <label
             v-for="guide in eligibleGuides"
             :key="guide.id"
-            class="flex cursor-pointer items-start gap-3 rounded border border-[#ACBAC4] px-3 py-2 hover:bg-gray-50 dark:border-white/10 dark:bg-[#1C2333] dark:hover:bg-white/5"
+            class="flex cursor-pointer items-start gap-3 rounded border border-line-neutral bg-surface-input px-3 py-2 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
           >
             <input
               v-model="selectedGuideId"
@@ -301,7 +301,7 @@ onBeforeUnmount(() => {
           <textarea
             v-model="reason"
             rows="3"
-            class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500"
+            class="w-full rounded border border-line-neutral bg-surface-input px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500"
             placeholder="Example: Customer requested specific guide"
           />
         </div>

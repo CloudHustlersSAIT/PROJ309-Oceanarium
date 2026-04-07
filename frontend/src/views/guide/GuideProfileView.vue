@@ -22,9 +22,9 @@
       <div class="app-surface-card app-section-padding md:col-span-1">
         <div class="flex items-center gap-3">
           <div
-            class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#CAF0F8] ring-1 ring-[#00B4D8]/40"
+            class="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-light ring-1 ring-accent/40"
           >
-            <span class="font-bold text-[#0077B6]">
+            <span class="font-bold text-brand">
               {{ initials }}
             </span>
           </div>
@@ -73,7 +73,7 @@
         <div class="mt-5">
           <button
             type="button"
-            class="w-full rounded-xl border border-[#0077B6] px-4 py-3 text-sm font-semibold text-[#0077B6] transition hover:bg-[#CAF0F8] dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-950/40"
+            class="w-full rounded-xl border border-brand px-4 py-3 text-sm font-semibold text-brand transition hover:bg-accent-light dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-950/40"
             @click="resetToDefaults"
           >
             Reset to last saved
@@ -140,13 +140,13 @@
                 <div
                   v-for="slot in availability.slots"
                   :key="slot.key"
-                  class="rounded-xl border border-black/10 bg-[#FAFCFE] p-4 dark:border-white/10 dark:bg-[#1A2231]"
+                  class="rounded-xl border border-black/10 bg-surface-elevated p-4 dark:border-white/10"
                 >
                   <div class="grid gap-3 md:grid-cols-[1.1fr_1fr_1fr] md:items-end">
                     <div class="space-y-2">
                       <label class="app-form-label">Day</label>
                       <div
-                        class="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-[#1C1C1C] dark:border-white/10 dark:bg-[#1C2333] dark:text-slate-100"
+                        class="w-full rounded-xl border border-black/10 bg-surface-input px-4 py-3 text-sm font-semibold text-ink dark:border-white/10 dark:text-slate-100"
                       >
                         {{ slot.day }}
                       </div>
@@ -157,7 +157,7 @@
                       <input
                         v-model="slot.start"
                         type="time"
-                        class="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-[#0077B6] focus:ring-1 focus:ring-[#0077B6] dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                        class="w-full rounded-xl border border-black/10 bg-surface-input px-4 py-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                       />
                     </div>
 
@@ -166,7 +166,7 @@
                       <input
                         v-model="slot.end"
                         type="time"
-                        class="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-[#0077B6] focus:ring-1 focus:ring-[#0077B6] dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+                        class="w-full rounded-xl border border-black/10 bg-surface-input px-4 py-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
                       />
                     </div>
                   </div>
@@ -190,7 +190,7 @@
             <p
               v-if="toast"
               class="text-sm font-semibold"
-              :class="toastType === 'success' ? 'text-[#2A9D8F]' : 'app-text-error'"
+              :class="toastType === 'success' ? 'text-success' : 'app-text-error'"
             >
               {{ toast }}
             </p>
@@ -265,8 +265,8 @@ const PHONE_REGEX = /^\+?[1-9]\d{7,14}$/
 function chipClass(arr, value) {
   const active = arr.includes(value)
   return active
-    ? 'border-[#00B4D8]/40 bg-[#CAF0F8] text-[#0077B6] dark:border-sky-700/40 dark:bg-sky-950/50 dark:text-sky-200'
-    : 'border-black/10 bg-white text-black/70 hover:bg-[#CAF0F8]/60 dark:border-white/10 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
+    ? 'border-accent/40 bg-accent-light text-brand dark:border-sky-700/40 dark:bg-sky-950/50 dark:text-sky-200'
+    : 'border-black/10 bg-surface-input text-black/70 hover:bg-accent-light/60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5'
 }
 
 function toggleChip(arr, value) {

@@ -291,7 +291,7 @@ const micAriaLabel = computed(() => {
           :disabled="voiceState === 'processing'"
           class="relative z-10 flex h-11 w-11 items-center justify-center rounded-full border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           :class="{
-            'border-slate-300 bg-white text-blue-600 hover:bg-blue-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-blue-400 dark:hover:bg-blue-900/20':
+            'border-slate-300 bg-surface-input text-blue-600 hover:bg-blue-50 dark:border-white/15 dark:text-blue-400 dark:hover:bg-blue-900/20':
               voiceState === 'idle' || voiceState === 'result',
             'border-red-400 bg-red-50 text-red-600 dark:border-red-600/60 dark:bg-red-950/40 dark:text-red-400':
               voiceState === 'listening',
@@ -357,7 +357,7 @@ const micAriaLabel = computed(() => {
           :class="{
             'border-red-400 bg-red-50/50 dark:border-red-600/60 dark:bg-red-950/20':
               voiceState === 'listening',
-            'border-slate-300 bg-white dark:border-white/15 dark:bg-[#1C2333]':
+            'border-slate-300 bg-surface-input dark:border-white/15':
               voiceState !== 'listening',
             'cursor-not-allowed opacity-60': voiceState === 'processing',
           }"
@@ -425,7 +425,7 @@ const micAriaLabel = computed(() => {
         <!-- Chart FIRST (more visual) -->
         <div
           v-if="result.chart"
-          class="animate-slideUp rounded-xl border border-slate-200 bg-gradient-to-br from-blue-50 to-slate-50 p-6 shadow-sm dark:border-white/10 dark:from-blue-950/20 dark:to-[#1A2231]"
+          class="animate-slideUp rounded-xl border border-slate-200 bg-gradient-to-br from-blue-50 to-slate-50 p-6 shadow-sm dark:border-white/10 dark:from-blue-950/20 dark:to-surface-elevated"
         >
           <div class="flex items-center gap-2">
             <svg
@@ -729,7 +729,7 @@ const micAriaLabel = computed(() => {
             <article
               v-for="rec in result.recommendations"
               :key="rec.title"
-              class="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#1C2333]"
+              class="rounded-xl border border-slate-200 bg-surface-input p-4 dark:border-white/10"
             >
               <div class="flex items-start justify-between gap-2">
                 <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -790,7 +790,7 @@ const micAriaLabel = computed(() => {
     @click.self="dismissContentSafetyModal"
   >
     <div
-      class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/60"
+      class="w-full max-w-sm rounded-2xl border border-slate-200 bg-surface-card p-6 shadow-2xl dark:border-white/10 dark:shadow-black/60"
     >
       <!-- Icon -->
       <div

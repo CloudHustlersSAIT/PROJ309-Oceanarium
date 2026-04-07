@@ -18,7 +18,7 @@ const { isDark, toggleTheme } = useTheme()
     :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
     :class="
       props.iconOnly
-        ? 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-200 dark:hover:bg-white/5'
+        ? 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-surface-input text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5'
         : 'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-white/80 transition hover:bg-white/10 active:bg-white/15 active:scale-[0.98]'
     "
     @click="toggleTheme"

@@ -1,5 +1,5 @@
 <template>
-  <header class="sticky top-0 z-20 border-b border-black/10 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#0F1117]/90 md:hidden">
+  <header class="sticky top-0 z-20 border-b border-black/10 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-surface-page/90 md:hidden">
     <div
       class="mx-auto flex max-w-6xl flex-nowrap items-center justify-between gap-3 overflow-hidden px-4 py-3.5 sm:px-6 lg:px-8"
     >
@@ -10,21 +10,25 @@
           class="h-9 w-auto shrink-0 sm:h-10"
         />
         <div class="min-w-0 leading-tight">
-          <p class="truncate text-base font-bold text-[#1C1C1C] dark:text-slate-100">Oceanarium Portal</p>
+          <p class="truncate text-base font-bold text-ink dark:text-slate-100">Oceanarium Portal</p>
           <p class="truncate text-sm text-black/65 dark:text-slate-400">Guide</p>
         </div>
       </div>
 
-      <button
-        type="button"
-        class="inline-flex items-center justify-center rounded-xl border border-black/15 bg-white px-3 py-2 text-sm font-semibold text-[#1C1C1C] transition hover:bg-[#CAF0F8]/50 dark:border-white/15 dark:bg-[#161B27] dark:text-slate-100 dark:hover:bg-white/5 md:hidden"
-        aria-label="Open menu"
-        @click="toggleMenu"
-      >
+      <div class="flex items-center gap-2">
+        <ThemeToggle icon-only />
+
+        <button
+          type="button"
+          class="inline-flex items-center justify-center rounded-xl border border-black/15 bg-surface-card px-3 py-2 text-sm font-semibold text-ink transition hover:bg-accent-light/50 dark:border-white/15 dark:text-slate-100 dark:hover:bg-white/5 md:hidden"
+          aria-label="Open menu"
+          @click="toggleMenu"
+        >
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -50,11 +54,11 @@
       >
         <aside
           v-show="isMenuOpen"
-          class="absolute right-0 top-0 h-full w-[86vw] max-w-sm border-l border-black/10 bg-white shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
+          class="absolute right-0 top-0 h-full w-[86vw] max-w-sm border-l border-black/10 bg-surface-card shadow-2xl dark:border-white/10 dark:shadow-black/40"
         >
           <div class="flex h-full flex-col p-4">
             <div class="flex items-center justify-between">
-              <p class="text-base font-bold text-[#1C1C1C] dark:text-slate-100">Guide Menu</p>
+              <p class="text-base font-bold text-ink dark:text-slate-100">Guide Menu</p>
               <button
                 type="button"
                 class="rounded-lg border border-black/15 px-2.5 py-1.5 text-sm font-semibold text-black/70 hover:bg-black/5 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
@@ -101,7 +105,7 @@
                 <span>Notifications</span>
                 <span
                   v-if="unreadCount > 0"
-                  class="inline-flex min-w-[1.35rem] items-center justify-center rounded-full bg-[#E63946] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white"
+                  class="inline-flex min-w-[1.35rem] items-center justify-center rounded-full bg-danger-vivid px-1.5 py-0.5 text-[11px] font-bold leading-none text-white"
                 >
                   {{ unreadCount > 99 ? '99+' : unreadCount }}
                 </span>
@@ -119,10 +123,10 @@
 
             <div class="mt-auto rounded-xl border border-black/10 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/[0.03]">
               <p class="text-sm text-black/60 dark:text-slate-400">Signed in as</p>
-              <p class="text-base font-semibold break-all text-[#1C1C1C] dark:text-slate-100">{{ userEmail }}</p>
+              <p class="text-base font-semibold break-all text-ink dark:text-slate-100">{{ userEmail }}</p>
 
               <button
-                class="mt-3 w-full rounded-xl bg-[#0077B6] px-4 py-2.5 text-base font-bold text-white hover:bg-[#0097E7] transition"
+                class="mt-3 w-full rounded-xl bg-brand px-4 py-2.5 text-base font-bold text-white hover:bg-brand-hover transition"
                 @click="handleLogout"
               >
                 Log out
@@ -140,6 +144,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/contexts/authContext'
 import { firebaseDisabled } from '@/utils/firebase'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -188,8 +193,8 @@ function linkClass(path) {
   const active = route.path === path
 
   return active
-    ? 'bg-[#CAF0F8] text-[#0077B6] ring-1 ring-[#00B4D8]/40 dark:bg-sky-950/60 dark:text-sky-200 dark:ring-sky-700/40'
-    : 'text-black hover:bg-[#CAF0F8]/60 hover:text-[#0077B6] dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-sky-200'
+    ? 'bg-accent-light text-brand ring-1 ring-accent/40 dark:bg-sky-950/60 dark:text-sky-200 dark:ring-sky-700/40'
+    : 'text-black hover:bg-accent-light/60 hover:text-brand dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-sky-200'
 }
 
 function toggleMenu() {

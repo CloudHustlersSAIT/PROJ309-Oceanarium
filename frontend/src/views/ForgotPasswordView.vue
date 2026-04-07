@@ -39,7 +39,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="fixed inset-0 overflow-hidden bg-white text-black dark:bg-[#0F1117] dark:text-slate-100">
+  <div class="fixed inset-0 overflow-hidden bg-surface-page text-black dark:text-slate-100">
     <div class="h-full grid grid-cols-1 md:grid-cols-[35%_1fr] lg:grid-cols-[30%_1fr]">
       <!-- Left media panel -->
       <aside class="relative hidden md:block overflow-hidden">
@@ -69,7 +69,7 @@ async function handleSubmit() {
       <main class="flex items-center justify-center px-4 py-3 md:py-4 overflow-hidden">
         <div class="w-full max-w-[500px]">
           <div
-            class="min-h-[620px] rounded-none border border-black/5 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40 sm:p-7"
+            class="min-h-[620px] rounded-none border border-black/5 bg-surface-card p-6 shadow-xl dark:border-white/10 dark:shadow-black/40 sm:p-7"
           >
             <header class="mb-5">
               <img
@@ -100,7 +100,7 @@ async function handleSubmit() {
                     v-model="email"
                     type="email"
                     required
-                    class="w-full rounded-2xl border border-black/15 bg-white py-2.5 pl-12 pr-4 text-sm text-black placeholder:text-black/45 outline-none focus:border-[#0077B6] focus:ring-2 focus:ring-[#0077B6]/20 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
+                    class="w-full rounded-2xl border border-black/15 bg-surface-input py-2.5 pl-12 pr-4 text-sm text-black placeholder:text-black/45 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
                     placeholder="you@example.com"
                     autocomplete="email"
                   />
@@ -110,7 +110,7 @@ async function handleSubmit() {
               <button
                 type="submit"
                 :disabled="submitting"
-                class="w-full rounded-2xl bg-[#0077B6] py-3.5 text-base font-bold text-white shadow-md hover:bg-[#0097E7] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition focus:outline-none focus:ring-2 focus:ring-[#0077B6]/30"
+                class="w-full rounded-2xl bg-brand py-3.5 text-base font-bold text-white shadow-md hover:bg-brand-hover hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition focus:outline-none focus:ring-2 focus:ring-brand/30"
               >
                 {{ submitting ? 'Sending...' : 'Send reset link' }}
               </button>
@@ -131,7 +131,7 @@ async function handleSubmit() {
 
               <button
                 type="button"
-                class="w-full rounded-2xl border border-[#0077B6]/35 bg-white py-2.5 text-sm font-semibold text-[#0077B6] transition hover:bg-[#0077B6]/10 focus:outline-none focus:ring-2 focus:ring-[#0077B6]/25 dark:border-sky-700/40 dark:bg-[#1C2333] dark:text-sky-300 dark:hover:bg-sky-950/50 dark:focus:ring-sky-800/50"
+                class="w-full rounded-2xl border border-brand/35 bg-surface-input py-2.5 text-sm font-semibold text-brand transition hover:bg-brand/10 focus:outline-none focus:ring-2 focus:ring-brand/25 dark:border-sky-700/40 dark:text-sky-300 dark:hover:bg-sky-950/50 dark:focus:ring-sky-800/50"
                 @click="router.push('/login')"
               >
                 Back to login

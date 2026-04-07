@@ -722,11 +722,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen overflow-x-hidden bg-slate-100 dark:bg-[#0F1117]">
+  <div class="flex min-h-screen overflow-x-hidden bg-surface-page">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-4 md:p-6 xl:p-8">
-      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30 md:p-6">
+      <section class="rounded-2xl border border-slate-200 bg-surface-card p-4 shadow-sm dark:border-white/10 dark:shadow-black/30 md:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 class="typo-page-title">{{ pageTitle }}</h1>
@@ -750,7 +750,7 @@ onMounted(() => {
               :class="
                 activeTab === tab.key
                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                  : 'bg-white text-gray-700 border-[#ACBAC4] hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
+                  : 'bg-surface-input text-gray-700 border-line-neutral hover:bg-gray-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5'
               "
               @click="switchTab(tab.key)"
             >
@@ -763,7 +763,7 @@ onMounted(() => {
           <article
             v-for="card in summaryCards"
             :key="card.label"
-            class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-[#1A2231]"
+            class="rounded-xl border border-slate-200 bg-surface-elevated px-4 py-3 dark:border-white/10"
           >
             <p class="typo-card-label">{{ card.label }}</p>
             <p class="typo-card-value">{{ card.value }}</p>
@@ -776,7 +776,7 @@ onMounted(() => {
               v-model="searchQuery"
               type="search"
               :placeholder="searchPlaceholder"
-              class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
+              class="w-full rounded-xl border border-slate-300 bg-surface-input py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-800/50"
             />
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
           </div>
@@ -785,7 +785,7 @@ onMounted(() => {
             <span class="font-medium text-slate-700 dark:text-slate-300">Sort by</span>
             <select
               v-model="currentSort"
-              class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:focus:ring-sky-800/50"
+              class="rounded-xl border border-slate-300 bg-surface-input px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-sky-200 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-800/50"
             >
               <option v-for="option in sortOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
@@ -803,7 +803,7 @@ onMounted(() => {
 
       </section>
 
-      <section class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/30">
+      <section class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-surface-card shadow-sm dark:border-white/10 dark:shadow-black/30">
         <header class="border-b border-slate-200 px-4 py-4 dark:border-white/10 md:px-5">
           <h2 class="typo-section-title">{{ listTitle }}</h2>
           <p class="typo-muted">
@@ -817,7 +817,7 @@ onMounted(() => {
         <template v-else>
           <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full text-sm">
-              <thead class="bg-slate-300 text-slate-700 dark:bg-[#1A2231] dark:text-slate-200">
+              <thead class="bg-surface-elevated text-slate-700 dark:text-slate-200">
                 <tr>
                   <th
                     v-for="column in currentColumns"
@@ -891,7 +891,7 @@ onMounted(() => {
             <article
               v-for="row in paginatedRows"
               :key="`mobile-${activeTab}-${row.id}`"
-              class="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
+              class="rounded-xl border border-slate-200 bg-surface-elevated p-3 dark:border-white/10"
             >
               <div class="flex items-start justify-between gap-3">
                 <button
@@ -946,7 +946,7 @@ onMounted(() => {
 
             <div
               v-if="paginatedRows.length === 0"
-              class="rounded-xl border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-400"
+              class="rounded-xl border border-slate-200 bg-surface-elevated p-5 text-center text-sm text-slate-500 dark:border-white/10 dark:text-slate-400"
             >
               No records found for the current filters.
             </div>
@@ -970,7 +970,7 @@ onMounted(() => {
                   :class="
                     currentPage === 1
                       ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
+                      : 'border-slate-300 bg-surface-input text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5'
                   "
                   :disabled="currentPage === 1"
                   @click="goToPage(currentPage - 1)"
@@ -994,8 +994,8 @@ onMounted(() => {
                     class="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border px-3 text-sm font-medium transition"
                     :class="
                       currentPage === item
-                        ? 'border-[#0077B6] bg-[#0077B6] text-white'
-                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
+                        ? 'border-brand bg-brand text-white'
+                        : 'border-slate-300 bg-surface-input text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5'
                     "
                     :aria-current="currentPage === item ? 'page' : undefined"
                     :aria-label="`Go to page ${item}`"
@@ -1011,7 +1011,7 @@ onMounted(() => {
                   :class="
                     currentPage === totalPages
                       ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5'
+                      : 'border-slate-300 bg-surface-input text-slate-700 hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5'
                   "
                   :disabled="currentPage === totalPages"
                   @click="goToPage(currentPage + 1)"
@@ -1027,7 +1027,7 @@ onMounted(() => {
     </main>
 
     <div v-if="showEditPopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeEditPopup">
-      <div class="absolute right-0 top-0 h-full w-full max-w-105 bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
+      <div class="absolute right-0 top-0 h-full w-full max-w-105 bg-panel-dark text-white shadow-2xl p-5 overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <div>
             <div class="typo-modal-eyebrow">Edit</div>
@@ -1042,7 +1042,7 @@ onMounted(() => {
             <input
               v-model="editForm.firstName"
               type="text"
-              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+              class="w-full rounded border border-line-neutral bg-panel-input px-3 py-2 text-sm placeholder:text-gray-400"
               placeholder="Enter first name"
             />
           </div>
@@ -1052,7 +1052,7 @@ onMounted(() => {
             <input
               v-model="editForm.lastName"
               type="text"
-              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+              class="w-full rounded border border-line-neutral bg-panel-input px-3 py-2 text-sm placeholder:text-gray-400"
               placeholder="Enter last name"
             />
           </div>
@@ -1062,7 +1062,7 @@ onMounted(() => {
             <input
               v-model="editForm.email"
               type="email"
-              class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+              class="w-full rounded border border-line-neutral bg-panel-input px-3 py-2 text-sm placeholder:text-gray-400"
               placeholder="Enter email"
             />
           </div>
@@ -1070,7 +1070,7 @@ onMounted(() => {
           <template v-if="editForm.tab === 'guides'">
             <div>
               <label class="text-gray-300 block mb-1">Languages</label>
-              <div class="max-h-28 overflow-y-auto rounded border border-[#ACBAC4] bg-[#2d2d2d] p-2 space-y-1">
+              <div class="max-h-28 overflow-y-auto rounded border border-line-neutral bg-panel-input p-2 space-y-1">
                 <label
                   v-for="language in languageOptions"
                   :key="`lang-${language.id}`"
@@ -1089,7 +1089,7 @@ onMounted(() => {
 
             <div>
               <label class="text-gray-300 block mb-1">Tour Expertise</label>
-              <div class="max-h-28 overflow-y-auto rounded border border-[#ACBAC4] bg-[#2d2d2d] p-2 space-y-1">
+              <div class="max-h-28 overflow-y-auto rounded border border-line-neutral bg-panel-input p-2 space-y-1">
                 <label
                   v-for="tour in tourOptions"
                   :key="`tour-${tour.id}`"
@@ -1111,14 +1111,14 @@ onMounted(() => {
               <input
                 v-model="editForm.guideTimezone"
                 type="text"
-                class="w-full rounded border border-[#ACBAC4] bg-[#2d2d2d] px-3 py-2 text-sm placeholder:text-gray-400"
+                class="w-full rounded border border-line-neutral bg-panel-input px-3 py-2 text-sm placeholder:text-gray-400"
                 placeholder="UTC"
               />
             </div>
 
             <div>
               <label class="text-gray-300 block mb-1">Daily Availability</label>
-              <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-2 space-y-2">
+              <div class="rounded border border-line-neutral bg-panel-input p-2 space-y-2">
                 <div
                   v-for="day in WEEK_DAYS"
                   :key="day"
@@ -1133,14 +1133,14 @@ onMounted(() => {
                     type="time"
                     step="1"
                     :disabled="!editForm.dailyAvailability[day].enabled"
-                    class="rounded border border-[#ACBAC4] bg-[#303030] px-2 py-1 disabled:opacity-50"
+                    class="rounded border border-line-neutral bg-panel-input px-2 py-1 disabled:opacity-50"
                   />
                   <input
                     v-model="editForm.dailyAvailability[day].end"
                     type="time"
                     step="1"
                     :disabled="!editForm.dailyAvailability[day].enabled"
-                    class="rounded border border-[#ACBAC4] bg-[#303030] px-2 py-1 disabled:opacity-50"
+                    class="rounded border border-line-neutral bg-panel-input px-2 py-1 disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -1159,7 +1159,7 @@ onMounted(() => {
     </div>
 
     <div v-if="showGuideDetailsPopup" class="fixed inset-0 z-50 bg-black/40" @click.self="closeGuideDetails">
-      <div class="absolute right-0 top-0 h-full w-full max-w-105 bg-[#1f1f1f] text-white shadow-2xl p-5 overflow-y-auto">
+      <div class="absolute right-0 top-0 h-full w-full max-w-105 bg-panel-dark text-white shadow-2xl p-5 overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <div>
             <div class="typo-modal-eyebrow">Guide Details</div>
@@ -1170,12 +1170,12 @@ onMounted(() => {
         </div>
 
         <div class="space-y-4 text-sm">
-          <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-3">
+          <div class="rounded border border-line-neutral bg-panel-input p-3">
             <p class="font-medium text-gray-300">Email</p>
             <p>{{ selectedGuideDetails?.email || '-' }}</p>
           </div>
 
-          <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-3">
+          <div class="rounded border border-line-neutral bg-panel-input p-3">
             <p class="font-medium text-gray-300">Languages</p>
             <ul class="list-disc pl-5">
               <li v-for="label in selectedGuideLanguageLabels" :key="label">{{ label }}</li>
@@ -1183,7 +1183,7 @@ onMounted(() => {
             </ul>
           </div>
 
-          <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-3">
+          <div class="rounded border border-line-neutral bg-panel-input p-3">
             <p class="font-medium text-gray-300">Tour Expertise</p>
             <ul class="list-disc pl-5">
               <li v-for="label in selectedGuideTourLabels" :key="label">{{ label }}</li>
@@ -1191,12 +1191,12 @@ onMounted(() => {
             </ul>
           </div>
 
-          <div class="rounded border border-[#ACBAC4] bg-[#2d2d2d] p-3">
+          <div class="rounded border border-line-neutral bg-panel-input p-3">
             <p class="font-medium text-gray-300">Weekly Working Schedule</p>
             <p class="text-xs text-gray-400 mb-1">
               Timezone: {{ selectedGuideDetails?.availabilityPatterns?.[0]?.timezone || 'UTC' }}
             </p>
-            <ul class="divide-y divide-[#ACBAC4] border border-[#ACBAC4] rounded">
+            <ul class="divide-y divide-line-neutral border border-line-neutral rounded">
               <li v-for="day in selectedGuideWeeklySchedule" :key="day.day" class="flex items-center justify-between px-3 py-2">
                 <span class="font-medium">{{ day.day }}</span>
                 <span>{{ day.text }}</span>

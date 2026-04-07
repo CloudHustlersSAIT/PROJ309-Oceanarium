@@ -29,20 +29,20 @@ watch(
 </script>
 
 <template>
-  <div class="space-y-3 rounded-xl border border-blue-500 bg-white p-4 shadow-md dark:border-sky-700/40 dark:bg-[#161B27] dark:shadow-black/30">
+  <div class="space-y-3 rounded-xl border border-blue-500 bg-surface-card p-4 shadow-md dark:border-sky-700/40 dark:shadow-black/30">
     <h3 class="text-sm font-semibold text-gray-700 dark:text-slate-100">Filters</h3>
 
     <input
       v-model="local.search"
       type="text"
       placeholder="Search events"
-      class="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100 dark:placeholder:text-slate-500"
+      class="w-full rounded border border-gray-300 bg-surface-input px-3 py-2 text-sm dark:border-white/15 dark:text-slate-100 dark:placeholder:text-slate-500"
     />
 
     <select
       v-model="local.statuses"
       multiple
-      class="min-h-[90px] w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
+      class="min-h-[90px] w-full rounded border border-gray-300 bg-surface-input px-3 py-2 text-sm dark:border-white/15 dark:text-slate-100"
     >
       <option v-for="status in statuses" :key="status" :value="status">{{ status }}</option>
     </select>
@@ -50,7 +50,7 @@ watch(
     <select
       v-model="local.eventTypes"
       multiple
-      class="min-h-[90px] w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
+      class="min-h-[90px] w-full rounded border border-gray-300 bg-surface-input px-3 py-2 text-sm dark:border-white/15 dark:text-slate-100"
     >
       <option v-for="type in eventTypes" :key="type" :value="type">{{ type }}</option>
     </select>

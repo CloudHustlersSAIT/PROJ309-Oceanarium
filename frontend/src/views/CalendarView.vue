@@ -400,7 +400,7 @@ function reservationDetailsStatusClass(status) {
   if (normalized === 'canceled' || normalized === 'cancelled') {
     return 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/45 dark:text-red-300'
   }
-  return 'border-[#ACBAC4] bg-white text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300'
+  return 'border-line-neutral bg-surface-input text-gray-700 dark:border-white/15 dark:text-slate-300'
 }
 
 function closeDayEventsPopup() {
@@ -586,7 +586,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen overflow-x-hidden bg-gray-50 dark:bg-[#0F1117]">
+  <div class="flex min-h-screen overflow-x-hidden bg-surface-page">
     <AppSidebar />
 
     <main class="flex-1 min-w-0 p-3 md:p-4 xl:p-6">
@@ -600,7 +600,7 @@ onBeforeUnmount(() => {
         />
 
         <div
-          class="flex flex-col gap-3 rounded-xl border border-blue-500 bg-white p-3 shadow-md dark:border-sky-700/40 dark:bg-[#161B27] dark:shadow-black/30 md:flex-row md:items-center md:justify-between"
+          class="flex flex-col gap-3 rounded-xl border border-blue-500 bg-surface-card p-3 shadow-md dark:border-sky-700/40 dark:shadow-black/30 md:flex-row md:items-center md:justify-between"
         >
           <div class="text-sm text-gray-600 dark:text-slate-400">
             {{
@@ -618,7 +618,7 @@ onBeforeUnmount(() => {
               Delete selected
             </button>
             <button
-              class="rounded border border-gray-300 px-3 py-1.5 text-sm dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300"
+              class="rounded border border-gray-300 bg-surface-input px-3 py-1.5 text-sm dark:border-white/15 dark:text-slate-300"
               :disabled="calendar.bulkSelection.length === 0"
               @click="calendar.clearBulkSelection()"
             >
@@ -667,7 +667,7 @@ onBeforeUnmount(() => {
       @click.self="closeDayEventsPopup"
     >
       <div
-        class="absolute left-1/2 top-1/2 w-[94%] max-w-160 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
+        class="absolute left-1/2 top-1/2 w-[94%] max-w-160 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line-neutral bg-surface-card p-5 shadow-2xl dark:border-white/10 dark:shadow-black/40"
       >
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">
@@ -684,7 +684,7 @@ onBeforeUnmount(() => {
 
         <div
           v-if="selectedDayEvents.length === 0"
-          class="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm text-gray-600 dark:border-white/15 dark:bg-[#1A2231] dark:text-slate-400"
+          class="rounded border border-dashed border-gray-300 bg-surface-elevated px-4 py-5 text-sm text-gray-600 dark:border-white/15 dark:text-slate-400"
         >
           No events scheduled for this date.
         </div>
@@ -693,7 +693,7 @@ onBeforeUnmount(() => {
           <li
             v-for="event in selectedDayEvents"
             :key="event.id"
-            class="rounded border border-[#ACBAC4] px-3 py-2 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:hover:bg-white/5"
+            class="rounded border border-line-neutral bg-surface-input px-3 py-2 hover:bg-gray-50 dark:border-white/15 dark:hover:bg-white/5"
           >
             <button class="w-full text-left" @click="handleSelectEvent(event)">
               <div class="text-sm font-semibold text-gray-800 dark:text-slate-100">
@@ -728,7 +728,7 @@ onBeforeUnmount(() => {
       @click.self="closeTourDetailsPopup"
     >
       <div
-        class="absolute left-1/2 top-1/2 w-[92%] max-w-130 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#ACBAC4] bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:shadow-black/40"
+        class="absolute left-1/2 top-1/2 w-[92%] max-w-130 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line-neutral bg-surface-card p-5 shadow-2xl dark:border-white/10 dark:shadow-black/40"
       >
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">
@@ -757,10 +757,10 @@ onBeforeUnmount(() => {
           </div>
 
           <div
-            class="grid grid-cols-1 gap-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231] sm:grid-cols-2"
+            class="grid grid-cols-1 gap-3 rounded border border-line-neutral bg-surface-elevated p-3 dark:border-white/10 sm:grid-cols-2"
           >
             <div
-              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+              class="rounded border border-line-neutral bg-surface-input px-3 py-2 dark:border-white/10"
             >
               <p
                 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
@@ -772,7 +772,7 @@ onBeforeUnmount(() => {
               </p>
             </div>
             <div
-              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+              class="rounded border border-line-neutral bg-surface-input px-3 py-2 dark:border-white/10"
             >
               <p
                 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
@@ -784,7 +784,7 @@ onBeforeUnmount(() => {
               </p>
             </div>
             <div
-              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333] sm:col-span-2"
+              class="rounded border border-line-neutral bg-surface-input px-3 py-2 dark:border-white/10 sm:col-span-2"
             >
               <p
                 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
@@ -796,7 +796,7 @@ onBeforeUnmount(() => {
               </p>
             </div>
             <div
-              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+              class="rounded border border-line-neutral bg-surface-input px-3 py-2 dark:border-white/10"
             >
               <p
                 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
@@ -808,7 +808,7 @@ onBeforeUnmount(() => {
               </p>
             </div>
             <div
-              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+              class="rounded border border-line-neutral bg-surface-input px-3 py-2 dark:border-white/10"
             >
               <p
                 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
@@ -820,7 +820,7 @@ onBeforeUnmount(() => {
               </p>
             </div>
             <div
-              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+              class="rounded border border-line-neutral bg-surface-input px-3 py-2 dark:border-white/10"
             >
               <p
                 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
@@ -832,7 +832,7 @@ onBeforeUnmount(() => {
               </p>
             </div>
             <div
-              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333]"
+              class="rounded border border-line-neutral bg-surface-input px-3 py-2 dark:border-white/10"
             >
               <p
                 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
@@ -844,7 +844,7 @@ onBeforeUnmount(() => {
               </p>
             </div>
             <div
-              class="rounded border border-[#D6DEE5] bg-white px-3 py-2 dark:border-white/10 dark:bg-[#1C2333] sm:col-span-2"
+              class="rounded border border-line-neutral bg-surface-input px-3 py-2 dark:border-white/10 sm:col-span-2"
             >
               <p
                 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
@@ -860,7 +860,7 @@ onBeforeUnmount(() => {
 
         <div
           v-if="selectedScheduleId && !isSelectedStatusCancelled"
-          class="mt-4 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
+          class="mt-4 rounded border border-line-neutral bg-surface-elevated p-3 dark:border-white/10"
         >
           <p
             class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-500"
@@ -871,7 +871,7 @@ onBeforeUnmount(() => {
           <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-1">
             <button
               type="button"
-              class="rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-300 dark:hover:bg-white/5"
+              class="rounded border border-line-neutral bg-surface-input px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/5"
               :disabled="showManualAssignPopup || cancellingGuideAssignment"
               @click="showManualAssignPopup = true"
             >
@@ -904,7 +904,7 @@ onBeforeUnmount(() => {
       @click.self="closeCreatePopup"
     >
       <div
-        class="absolute right-0 top-0 h-full w-full max-w-105 overflow-y-auto border-l border-[#ACBAC4] bg-white p-5 text-gray-700 shadow-2xl dark:border-white/10 dark:bg-[#161B27] dark:text-slate-100"
+        class="absolute right-0 top-0 h-full w-full max-w-105 overflow-y-auto border-l border-line-neutral bg-surface-card p-5 text-gray-700 shadow-2xl dark:border-white/10 dark:text-slate-100"
       >
         <div class="flex items-center justify-between mb-4">
           <div class="typo-modal-eyebrow">Create</div>
@@ -926,7 +926,7 @@ onBeforeUnmount(() => {
 
         <div class="mt-5 space-y-4 text-sm">
           <div
-            class="space-y-3 rounded border border-[#ACBAC4] bg-gray-50 p-3 dark:border-white/10 dark:bg-[#1A2231]"
+            class="space-y-3 rounded border border-line-neutral bg-surface-elevated p-3 dark:border-white/10"
           >
             <div>
               <div class="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-200">
@@ -934,13 +934,13 @@ onBeforeUnmount(() => {
               </div>
               <div class="flex gap-2">
                 <button
-                  class="flex-1 rounded border border-[#ACBAC4] bg-white px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-200 dark:hover:bg-white/5"
+                  class="flex-1 rounded border border-line-neutral bg-surface-input px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
                   @click="calendar.navigate(-1)"
                 >
                   Previous
                 </button>
                 <button
-                  class="flex-1 rounded border border-[#ACBAC4] bg-white px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-200 dark:hover:bg-white/5"
+                  class="flex-1 rounded border border-line-neutral bg-surface-input px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
                   @click="calendar.navigate(1)"
                 >
                   Next
@@ -979,7 +979,7 @@ onBeforeUnmount(() => {
             </label>
             <select
               v-model="createForm.tourId"
-              class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
+              class="w-full rounded border border-line-neutral bg-surface-input px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:text-slate-100"
               :disabled="toursLoading || availableTours.length === 0"
             >
               <option value="">Select a tour</option>
@@ -1004,7 +1004,7 @@ onBeforeUnmount(() => {
             <label class="mb-1 block text-gray-600 dark:text-slate-300">Language</label>
             <select
               v-model="createForm.languageCode"
-              class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
+              class="w-full rounded border border-line-neutral bg-surface-input px-3 py-2 text-sm text-gray-700 dark:border-white/15 dark:text-slate-100"
             >
               <option v-for="lang in LANGUAGE_CODE_OPTIONS" :key="lang.code" :value="lang.code">
                 {{ lang.label }} ({{ lang.code }})
@@ -1017,7 +1017,7 @@ onBeforeUnmount(() => {
             <input
               v-model="createForm.eventDate"
               type="date"
-              class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
+              class="w-full rounded border border-line-neutral bg-surface-input px-3 py-2 text-gray-700 dark:border-white/15 dark:text-slate-100"
             />
           </div>
 
@@ -1027,7 +1027,7 @@ onBeforeUnmount(() => {
               <input
                 v-model="createForm.startTime"
                 type="time"
-                class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
+                class="w-full rounded border border-line-neutral bg-surface-input px-3 py-2 text-gray-700 dark:border-white/15 dark:text-slate-100"
               />
             </div>
             <div>
@@ -1035,14 +1035,14 @@ onBeforeUnmount(() => {
               <input
                 v-model="createForm.endTime"
                 type="time"
-                class="w-full rounded border border-[#ACBAC4] bg-white px-3 py-2 text-gray-700 dark:border-white/15 dark:bg-[#1C2333] dark:text-slate-100"
+                class="w-full rounded border border-line-neutral bg-surface-input px-3 py-2 text-gray-700 dark:border-white/15 dark:text-slate-100"
               />
             </div>
           </div>
 
           <div
             v-if="selectedCreateTour"
-            class="rounded border border-[#ACBAC4] bg-gray-50 px-3 py-2 text-xs text-gray-700 dark:border-white/10 dark:bg-[#1A2231] dark:text-slate-200"
+            class="rounded border border-line-neutral bg-surface-elevated px-3 py-2 text-xs text-gray-700 dark:border-white/10 dark:text-slate-200"
           >
             <div>
               <span class="font-semibold">Tour:</span>
