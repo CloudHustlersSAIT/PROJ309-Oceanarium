@@ -660,3 +660,14 @@ export async function updateGuideLanguages(guideId, payload) {
     body: JSON.stringify({ language_ids: languageIds }),
   })
 }
+
+export async function postInsightQuery(question) {
+  if (!question || !question.trim()) {
+    throw new Error('Question cannot be empty.')
+  }
+
+  return fetchAPI('/insights/query', {
+    method: 'POST',
+    body: JSON.stringify({ question: question.trim() }),
+  })
+}
