@@ -22,7 +22,7 @@ class ScheduleCreate(BaseModel):
     language_code: str
     event_start_datetime: datetime
     event_end_datetime: datetime
-    status: str | None = "UNASSIGNED"
+    status: str | None = None
 
 
 @router.get("")

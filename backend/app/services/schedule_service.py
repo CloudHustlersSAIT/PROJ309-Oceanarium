@@ -25,6 +25,7 @@ def get_or_create_schedule(
             WHERE tour_id = :tour_id
             AND LOWER(language_code) = LOWER(:language_code)
             AND event_start_datetime = :event_start
+            AND event_end_datetime = :event_end
             AND status IN ('UNASSIGNED', 'ASSIGNED', 'CONFIRMED', 'UNASSIGNABLE')
             LIMIT 1
             """
@@ -33,6 +34,7 @@ def get_or_create_schedule(
             "tour_id": tour_id,
             "language_code": language,
             "event_start": event_start_datetime,
+            "event_end": event_end_datetime,
         },
     ).fetchone()
 

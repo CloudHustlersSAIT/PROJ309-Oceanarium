@@ -28,7 +28,11 @@ def _acquire_schedule_create_lock(conn, tour_id: int, language_code: str, start_
         ),
         {
             "tour_lock_key": int(tour_id),
-            "schedule_fingerprint": (f"{language_code.lower()}|{start_dt.isoformat()}|{end_dt.isoformat()}"),
+            "schedule_fingerprint": (
+                f"{language_code.lower()}|"
+                f"{start_dt.astimezone(timezone.utc).isoformat()}|"
+                f"{end_dt.astimezone(timezone.utc).isoformat()}"
+            ),
         },
     )
 
@@ -172,7 +176,7 @@ def create_schedule(conn, data):
             raise NotFoundError("Guide not found")
 
     requested_status = (data.status or "").strip().upper()
-    status = "UNASSIGNED" if guide_id is None else requested_status or "ASSIGNED"
+    status = requested_status or ("UNASSIGNED" if guide_id is None else "ASSIGNED")
 
     _acquire_schedule_create_lock(conn, data.tour_id, language_code, start_dt, end_dt)
 
