@@ -28,11 +28,7 @@ def _acquire_schedule_create_lock(conn, tour_id: int, language_code: str, start_
         ),
         {
             "tour_lock_key": int(tour_id),
-            "schedule_fingerprint": (
-                f"{language_code.lower()}|"
-                f"{start_dt.isoformat()}|"
-                f"{end_dt.isoformat()}"
-            ),
+            "schedule_fingerprint": (f"{language_code.lower()}|{start_dt.isoformat()}|{end_dt.isoformat()}"),
         },
     )
 
