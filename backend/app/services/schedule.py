@@ -176,10 +176,7 @@ def create_schedule(conn, data):
             raise NotFoundError("Guide not found")
 
     requested_status = (data.status or "").strip().upper()
-    if guide_id is None:
-        status = "UNASSIGNED"
-    else:
-        status = requested_status or "ASSIGNED"
+    status = "UNASSIGNED" if guide_id is None else requested_status or "ASSIGNED"
 
     _acquire_schedule_create_lock(conn, data.tour_id, language_code, start_dt, end_dt)
 
