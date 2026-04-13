@@ -41,7 +41,7 @@ async def test_get_schedules_validation_error(client):
 @pytest.mark.asyncio
 async def test_create_schedule_success(client):
     with patch("app.routes.schedule.schedule_service") as mock_svc:
-        mock_svc.create_schedule.return_value = {"id": 1, "status": "CONFIRMED"}
+        mock_svc.create_schedule.return_value = {"id": 1, "status": "UNASSIGNED"}
         response = await client.post(
             "/schedules",
             json={
