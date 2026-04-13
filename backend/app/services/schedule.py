@@ -7,6 +7,36 @@ from sqlalchemy import text
 from .exceptions import NotFoundError, ValidationError
 
 
+def _is_postgresql_connection(conn) -> bool:
+    dialect_name = getattr(getattr(getattr(conn, "engine", None), "dialect", None), "name", None)
+    return isinstance(dialect_name, str) and dialect_name.lower().startswith("postgres")
+
+
+def _acquire_schedule_create_lock(conn, tour_id: int, language_code: str, start_dt, end_dt) -> None:
+    if not _is_postgresql_connection(conn):
+        return
+
+    # Serialize create attempts for the same logical schedule key.
+    conn.execute(
+        text(
+            """
+            SELECT pg_advisory_xact_lock(
+                :tour_lock_key,
+                hashtext(:schedule_fingerprint)
+            )
+            """
+        ),
+        {
+            "tour_lock_key": int(tour_id),
+            "schedule_fingerprint": (
+                f"{language_code.lower()}|"
+                f"{start_dt.isoformat()}|"
+                f"{end_dt.isoformat()}"
+            ),
+        },
+    )
+
+
 def list_schedules(
     conn,
     start_date: date | None = None,
@@ -91,10 +121,6 @@ def create_schedule(conn, data):
     if len(language_code) > 2:
         raise ValidationError("language_code must be at most 2 characters")
 
-    status = (data.status or "CONFIRMED").strip().upper()
-    if not status:
-        raise ValidationError("status cannot be empty")
-
     # Normalize naive datetimes to UTC to keep inserts consistent.
     start_dt = data.event_start_datetime
     end_dt = data.event_end_datetime
@@ -148,6 +174,39 @@ def create_schedule(conn, data):
         ).fetchone()
         if not guide:
             raise NotFoundError("Guide not found")
+
+    requested_status = (data.status or "").strip().upper()
+    if guide_id is None:
+        status = "UNASSIGNED"
+    else:
+        status = requested_status or "ASSIGNED"
+
+    _acquire_schedule_create_lock(conn, data.tour_id, language_code, start_dt, end_dt)
+
+    existing = conn.execute(
+        text(
+            """
+            SELECT *
+            FROM schedule
+            WHERE tour_id = :tour_id
+              AND LOWER(language_code) = LOWER(:language_code)
+              AND event_start_datetime = :event_start_datetime
+              AND event_end_datetime = :event_end_datetime
+              AND status != 'CANCELLED'
+            LIMIT 1
+            """
+        ),
+        {
+            "tour_id": data.tour_id,
+            "language_code": language_code,
+            "event_start_datetime": start_dt,
+            "event_end_datetime": end_dt,
+        },
+    )
+    existing_row = existing.fetchone()
+    if existing_row:
+        columns = existing.keys()
+        return dict(zip(columns, existing_row))
 
     result = conn.execute(
         text(

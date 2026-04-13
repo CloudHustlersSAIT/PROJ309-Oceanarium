@@ -11,7 +11,7 @@ def get_or_create_schedule(
     language_code: str,
     event_start_datetime,
     event_end_datetime,
-    status: str = "CONFIRMED",
+    status: str = "UNASSIGNED",
 ):
 
     language = (language_code or "").strip().lower()

@@ -57,7 +57,7 @@ class TestCreateSchedule:
             "language_code": "en",
             "event_start_datetime": datetime(2026, 3, 10, 10, 0),
             "event_end_datetime": datetime(2026, 3, 10, 11, 0),
-            "status": "CONFIRMED",
+            "status": "UNASSIGNED",
         }
         defaults.update(overrides)
         return MagicMock(**defaults)
@@ -78,11 +78,6 @@ class TestCreateSchedule:
     def test_raises_on_long_language_code(self, mock_conn):
         payload = self._make_payload(language_code="eng")
         with pytest.raises(ValidationError, match="at most 2 characters"):
-            create_schedule(mock_conn, payload)
-
-    def test_raises_on_empty_status(self, mock_conn):
-        payload = self._make_payload(status="  ")
-        with pytest.raises(ValidationError, match="status cannot be empty"):
             create_schedule(mock_conn, payload)
 
     def test_raises_when_tour_not_found(self, mock_conn):
@@ -119,13 +114,52 @@ class TestCreateSchedule:
         tour_result.fetchone.return_value = MagicMock(id=1)
         lang_result = MagicMock()
         lang_result.fetchone.return_value = MagicMock(code="en")
+        existing_result = MagicMock()
+        existing_result.fetchone.return_value = None
         insert_result = MagicMock()
         insert_result.keys.return_value = ["id", "tour_id", "status"]
-        insert_result.fetchone.return_value = (1, 1, "CONFIRMED")
-        mock_conn.execute.side_effect = [tour_result, lang_result, insert_result]
+        insert_result.fetchone.return_value = (1, 1, "UNASSIGNED")
+        mock_conn.execute.side_effect = [tour_result, lang_result, existing_result, insert_result]
 
         result = create_schedule(mock_conn, payload)
 
         assert result["id"] == 1
-        assert result["status"] == "CONFIRMED"
+        assert result["status"] == "UNASSIGNED"
         mock_conn.commit.assert_called_once()
+
+    def test_duplicate_create_returns_existing_schedule(self, mock_conn):
+        payload = self._make_payload()
+        tour_result = MagicMock()
+        tour_result.fetchone.return_value = MagicMock(id=1)
+        lang_result = MagicMock()
+        lang_result.fetchone.return_value = MagicMock(code="en")
+        existing_result = MagicMock()
+        existing_result.keys.return_value = ["id", "tour_id", "status"]
+        existing_result.fetchone.return_value = (99, 1, "UNASSIGNED")
+        mock_conn.execute.side_effect = [tour_result, lang_result, existing_result]
+
+        result = create_schedule(mock_conn, payload)
+
+        assert result["id"] == 99
+        assert result["status"] == "UNASSIGNED"
+        mock_conn.commit.assert_not_called()
+
+    def test_create_with_guide_defaults_to_assigned(self, mock_conn):
+        payload = self._make_payload(guide_id=42, status=None)
+        tour_result = MagicMock()
+        tour_result.fetchone.return_value = MagicMock(id=1)
+        lang_result = MagicMock()
+        lang_result.fetchone.return_value = MagicMock(code="en")
+        guide_result = MagicMock()
+        guide_result.fetchone.return_value = MagicMock(id=42)
+        existing_result = MagicMock()
+        existing_result.fetchone.return_value = None
+        insert_result = MagicMock()
+        insert_result.keys.return_value = ["id", "tour_id", "status"]
+        insert_result.fetchone.return_value = (1, 1, "ASSIGNED")
+        mock_conn.execute.side_effect = [tour_result, lang_result, guide_result, existing_result, insert_result]
+
+        create_schedule(mock_conn, payload)
+
+        insert_params = mock_conn.execute.call_args_list[-1].args[1]
+        assert insert_params["status"] == "ASSIGNED"
